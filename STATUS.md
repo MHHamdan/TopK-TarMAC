@@ -1,6 +1,6 @@
 # STATUS
 
-**Active phase:** Phase 1 — Literature review
+**Active phase:** Phase 3 — Contribution selection (FORCED CHECKPOINT)
 **Last update:** 2026-05-20
 
 ## Plan summary (5 lines)
@@ -15,9 +15,23 @@
 - Budget: 48 GPU-hours total, 200 GB disk. Realistic given low free VRAM → bias toward small benchmarks (MPE, Hanabi, MiniGrid)
 
 ## Next action
-Build structured literature review across 4 lanes: cooperative MARL (Lane A),
-agentic LLM-RL (Lane B), distributed RL infra (Lane C), game-theoretic / large-scale
-MARL (Lane D). Target ≥40 entries in references.bib, with one note per paper.
+Phase 3 — write 3 ranked contribution proposals in `proposals/`, then
+`SELECTED.md`. **Forced checkpoint:** pause 24 h for human review after
+writing.
+
+## Phase 2 completion
+- `benchmark_landscape.md` written; primary = MPE simple_spread, secondary =
+  LBF. SMAC and LLM-agent suites rejected on budget/license grounds.
+- `src/envs/mpe.py` provides stacked-tensor wrapper; 8/8 tests green.
+
+## Phase 3 — FORCED CHECKPOINT, pause requested
+- 3 proposals written: `proposals/proposal_001.md`,
+  `proposals/proposal_002.md`, `proposals/proposal_003.md`.
+- Ranked in `proposals/SELECTED.md`; top-ranked is **Proposal 001 —
+  TopK-TarMAC** (score 18/20).
+- Per run prompt: pausing 24 h for human review. If unattended after 24 h,
+  the autonomous agent will proceed with Proposal 001 and log that decision
+  in `DECISIONS.md`.
 
 ## Blockers
 None.

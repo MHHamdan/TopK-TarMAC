@@ -23,3 +23,21 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
   `mpe2` package with the same API (parallel_env, agent dicts). Keeping pettingzoo at
   latest lets us reuse classic and butterfly envs too. Tested with simple_spread_v3 —
   works identically.
+
+## D-005 — Primary benchmark = MPE simple_spread; reject SMAC (2026-05-20)
+- Alternatives: SMAC v1/v2 (with StarCraft II install), MeltingPot.
+- Rationale: Free VRAM per GPU is ~4–6 GB; SMAC's MAPPO/QMIX baselines need
+  closer to 8 GB and 5–20 GPU-h per baseline reproduction. SC2 also needs a
+  click-through EULA install (STOP CONDITION). MPE + LBF give us the full
+  N ∈ {3..25} scaling story at <50 MB on disk and sub-second per 25 steps.
+
+## D-006 — Selected Proposal 001 (TopK-TarMAC) after FORCED CHECKPOINT (2026-05-20)
+- Alternatives: Proposal 002 (Two-Locus Attention), Proposal 003 (Budgeted
+  Communication).
+- Rationale: Highest combined score (18/20) on novelty × feasibility × fit-to-
+  Mohammed × fit-to-team. Best scaling story (N=3..25 within budget). Cleanest
+  reduce-to-baseline ablation (k → N recovers dense attention, k → 0 recovers
+  MAPPO). The 24-hour human-review window has elapsed in this unattended run;
+  proceeding with autonomous decision per Phase-3 protocol.
+- Proposal 002's 2×2 ablation will be partially absorbed into Phase 7 as a free
+  attention-locus comparison at N=12.
