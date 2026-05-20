@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Data / models — large artifacts
+data/raw/
+data/processed/
+data/*.zip
+data/*.tar*
+results/**/checkpoints/
+results/**/*.pt
+results/**/*.ckpt
+*.log
+
+# WandB / TB
+wandb/
+tb_logs/
+runs/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Literature PDFs (license-uncertain): track only notes + bib
+literature/papers/*.pdf
+
+# Generated paper artifacts
+paper/main.aux
+paper/main.log
+paper/main.out
+paper/main.bbl
+paper/main.blg
+paper/main.fls
+paper/main.fdb_latexmk
+paper/main.synctex.gz

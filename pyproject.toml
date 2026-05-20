@@ -1,0 +1,47 @@
+[project]
+name = "agentic-marl"
+version = "0.1.0"
+description = "Agentic RL / MARL research — workshop paper draft"
+readme = "README.md"
+requires-python = ">=3.10,<3.12"
+
+# Pinned for reproducibility. CPU-friendly versions; CUDA wheels resolved by uv via index.
+dependencies = [
+    # Core numerics
+    "torch>=2.3,<2.6",
+    "numpy>=1.26,<2.2",
+    "scipy>=1.11",
+    "pandas>=2.1",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    # MARL envs
+    "pettingzoo>=1.24,<2.0",
+    "mpe2>=1.1,<2.0",
+    "supersuit>=3.9",
+    "gymnasium>=0.29,<1.1",
+    # Tracking
+    "tensorboard>=2.16",
+    "wandb>=0.16",
+    # Bib / arxiv tooling
+    "arxiv>=2.1",
+    "bibtexparser>=1.4",
+    # Utility
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+    "ipython>=8.0",
+]
+# Reference implementations / heavier deps installed only on demand.
+extras = [
+    "cleanrl",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
