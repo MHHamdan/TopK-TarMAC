@@ -16,3 +16,10 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
 - Alternatives: pip + venv, conda.
 - Rationale: `uv` is on PATH, faster resolves, lockfile semantics. Mohammed's global
   preferences accept this.
+
+## D-004 — Use `mpe2` package for MPE envs (2026-05-20)
+- Alternatives: pin pettingzoo to 1.24 (still bundled MPE).
+- Rationale: pettingzoo 1.26 removed MPE; upstream officially moved it to the standalone
+  `mpe2` package with the same API (parallel_env, agent dicts). Keeping pettingzoo at
+  latest lets us reuse classic and butterfly envs too. Tested with simple_spread_v3 —
+  works identically.

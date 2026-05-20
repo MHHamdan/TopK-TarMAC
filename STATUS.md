@@ -1,7 +1,7 @@
 # STATUS
 
-**Active phase:** Phase 0 — Setup
-**Last update:** 2026-05-19
+**Active phase:** Phase 1 — Literature review
+**Last update:** 2026-05-20
 
 ## Plan summary (5 lines)
 1. Phase 0 sets up repo, deps (uv-managed venv, torch + MARL stack), and smoke tests.
@@ -15,7 +15,15 @@
 - Budget: 48 GPU-hours total, 200 GB disk. Realistic given low free VRAM → bias toward small benchmarks (MPE, Hanabi, MiniGrid)
 
 ## Next action
-Finish Phase 0: write pyproject + venv install, smoke tests, initial commit.
+Build structured literature review across 4 lanes: cooperative MARL (Lane A),
+agentic LLM-RL (Lane B), distributed RL infra (Lane C), game-theoretic / large-scale
+MARL (Lane D). Target ≥40 entries in references.bib, with one note per paper.
 
 ## Blockers
 None.
+
+## Phase 0 completion
+- Commit `ff90ccf` on branch `research`.
+- 6/6 smoke tests passing. torch 2.5.1+cu124 sees all 4 GPUs.
+- Decision D-004: pettingzoo 1.26 dropped MPE → switched to `mpe2` package (still
+  upstream-blessed split). Pinned in pyproject.toml.
