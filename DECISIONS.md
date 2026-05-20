@@ -31,6 +31,18 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
   click-through EULA install (STOP CONDITION). MPE + LBF give us the full
   N ∈ {3..25} scaling story at <50 MB on disk and sub-second per 25 steps.
 
+## D-007 — Disable absolute `value_clip` and use per-agent reward (2026-05-20)
+- Alternatives: keep CleanRL/MAPPO-paper default value_clip=0.2.
+- Rationale: With raw team-reward magnitudes around 75 (returns -25 to -75
+  per episode at N=3), clipping per-update value change to ±0.2 lets the
+  critic move at most 0.2 toward the target per minibatch. Critic never fits;
+  policy gets no usable advantage signal. First 500k-step run plateaued
+  ~3 points above random. Two fixes together: (a) per_agent_reward divides
+  team_r by N to keep magnitudes O(1); (b) value_clip set high enough not to
+  bite. After fix, single-seed 800k-step run reaches -57.8 ± 16.7 (down from
+  random -77.8). Both knobs live in `TrainerConfig` so the original behaviour
+  is one flag flip away.
+
 ## D-006 — Selected Proposal 001 (TopK-TarMAC) after FORCED CHECKPOINT (2026-05-20)
 - Alternatives: Proposal 002 (Two-Locus Attention), Proposal 003 (Budgeted
   Communication).
