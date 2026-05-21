@@ -1,4 +1,4 @@
-# Python
+# --- Python ---
 __pycache__/
 *.pyc
 *.pyo
@@ -10,37 +10,32 @@ dist/
 .pytest_cache/
 .ruff_cache/
 
-# Data / models — large artifacts
-data/raw/
-data/processed/
-data/*.zip
-data/*.tar*
-results/**/checkpoints/
-results/**/*.pt
-results/**/*.ckpt
-*.log
-
-# WandB / TB
-wandb/
-tb_logs/
-runs/
-
-# Editor / OS
+# --- Editors / OS ---
 .vscode/
 .idea/
 .DS_Store
 *.swp
-
-# Literature PDFs (license-uncertain): track only notes + bib
-literature/papers/*.pdf
-
-# Generated paper artifacts
-paper/main.aux
-paper/main.log
-paper/main.out
-paper/main.bbl
-paper/main.blg
-paper/main.fls
-paper/main.fdb_latexmk
-paper/main.synctex.gz
 .claude/
+
+# --- Run-time / logging artefacts ---
+wandb/
+tb_logs/
+runs/
+*.log
+
+# --- Large data directories (untracked by default; populate locally) ---
+data/raw/
+data/processed/
+data/*.zip
+data/*.tar*
+
+# --- Paper artefacts (kept private; not pushed to GitHub) ---
+paper/
+PAPER_PROMPT.md
+
+# --- Internal planning artefacts (private; not pushed) ---
+proposals/
+STATUS.md
+
+# --- Literature PDFs (license-uncertain; notes + bib are tracked) ---
+literature/papers/*.pdf
