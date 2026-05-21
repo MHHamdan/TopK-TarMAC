@@ -9,6 +9,7 @@ build/
 dist/
 .pytest_cache/
 .ruff_cache/
+.ipynb_checkpoints/
 
 # --- Editors / OS ---
 .vscode/
@@ -22,6 +23,12 @@ wandb/
 tb_logs/
 runs/
 *.log
+
+# --- Trained checkpoints (large binaries; full reproducibility comes from
+#     metrics.csv + config.json + final_eval.json, all of which ARE tracked) ---
+results/**/*.pt
+results/**/*.ckpt
+results/**/checkpoints/
 
 # --- Large data directories (untracked by default; populate locally) ---
 data/raw/
