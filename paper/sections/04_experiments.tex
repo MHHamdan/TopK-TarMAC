@@ -45,6 +45,18 @@ attention channel does not move the needle: both Dense and Adaptive TopK
 deltas vs MAPPO are within one between-seed standard deviation and have
 $p \gtrsim 0.4$. We report the cell honestly rather than tune it away.
 
+The picture changes at $N{=}6$. Dense Attn-Comm yields a mean delta of
+$+12.1$ over MAPPO (95\% bootstrap CI $[+2.3, +26.5]$, Cohen's $d{=}1.06$;
+five seeds each). The bootstrap CI excludes 0 even though the Welch
+$p$-value is 0.16 at $n{=}5$ — a known small-$n$ disagreement between
+$t$-test and resampling, where the resampling test is more robust to the
+non-normality of the per-seed score distribution. Adaptive TopK, by
+contrast, ends statistically tied with MAPPO at $N{=}6$ (mean delta
+$+1.8$, CI $[-19.6, +22.5]$, $d{=}0.09$). The high between-seed std of
+TopK ($20.0$ vs $3.7$ for Dense) is itself the diagnostic: the
+Gumbel-softmax gate introduces seed-dependent gating variance that
+dominates the small return improvement Dense buys.
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.55\linewidth]{figures/fig2_learning_curves_n6.pdf}
@@ -67,13 +79,16 @@ covers a smaller fraction of the team.
 \label{fig:scaling}
 \end{figure}
 
-\paragraph{FLOPs / return Pareto.} Figure~\ref{fig:flops} reports the
-empirical message-aggregation FLOPs ratio (effective $k$ over $N{-}1$)
-against final return. Adaptive TopK uses
-$k_{\mathrm{eff}}/(N{-}1) \approx 0.4$--$0.6$ on average and matches Dense
-attention's return; in the operating region where dense attention is
-expensive ($N \geq 12$), TopK gets the same return for a fraction of the
-aggregation cost.
+\paragraph{FLOPs / return trade-off.} Figure~\ref{fig:flops} reports the
+empirical message-aggregation FLOPs ratio (effective $k$ over $N{-}1$,
+measured by averaging the Gumbel gate over 16 greedy-eval episodes per
+seed) against final return. At $N{=}6$, Adaptive TopK selects
+$k_{\mathrm{eff}}/(N{-}1) \approx 0.79$ on average --- a 21\% reduction
+in message-aggregation FLOPs vs Dense --- but with no meaningful return
+improvement over MAPPO. The honest reading is that, with the current
+end-to-end Gumbel-softmax gate, the FLOPs savings come at the cost of the
+return that Dense Attn-Comm achieves. Dense Pareto-dominates TopK on
+return; TopK Pareto-dominates Dense on FLOPs.
 
 \begin{figure}[t]
 \centering

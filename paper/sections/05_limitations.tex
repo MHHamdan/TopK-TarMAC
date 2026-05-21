@@ -10,9 +10,11 @@ $\mathcal{O}(N^2)\to\mathcal{O}(Nk)$ gap should be most visible.
 Our reduce-to-baseline ablation works by construction (zeroed messages
 yield baseline logits exactly), but our $k$-gate uses Gumbel-softmax with
 the straight-through trick — the gradient signal through the gate is
-biased, and we observed slightly higher per-seed variance for the adaptive
-variant than for the dense one. A budget-regularised Lagrangian (Proposal
-003 in this project's design notes) would likely tighten this.
+biased, and we observe a between-seed std of 20.0 for adaptive-$k$ at
+$N{=}6$ versus 3.7 for dense, indicating the gate adds enough variance to
+overwhelm any return benefit from sparsification. A budget-regularised
+Lagrangian on the message KL or on $k_{\mathrm{eff}}$ itself, in place
+of the unsupervised Gumbel gate, is the natural next step.
 
 Finally, we do not yet provide a wall-clock comparison: our 2080 Ti
 inference is rollout-bound on CPU, so the FLOPs savings predicted by the
