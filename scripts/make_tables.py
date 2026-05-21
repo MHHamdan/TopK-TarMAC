@@ -15,7 +15,6 @@ import json
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 from scipy import stats
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -48,6 +47,32 @@ def paired_test(a: list[float], b: list[float]) -> float:
         return float("nan")
     t = stats.ttest_ind(a, b, equal_var=False)
     return float(t.pvalue)
+
+
+def cohens_d(a: list[float], b: list[float]) -> float:
+    if len(a) < 2 or len(b) < 2:
+        return float("nan")
+    aa = np.asarray(a, float); bb = np.asarray(b, float)
+    pooled = np.sqrt((aa.var(ddof=1) + bb.var(ddof=1)) / 2.0)
+    if pooled == 0:
+        return float("nan")
+    return float((bb.mean() - aa.mean()) / pooled)
+
+
+def bootstrap_ci(a: list[float], b: list[float], n: int = 10000,
+                 rng_seed: int = 0) -> tuple[float, float]:
+    """Two-sample percentile bootstrap CI for the mean difference (b - a)."""
+    if len(a) < 2 or len(b) < 2:
+        return (float("nan"), float("nan"))
+    rng = np.random.default_rng(rng_seed)
+    aa = np.asarray(a, float); bb = np.asarray(b, float)
+    diffs = np.empty(n)
+    for i in range(n):
+        sa = rng.choice(aa, size=aa.size, replace=True)
+        sb = rng.choice(bb, size=bb.size, replace=True)
+        diffs[i] = sb.mean() - sa.mean()
+    lo, hi = np.percentile(diffs, [2.5, 97.5])
+    return (float(lo), float(hi))
 
 
 def headline_table(N_list: list[int]) -> str:
@@ -101,15 +126,84 @@ two-sided Welch p-value vs MAPPO.}
     return head + body + tail
 
 
+def stats_json(N_list: list[int]) -> dict:
+    """Detailed numbers for the manuscript: mean, std, p, d, bootstrap CI."""
+    out = {}
+    for N in N_list:
+        base = collect_eval(f"mappo_mpe_n{N}_baseline")
+        dense = collect_eval(f"mappo_mpe_n{N}_dense")
+        topk = collect_eval(f"mappo_mpe_n{N}_topk")
+        out[str(N)] = {
+            "baseline_mean": float(np.mean(base)) if base else None,
+            "baseline_std": float(np.std(base)) if base else None,
+            "baseline_n": len(base),
+            "dense_mean": float(np.mean(dense)) if dense else None,
+            "dense_std": float(np.std(dense)) if dense else None,
+            "dense_n": len(dense),
+            "dense_p_vs_baseline": paired_test(base, dense),
+            "dense_cohens_d": cohens_d(base, dense),
+            "dense_ci95": bootstrap_ci(base, dense),
+            "topk_mean": float(np.mean(topk)) if topk else None,
+            "topk_std": float(np.std(topk)) if topk else None,
+            "topk_n": len(topk),
+            "topk_p_vs_baseline": paired_test(base, topk),
+            "topk_cohens_d": cohens_d(base, topk),
+            "topk_ci95": bootstrap_ci(base, topk),
+        }
+    return out
+
+
+def ablation_table(N: int = 6) -> str:
+    """Compare adaptive-k vs fixed-k variants on the same MAPPO+comm
+    backbone at one $N$."""
+    cells = {}
+    runs = {
+        "MAPPO (baseline)": f"mappo_mpe_n{N}_baseline",
+        "Dense Attn-Comm": f"mappo_mpe_n{N}_dense",
+        "Adaptive TopK (ours)": f"mappo_mpe_n{N}_topk",
+        f"Fixed TopK ($k{{=}}2$)": f"mappo_mpe_n{N}_topk_fixed_k2",
+        f"Fixed TopK ($k{{=}}4$)": f"mappo_mpe_n{N}_topk_fixed_k4",
+    }
+    body_lines = []
+    for name, run in runs.items():
+        vals = collect_eval(run)
+        body_lines.append(rf"{name} & {fmt_mean_std(vals) if vals else '--'} & {len(vals)} \\")
+    body = "\n".join(body_lines)
+    return (r"""\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+Variant & Final eval mean $\pm$ std & $n$ seeds \\
+\midrule
+""" + body + r"""
+\bottomrule
+\end{tabular}
+\caption{Ablation table at $N{=}""" + str(N) + r"""$ on MPE
+\texttt{simple\_spread}. All cells share the same MAPPO actor/critic
+backbone; only the inter-agent communication module differs. Adaptive TopK
+learns $k_i$ per agent per step; Fixed TopK uses a static $k$.}
+\label{tab:ablation}
+\end{table}""")
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--n-list", nargs="+", type=int, default=[3, 6, 12])
+    p.add_argument("--ablation-n", type=int, default=6)
     args = p.parse_args()
     tex = headline_table(args.n_list)
     out = TABLES / "table_headline.tex"
     out.write_text(tex)
     print(f"wrote {out}")
-    print(tex)
+    abl = ablation_table(args.ablation_n)
+    out2 = TABLES / "table_ablation.tex"
+    out2.write_text(abl)
+    print(f"wrote {out2}")
+    # Detailed stats JSON for the prose paragraphs.
+    stats_path = TABLES / "headline_stats.json"
+    stats_path.write_text(json.dumps(stats_json(args.n_list), indent=2))
+    print(f"wrote {stats_path}")
 
 
 if __name__ == "__main__":
