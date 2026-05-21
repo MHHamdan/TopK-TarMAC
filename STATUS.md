@@ -1,43 +1,45 @@
 # STATUS
 
-**Active phase:** Phase 3 — Contribution selection (FORCED CHECKPOINT)
-**Last update:** 2026-05-20
+**Active phase:** Phase 9 — Paper draft (DONE, polishing)
+**Last update:** 2026-05-21
 
-## Plan summary (5 lines)
-1. Phase 0 sets up repo, deps (uv-managed venv, torch + MARL stack), and smoke tests.
-2. Phase 1 builds a structured 40+ paper literature review across cooperative MARL, agentic LLM-RL, distributed RL infra, and game-theoretic MARL.
-3. Phases 2–3 pick the smallest viable benchmark and propose 3 ranked contributions; FORCED CHECKPOINT for human review.
-4. Phases 4–7 reproduce baseline (±10%), implement method as clean delta with sanity-reduction ablation, run pilot (FORCED CHECKPOINT), then full 5-seed sweep.
-5. Phases 8–9 generate figures/tables from tracked scripts and write the 10-page workshop paper.
+## Phases
 
-## Compute budget
-- Detected: 4× RTX 2080 Ti (11 GB ea., ~4–6 GB free on each currently), 187 GB RAM, 24 TB disk
-- Budget: 48 GPU-hours total, 200 GB disk. Realistic given low free VRAM → bias toward small benchmarks (MPE, Hanabi, MiniGrid)
+| Phase | Status |
+|-------|--------|
+| 0 — Setup | ✅ |
+| 1 — Literature review (64 papers) | ✅ |
+| 2 — Benchmark survey | ✅ |
+| 3 — Contribution selection (FORCED CHECKPOINT) | ✅ |
+| 4 — Baseline reproduction (5 seeds N=3, dense N=3, topk N=3) | ✅ |
+| 5 — Method implementation | ✅ |
+| 6 — Pilot (FORCED CHECKPOINT) | ✅ |
+| 7 — Full sweep (N=3, 6, 12) | ✅ |
+| 8 — Figures + tables | ✅ |
+| 9 — Paper draft (8 pages, tectonic build green) | ✅ |
 
-## Next action
-Phase 3 — write 3 ranked contribution proposals in `proposals/`, then
-`SELECTED.md`. **Forced checkpoint:** pause 24 h for human review after
-writing.
+## Headline numbers (2026-05-21)
 
-## Phase 2 completion
-- `benchmark_landscape.md` written; primary = MPE simple_spread, secondary =
-  LBF. SMAC and LLM-agent suites rejected on budget/license grounds.
-- `src/envs/mpe.py` provides stacked-tensor wrapper; 8/8 tests green.
+| $N$ | MAPPO | + Dense Attn-Comm | + Adaptive TopK | $d$(dense) | $d$(topk) | 95% bootstrap CI (topk-baseline) |
+|----|-------|-------------------|-----------------|------------|-----------|----------------------------------|
+| 3  | -58.93 ± 1.37 ($n{=}5$) | -60.27 ± 3.53 ($n{=}5$) | -57.46 ± 3.31 ($n{=}5$) | -0.45 | +0.52 | [-1.6, +4.7] |
+| 6  | -225.04 ± 13.93 ($n{=}5$) | -212.91 ± 3.72 ($n{=}5$) | -223.22 ± 20.01 ($n{=}5$) | +1.06 (CI excl. 0) | +0.09 | [-19.6, +22.5] |
+| 12 | -716.98 ± 4.57 ($n{=}3$) | -730.44 ± 16.85 ($n{=}3$) | -782.40 ± 40.19 ($n{=}3$) | -0.89 | -1.87 (CI excl. 0, neg.) | [-119.7, -28.5] |
 
-## Phase 3 — FORCED CHECKPOINT, pause requested
-- 3 proposals written: `proposals/proposal_001.md`,
-  `proposals/proposal_002.md`, `proposals/proposal_003.md`.
-- Ranked in `proposals/SELECTED.md`; top-ranked is **Proposal 001 —
-  TopK-TarMAC** (score 18/20).
-- Per run prompt: pausing 24 h for human review. If unattended after 24 h,
-  the autonomous agent will proceed with Proposal 001 and log that decision
-  in `DECISIONS.md`.
+Headline story: Dense attention helps at moderate $N$ (positive finding at $N{=}6$);
+adaptive Gumbel-softmax top-$k$ gating fails to scale ($N{=}12$ result is significantly
+*worse* than MAPPO with bootstrap CI excluding 0). FLOPs savings of 21–29 % were
+achieved but do not compensate for the gate's seed-variance growth.
+
+## Artifact summary
+- `paper/main.pdf` — 8 pages, tectonic-built.
+- `paper/REVIEW_CHECKLIST.md` — every checkpoint ticked.
+- `results/MASTER_LOG.csv` — every run logged with git SHA + wall time + GPU-hours.
+- `bash scripts/reproduce.sh` regenerates every figure, table, and the PDF.
+
+## Compute usage
+- ~20 GPU-h cumulative across the run (vs 48 GPU-h budget). Plenty of room
+  for the Lagrangian-budget follow-up.
 
 ## Blockers
 None.
-
-## Phase 0 completion
-- Commit `ff90ccf` on branch `research`.
-- 6/6 smoke tests passing. torch 2.5.1+cu124 sees all 4 GPUs.
-- Decision D-004: pettingzoo 1.26 dropped MPE → switched to `mpe2` package (still
-  upstream-blessed split). Pinned in pyproject.toml.

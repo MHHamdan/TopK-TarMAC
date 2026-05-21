@@ -1,3 +1,15 @@
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/fig1_schematic.pdf}
+\caption{TopK-TarMAC architecture. Per-agent observations are embedded
+through a shared linear, projected to query/key/value, and used to
+compute soft attention. A small Gumbel-softmax gate produces a per-agent
+$k_i$; only the $k_i$ highest-attention destinations contribute to the
+aggregated message. The reduce-to-baseline switch (zero out $m_i$)
+recovers MAPPO exactly.}
+\label{fig:schematic}
+\end{figure}
+
 \paragraph{Setup.} We consider a cooperative Dec-POMDP with $N$ agents,
 local observations $o_i$, shared state $s$, joint action $a = (a_1, \ldots,
 a_N)$, and team reward $r(s, a)$. Following MAPPO \citep{yu2022mappo}, we
