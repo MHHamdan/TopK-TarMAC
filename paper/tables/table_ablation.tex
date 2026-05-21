@@ -5,14 +5,14 @@
 \toprule
 Variant & Final eval mean $\pm$ std & $n$ seeds \\
 \midrule
-MAPPO (baseline) & $-58.93 \pm 1.37$ & 5 \\
-Dense Attn-Comm & $-60.27 \pm 3.53$ & 5 \\
-Adaptive TopK (ours) & $-57.46 \pm 3.31$ & 5 \\
+MAPPO (baseline) & $-227.60 \pm 14.48$ & 4 \\
+Dense Attn-Comm & $-213.32 \pm 4.06$ & 4 \\
+Adaptive TopK (ours) & $-222.89 \pm 22.36$ & 4 \\
 Fixed TopK ($k{=}2$) & -- & 0 \\
 Fixed TopK ($k{=}4$) & -- & 0 \\
 \bottomrule
 \end{tabular}
-\caption{Ablation table at $N{=}3$ on MPE
+\caption{Ablation table at $N{=}6$ on MPE
 \texttt{simple\_spread}. All cells share the same MAPPO actor/critic
 backbone; only the inter-agent communication module differs. Adaptive TopK
 learns $k_i$ per agent per step; Fixed TopK uses a static $k$.}

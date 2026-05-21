@@ -7,10 +7,11 @@ $N$ & MAPPO (baseline) & + Dense Attn-Comm & + Adaptive TopK (ours) &
 $p_{\text{dense}}$ & $p_{\text{topk}}$\\
 \midrule
 3 & $-58.93 \pm 1.37$ ($n{=}5$) & $-60.27 \pm 3.53$ ($n{=}5$) & $-57.46 \pm 3.31$ ($n{=}5$) & 0.511 & 0.447 \\
+6 & $-227.60 \pm 14.48$ ($n{=}4$) & $-213.32 \pm 4.06$ ($n{=}4$) & $-222.89 \pm 22.36$ ($n{=}4$) & 0.186 & 0.771 \\
 \bottomrule
 \end{tabular}
 \caption{Headline result: greedy eval mean $\pm$ std across seeds, MPE
-\texttt{simple\_spread} for $N \in \{3\}$ agents. Bold = significantly
+\texttt{simple\_spread} for $N \in \{3, 6\}$ agents. Bold = significantly
 better than baseline (Welch's $t$-test, $p<0.05$). $p$ columns report the
 two-sided Welch p-value vs MAPPO.}
 \label{tab:headline}
