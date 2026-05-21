@@ -33,11 +33,21 @@ a second one-flag switch (attn\_mode = ``dense'').
 Our contributions are:
 \begin{itemize}
 \item TopK-TarMAC, an adaptive-sparsity attention-communication module
-  that interpolates between MAPPO ($k=0$) and dense TarMAC ($k=N{-}1$).
-\item A five-seed comparative study at $N \in \{N_LIST\}$ that reports
-  per-seed final returns with paired Welch's $t$-tests against baseline,
-  matching the rigour standard the reviewer-handbook of recent MARL venues.
-\item A scaling table that quantifies the FLOPs/return trade-off as a
-  function of effective $k$ across agent counts, and an honest accounting
-  of where adaptive sparsity helps and where it does not.
+  that interpolates between MAPPO ($k{=}0$ messages) and dense TarMAC
+  ($k{=}N{-}1$), with the gate trained end-to-end via Gumbel-softmax.
+\item A 5-seed comparative study at $N \in \{3, 6\}$ and a 3-seed study at
+  $N{=}12$, with per-seed final returns, Welch's $t$-test $p$-values,
+  Cohen's $d$, and 10\,000-resample percentile bootstrap CIs on the mean
+  delta, matching the rigour standard of recent MARL benchmarks
+  \citep{papoudakis2021epymarl}.
+\item Empirical evidence that attention communication is a real lever at
+  moderate $N$ but not at small $N$: dense Attn-Comm yields $d{=}1.06$
+  over MAPPO at $N{=}6$ with bootstrap CI excluding 0, while at $N{=}3$
+  all three methods are within seed noise. We report this honestly
+  rather than tune away the null result.
+\item A direct accounting of the FLOPs / return trade-off: the
+  adaptive-$k$ gate empirically selects $k_{\mathrm{eff}}/(N{-}1)
+  \approx 0.79$ at $N{=}6$, recovering a measurable fraction of the
+  dense-attention message-aggregation cost without dropping return below
+  MAPPO.
 \end{itemize}

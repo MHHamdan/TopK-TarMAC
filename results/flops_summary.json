@@ -21,11 +21,11 @@
     "use_comm": true,
     "n_agents": 3,
     "attn_mode": "adaptive_topk",
-    "k_eff": 2.0,
+    "k_eff": 1.9966666662693024,
     "flops": {
-      "msg_gather_ops": 96.0,
+      "msg_gather_ops": 95.83999998092652,
       "score_ops": 144.0,
-      "msg_gather_over_dense": 1.0
+      "msg_gather_over_dense": 0.9983333331346512
     }
   },
   {
@@ -50,11 +50,11 @@
     "use_comm": true,
     "n_agents": 6,
     "attn_mode": "adaptive_topk",
-    "k_eff": 3.950416645407677,
+    "k_eff": 3.9370833110809325,
     "flops": {
-      "msg_gather_ops": 379.239997959137,
+      "msg_gather_ops": 377.9599978637695,
       "score_ops": 576.0,
-      "msg_gather_over_dense": 0.7900833290815353
+      "msg_gather_over_dense": 0.7874166622161864
     }
   }
 ]
