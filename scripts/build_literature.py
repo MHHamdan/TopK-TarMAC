@@ -989,7 +989,12 @@ PAPERS = [
     dict(
         id="2006.00979", key="hoffman2020acme", lane="C",
         title="Acme: A Research Framework for Distributed Reinforcement Learning",
-        authors=("Matthew W. Hoffman and many others"),
+        authors=("Matthew W. Hoffman and Bobak Shahriari and John Aslanides and "
+                 "Gabriel Barth-Maron and Nikola Momchev and Danila Sinopalnikov and "
+                 "Piotr Sta{\\'n}czyk and Sabela Ramos and Anton Raichuk and "
+                 "Damien Vincent and L{\\'e}onard Hussenot and Robert Dadashi and "
+                 "Gabriel Dulac-Arnold and Manu Orsini and Alexis Jacq and "
+                 "Johan Ferret and Nino Vieillard and others"),
         year=2020, venue="arXiv preprint",
         abstract=(
             "Acme: modular framework for constructing distributed RL agents with a "
