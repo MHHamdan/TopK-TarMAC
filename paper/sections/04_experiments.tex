@@ -57,6 +57,18 @@ TopK ($20.0$ vs $3.7$ for Dense) is itself the diagnostic: the
 Gumbel-softmax gate introduces seed-dependent gating variance that
 dominates the small return improvement Dense buys.
 
+At $N{=}12$ (three seeds per condition, 1.5\,M training steps each), the
+adaptive-$k$ failure mode becomes acute. Dense Attn-Comm is no better
+than MAPPO (mean delta $-13.5$, $d{=}-0.89$, CI $[-34.2, +5.0]$ which
+just includes 0). Adaptive TopK is \emph{significantly worse} than
+MAPPO: mean delta $-65.4$ with bootstrap CI $[-119.7, -28.5]$ that
+clearly excludes 0 on the negative side ($d{=}-1.87$). The gate's
+per-seed variance is now 40.2 vs 4.6 for MAPPO --- nearly tenfold ---
+even though the FLOPs the gate saves over dense rise to $1 -
+7.83/11 \approx 29\%$. We report this honestly: the proposed
+end-to-end Gumbel-softmax gate does not survive scaling to $N{=}12$ on
+this benchmark.
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.55\linewidth]{figures/fig2_learning_curves_n6.pdf}

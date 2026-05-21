@@ -50,11 +50,40 @@
     "use_comm": true,
     "n_agents": 6,
     "attn_mode": "adaptive_topk",
-    "k_eff": 3.9370833110809325,
+    "k_eff": 3.9249999701976774,
     "flops": {
-      "msg_gather_ops": 377.9599978637695,
+      "msg_gather_ops": 376.799997138977,
       "score_ops": 576.0,
-      "msg_gather_over_dense": 0.7874166622161864
+      "msg_gather_over_dense": 0.7849999940395355
+    }
+  },
+  {
+    "run": "mappo_mpe_n12_baseline",
+    "use_comm": false,
+    "k_eff": 11.0
+  },
+  {
+    "run": "mappo_mpe_n12_dense",
+    "use_comm": true,
+    "n_agents": 12,
+    "attn_mode": "dense",
+    "k_eff": 11.0,
+    "flops": {
+      "msg_gather_ops": 2112.0,
+      "score_ops": 2304.0,
+      "msg_gather_over_dense": 1.0
+    }
+  },
+  {
+    "run": "mappo_mpe_n12_topk",
+    "use_comm": true,
+    "n_agents": 12,
+    "attn_mode": "adaptive_topk",
+    "k_eff": 7.827708306312561,
+    "flops": {
+      "msg_gather_ops": 1502.9199948120117,
+      "score_ops": 2304.0,
+      "msg_gather_over_dense": 0.7116098460284147
     }
   }
 ]
