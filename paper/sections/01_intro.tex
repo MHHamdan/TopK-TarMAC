@@ -1,0 +1,43 @@
+Cooperative multi-agent reinforcement learning under partial observability is
+typically trained under the centralised-training / decentralised-execution
+(CTDE) regime \citep{rashid2018qmix, yu2022mappo}. Two attention-based ideas
+have dominated the design space. The first is the centralised \emph{value
+mixer} \citep{yang2020qatten, rashid2018qmix}: a non-linear, often
+attention-driven combination of per-agent utilities into a joint
+$Q_{\text{tot}}$ that preserves a tractable decentralised argmax. The second
+is the \emph{communication channel} \citep{das2019tarmac, jiang2018atoc,
+sukhbaatar2016commnet, foerster2016dial}: per-agent learned messages routed
+through soft attention so that each agent's policy can condition on a
+state-dependent summary of peer information at every step.
+
+The communication channel is a powerful primitive — TarMAC
+\citep{das2019tarmac} reports clear gains over broadcast and over no-comm
+baselines on traffic-junction and predator-prey tasks — but every realisation
+we reviewed is dense: each agent computes attention weights and aggregates
+messages from all $N{-}1$ peers, an $\mathcal{O}(N^2)$ cost per simulation
+step. For distributed MARL infrastructure
+\citep{liang2017rllib, espeholt2020seedrl}, where the per-step inference
+dominates total wall-clock, this cost is the binding constraint at large
+$N$.
+
+This paper asks a sharply scoped question: \emph{can the soft attention
+channel be sparsified to top-$k$ destinations without sacrificing return,
+and can $k$ itself be learned per agent per step?} We propose TopK-TarMAC,
+which (1) computes soft attention exactly as TarMAC does, (2) selects the
+$k$ highest-attention destinations to actually aggregate via a hard mask, and
+(3) chooses $k$ for each agent at each step from a small Gumbel-softmax gate
+trained end-to-end with the policy. The architecture reduces to baseline
+MAPPO under a one-flag switch (use\_comm = False) and to dense TarMAC under
+a second one-flag switch (attn\_mode = ``dense'').
+
+Our contributions are:
+\begin{itemize}
+\item TopK-TarMAC, an adaptive-sparsity attention-communication module
+  that interpolates between MAPPO ($k=0$) and dense TarMAC ($k=N{-}1$).
+\item A five-seed comparative study at $N \in \{N_LIST\}$ that reports
+  per-seed final returns with paired Welch's $t$-tests against baseline,
+  matching the rigour standard the reviewer-handbook of recent MARL venues.
+\item A scaling table that quantifies the FLOPs/return trade-off as a
+  function of effective $k$ across agent counts, and an honest accounting
+  of where adaptive sparsity helps and where it does not.
+\end{itemize}

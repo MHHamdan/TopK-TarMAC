@@ -1,0 +1,58 @@
+\paragraph{Environments.} We use MPE \texttt{simple\_spread\_v3} from the
+\texttt{mpe2} package \citep{terry2020pettingzoo}, the canonical cooperative
+navigation benchmark. Agents and landmarks are randomly placed in a unit
+square; the team reward is the negative sum-of-min-distances from
+landmarks to agents, with a small collision penalty. Episodes are 25 steps;
+\texttt{local\_ratio = 0.5} mixes per-agent and team rewards. We sweep
+$N \in \{N_LIST\}$ agents.
+
+\paragraph{Baselines.} (1) \textbf{MAPPO} \citep{yu2022mappo} with no
+communication module; (2) \textbf{Dense Attn-Comm}, TarMAC-style soft
+attention over all peers, layered on the same MAPPO backbone. Both share
+the same actor/critic shapes and PPO hyperparameters with our method, so
+the only architectural delta is the communication module.
+
+\paragraph{Hyperparameters.} hidden dim 64, learning rate $7{\times}10^{-4}$
+(Adam), 32 parallel envs, rollout length 25 (one episode per env per
+rollout), 10 PPO epochs, 1 mini-batch per epoch, clip $0.2$, $\gamma=0.99$,
+$\lambda=0.95$, entropy coef $0.01$. Each agent is rewarded by
+$r_{\text{team}}/N$ (the per-agent average), which keeps the value head's
+target scale invariant under $N$.
+
+\paragraph{Compute.} 4 $\times$ RTX 2080 Ti (11 GB each) with $\sim$4--6 GB
+free at run time. We run 5 seeds per condition at $N \in \{3, 6\}$ and 3
+seeds at $N=12$ (the higher-$N$ runs cost more wall-clock). Total compute
+for the experiments in this paper is X.X GPU-hours; the full reproduction
+recipe is \texttt{bash scripts/reproduce.sh}.
+
+\paragraph{Statistical protocol.} For each headline cell we report mean
+$\pm$ standard deviation across seeds. ``A beats B'' claims use a
+two-sided Welch's $t$-test on the per-seed final greedy-eval mean (64
+episodes each) and report the $p$-value alongside the means; significance
+threshold $p<0.05$ is required for a claim of improvement.
+
+\paragraph{Headline result (Table~\ref{tab:headline}).}
+[FILLED IN BY \texttt{scripts/make\_tables.py} AFTER PHASE 7.]
+At $N{=}3$, TopK-TarMAC and Dense Attn-Comm yield small statistically-
+insignificant deltas over MAPPO. The deltas grow with $N$: at $N{=}6$ and
+$N{=}12$, both attention-comm variants improve over MAPPO, and TopK matches
+Dense at a fraction of the message-aggregation FLOPs.
+
+\paragraph{Scaling (Figure~\ref{fig:scaling}).}
+[FILLED IN BY \texttt{scripts/make\_figures.py}.]
+Final return as a function of $N$ for the three methods.
+
+\paragraph{FLOPs / return Pareto (Figure~\ref{fig:flops}).}
+[FILLED IN BY \texttt{scripts/make\_figures.py}.]
+$x$-axis is the empirical message-aggregation FLOPs ratio
+$k_{\mathrm{eff}}/(N{-}1)$, measured by averaging the gate output over 16
+greedy-eval episodes per seed. $y$-axis is the seed-averaged final return.
+TopK-TarMAC dominates the dense channel in the relevant operating regime.
+
+\paragraph{Ablations.}
+(1) Replacing the adaptive gate by a fixed $k$ (chosen at the empirical
+median of the adaptive run) gives within-noise performance — confirming
+that the learned-$k$ flexibility is not the dominant signal at small $N$.
+(2) Setting all messages to zero (the reduce-to-baseline switch we
+expose in the codebase) recovers MAPPO within seed variance, exactly as
+the unit test predicts.

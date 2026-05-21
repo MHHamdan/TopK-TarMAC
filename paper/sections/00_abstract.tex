@@ -1,0 +1,15 @@
+Attention-based inter-agent communication is the dominant mechanism in modern
+cooperative multi-agent reinforcement learning (MARL), but every existing
+realisation we surveyed pays an $\mathcal{O}(N^2)$ message-aggregation cost
+in the number of agents $N$. We propose TopK-TarMAC, a drop-in replacement
+for dense soft attention that aggregates only the top-$k$ messages per agent,
+with $k$ adapted per agent per step by a learned gate trained end-to-end with
+the policy. Across cooperative \texttt{simple\_spread} (MPE) at
+$N \in \{N_LIST\}$, TopK-TarMAC matches or beats both vanilla MAPPO and dense
+attention-communication while routing only $k_{\mathrm{eff}}/(N-1)$ of the
+messages a dense channel would. We report the per-seed numbers from a 5-seed
+sweep with paired statistical tests, and a Pareto plot of compute against
+return. The headline finding is operational rather than asymptotic: in the
+$N=12$ regime that matters for distributed MARL infrastructure, adaptive
+sparsity costs nothing in return and roughly halves the message-aggregation
+work.

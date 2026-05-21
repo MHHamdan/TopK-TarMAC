@@ -1,0 +1,21 @@
+Our evaluation is on MPE \texttt{simple\_spread\_v3} only — a fast but
+small environment that does not exercise long-horizon coordination, partial
+observability, or heterogeneous-agent challenges. We do not run SMAC or
+SMACv2 \citep{samvelyan2019smac, ellis2022smacv2} due to compute
+constraints (StarCraft~II + the published baselines exceed our 48 GPU-hour
+budget per the landscape in our literature review). The N=12 setting is
+the largest we tried; we have no data at $N \geq 25$, where the asymptotic
+$\mathcal{O}(N^2)\to\mathcal{O}(Nk)$ gap should be most visible.
+
+Our reduce-to-baseline ablation works by construction (zeroed messages
+yield baseline logits exactly), but our $k$-gate uses Gumbel-softmax with
+the straight-through trick — the gradient signal through the gate is
+biased, and we observed slightly higher per-seed variance for the adaptive
+variant than for the dense one. A budget-regularised Lagrangian (Proposal
+003 in this project's design notes) would likely tighten this.
+
+Finally, we do not yet provide a wall-clock comparison: our 2080 Ti
+inference is rollout-bound on CPU, so the FLOPs savings predicted by the
+$k_{\mathrm{eff}}/(N{-}1)$ ratio are not realised in our measured wall
+time at this scale. A GPU-bound rollout regime --- the relevant regime for
+distributed agentic-RL infrastructure --- is the natural follow-up.

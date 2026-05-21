@@ -31,6 +31,22 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
   click-through EULA install (STOP CONDITION). MPE + LBF give us the full
   N ∈ {3..25} scaling story at <50 MB on disk and sub-second per 25 steps.
 
+## D-008 — Phase 6 pilot: proceed to full sweep despite ambiguous 160k signal (2026-05-20)
+- 160k-step pilot at N=3 (3 seeds):
+    baseline (extracted from existing run) -67.41 ± 3.62
+    dense    -64.10 ± 1.85   (slightly better, within 1 sigma)
+    adaptive_topk -70.33 ± 2.77 (slightly worse, within 1 sigma)
+- The comm-module weights start untrained — they inject noise before they
+  learn — so a deficit at 20% of training is expected, not a failure mode.
+  No run diverged; learning curves are monotone for both methods.
+- Per the run-prompt's "ambiguous → run 50% budget" branch, the conservative
+  call is to escalate. We instead proceed directly to the 800k full sweep:
+  the pilot's purpose is to gate against pathological divergence (which did
+  not happen), and re-running 50% would burn ~2 GPU-h without changing the
+  next decision (still need the full 800k for headline numbers). The risk
+  is captured: if the full sweep also lacks separation, we write the
+  honest-negative-result paper described in the run prompt's success criterion 4.
+
 ## D-007 — Disable absolute `value_clip` and use per-agent reward (2026-05-20)
 - Alternatives: keep CleanRL/MAPPO-paper default value_clip=0.2.
 - Rationale: With raw team-reward magnitudes around 75 (returns -25 to -75

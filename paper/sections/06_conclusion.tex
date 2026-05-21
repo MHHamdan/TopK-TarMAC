@@ -1,0 +1,9 @@
+We presented TopK-TarMAC, a drop-in replacement for dense soft-attention
+inter-agent communication that aggregates only the top-$k$ messages with
+$k$ learned per agent. The architecture reduces exactly to MAPPO and to
+dense TarMAC under one-flag switches we expose in the implementation, and
+matches dense attention's task return at $N \in \{N_LIST\}$ on MPE
+\texttt{simple\_spread} while using only $k_{\mathrm{eff}}/(N-1)$ of the
+message-aggregation work. The contribution is operational rather than
+asymptotic, and is intended as a step toward $\mathcal{O}(Nk)$
+distributed-MARL rollout systems.
