@@ -119,3 +119,27 @@ grows. The reduce-to-baseline switch (zeroed comm output) recovers MAPPO
 logits exactly, verified as a unit test.
 
 \input{tables/table_ablation.tex}
+
+\paragraph{Comparison to prior work.} The most relevant verified
+benchmark is EPyMARL \citep{papoudakis2021epymarl}, which reports MAPPO
+at $-133.54 \pm 3.08$ on MPE \texttt{simple\_spread} at $N{=}3$ over five
+seeds and 20\,M training steps. Direct numerical comparison to our
+$-58.93 \pm 1.37$ at $N{=}3$ would be misleading because the env version
+differs: EPyMARL uses PettingZoo's \texttt{simple\_spread\_v2}, whose
+reward formula scales differently from the \texttt{mpe2}
+\texttt{simple\_spread\_v3} we use, and EPyMARL trains 25$\times$ longer.
+Our random-policy floor (Table~\ref{tab:headline}) puts our scale on the
+page so a future paper can re-anchor. The MAPPO paper of
+\citet{yu2022mappo} reports MPE results only via figure curves with
+min--max normalisation, so a tabular comparison is not available.
+
+The closest prior \emph{communication}-attention work to ours is TarMAC
+\citep{das2019tarmac}, which does not evaluate on \texttt{simple\_spread}
+but reports $+15$ percentage-point gains in traffic-junction success rate
+($84.9\% \!\rightarrow\! 99.9\%$) and $-32\%$ time-to-catch in
+predator-prey ($52.4 \!\rightarrow\! 35.57$ steps). The TarMAC effects
+were measured on tasks where communication is essential, whereas
+\texttt{simple\_spread} is solvable by purely local policies; the gap
+between attention-comm methods and MAPPO on our benchmark is therefore
+smaller than TarMAC's, which we read as a property of the testbed rather
+than of the method.

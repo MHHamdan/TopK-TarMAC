@@ -75,14 +75,27 @@ def bootstrap_ci(a: list[float], b: list[float], n: int = 10000,
     return (float(lo), float(hi))
 
 
+def load_random_baseline() -> dict:
+    p = RESULTS / "random_baseline.json"
+    if not p.exists():
+        return {}
+    return json.loads(p.read_text())
+
+
 def headline_table(N_list: list[int]) -> str:
     rows = []
+    random_b = load_random_baseline()
     for N in N_list:
         base = collect_eval(f"mappo_mpe_n{N}_baseline")
         dense = collect_eval(f"mappo_mpe_n{N}_dense")
         topk = collect_eval(f"mappo_mpe_n{N}_topk")
         p_dense = paired_test(base, dense)
         p_topk = paired_test(base, topk)
+        rinfo = random_b.get(str(N), {})
+        r_mean = rinfo.get("mean")
+        r_std = rinfo.get("std")
+        rand_cell = (rf"${r_mean:.2f} \pm {r_std:.2f}$"
+                     if r_mean is not None else "--")
 
         def cell(vals: list[float], better_p: float = 1.0) -> str:
             if not vals:
@@ -92,7 +105,7 @@ def headline_table(N_list: list[int]) -> str:
                 txt = "\\textbf{" + txt + "}"
             return txt + f" ($n{{=}}{len(vals)}$)"
 
-        rows.append((N,
+        rows.append((N, rand_cell,
                      cell(base),
                      cell(dense, better_p=p_dense if (np.mean(dense or [-1e9]) >
                                                        np.mean(base or [-1e9])) else 1.0),
@@ -103,23 +116,24 @@ def headline_table(N_list: list[int]) -> str:
     head = (r"""\begin{table}[t]
 \centering
 \small
-\begin{tabular}{lccc cc}
+\begin{tabular}{lccccc c}
 \toprule
-$N$ & MAPPO (baseline) & + Dense Attn-Comm & + Adaptive TopK (ours) &
+$N$ & Random & MAPPO & + Dense Attn-Comm & + Adaptive TopK (ours) &
 $p_{\text{dense}}$ & $p_{\text{topk}}$\\
 \midrule
 """)
     body = "\n".join(
-        rf"{N} & {b} & {d} & {t} & {pd_:.3f} & {pt:.3f} \\"
-        for (N, b, d, t, pd_, pt) in rows
+        rf"{N} & {rand} & {b} & {d} & {t} & {pd_:.3f} & {pt:.3f} \\"
+        for (N, rand, b, d, t, pd_, pt) in rows
     )
     tail = r"""
 \bottomrule
 \end{tabular}
 \caption{Headline result: greedy eval mean $\pm$ std across seeds, MPE
-\texttt{simple\_spread} for $N \in \{N_LIST\}$ agents. Bold = significantly
-better than baseline (Welch's $t$-test, $p<0.05$). $p$ columns report the
-two-sided Welch p-value vs MAPPO.}
+\texttt{simple\_spread} for $N \in \{N_LIST\}$ agents. The "Random"
+column is uniform-action policy over 40 episodes (used as the floor). Bold
+= significantly better than baseline (Welch's $t$-test, $p<0.05$). $p$
+columns report the two-sided Welch p-value vs MAPPO.}
 \label{tab:headline}
 \end{table}"""
     tail = tail.replace("N_LIST", ", ".join(str(N) for N in N_list))
