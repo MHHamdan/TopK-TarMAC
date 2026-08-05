@@ -1138,6 +1138,103 @@ PAPERS = [
         limitations="Approximation error trade-off; less effective at small N.",
         connection="Possible method for scaling agent-attention to large N without O(N²) cost.",
     ),
+    dict(
+        id="2001.04451", key="kitaev2020reformer", lane="C",
+        title="Reformer: The Efficient Transformer",
+        authors=("Nikita Kitaev and Łukasz Kaiser and Anselm Levskaya"),
+        year=2020, venue="ICLR",
+        abstract=(
+            "Reformer reduces transformer attention cost from O(L^2) to O(L log L) "
+            "via locality-sensitive hashing of queries and keys, and uses reversible "
+            "residual layers to drop activation memory from O(L) to O(1) per layer."
+        ),
+        method="LSH attention bucketing + reversible residuals + chunked feed-forward.",
+        benchmarks="enwik8, imagenet-64; 64k-token contexts on a single accelerator.",
+        limitations="LSH approximation can miss rare long-range dependencies.",
+        connection="Hashed sparsity is a candidate baseline against learned top-k.",
+    ),
+    dict(
+        id="2004.05150", key="beltagy2020longformer", lane="C",
+        title="Longformer: The Long-Document Transformer",
+        authors=("Iz Beltagy and Matthew E. Peters and Arman Cohan"),
+        year=2020, venue="arXiv preprint",
+        abstract=(
+            "Longformer replaces full self-attention with a combination of a sliding "
+            "local window and a small number of global tokens, scaling linearly in "
+            "sequence length."
+        ),
+        method="Sliding-window + dilated-window + task-specific global attention.",
+        benchmarks="text8, enwik8, long-document QA, classification.",
+        limitations="Sparsity pattern hand-designed; global tokens require task knowledge.",
+        connection="Hand-designed sparsity baseline analogous to a fixed-k schedule.",
+    ),
+    dict(
+        id="2007.14062", key="zaheer2020bigbird", lane="C",
+        title="Big Bird: Transformers for Longer Sequences",
+        authors=("Manzil Zaheer and Guru Guruganesh and Avinava Dubey and Joshua Ainslie "
+                 "and Chris Alberti and Santiago Ontanon and Philip Pham and Anirudh Ravula "
+                 "and Qifan Wang and Li Yang and Amr Ahmed"),
+        year=2020, venue="NeurIPS",
+        abstract=(
+            "BigBird combines random, window, and global attention to obtain a sparse "
+            "attention pattern that is a universal approximator of sequence functions "
+            "and Turing complete, while scaling linearly in sequence length."
+        ),
+        method="Random + window + global attention; sparsity pattern fixed per layer.",
+        benchmarks="Long-range NLP, genomics; SOTA on several long-context tasks.",
+        limitations="Sparsity pattern not adaptive to input; same theoretical guarantees apply.",
+        connection="Theoretical anchor for `sparsity preserves expressivity` claims.",
+    ),
+    dict(
+        id="1701.06538", key="shazeer2017moe", lane="C",
+        title="Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer",
+        authors=("Noam Shazeer and Azalia Mirhoseini and Krzysztof Maziarz and Andy Davis "
+                 "and Quoc Le and Geoffrey Hinton and Jeff Dean"),
+        year=2017, venue="ICLR",
+        abstract=(
+            "A sparsely-gated mixture-of-experts (MoE) layer routes each token to the "
+            "top-k experts (k=1 or 2) of a large pool, enabling models with 100B+ "
+            "parameters at constant per-token compute."
+        ),
+        method="Top-k gating with noise + load-balancing loss; conditional computation.",
+        benchmarks="LM (1B-word benchmark), machine translation.",
+        limitations="Load-balance tuning; gating noise required for stability.",
+        connection="Closest analogue to learned top-k routing; same gating-variance issue.",
+    ),
+    dict(
+        id="1611.01144", key="jang2017gumbel", lane="C",
+        title="Categorical Reparameterization with Gumbel-Softmax",
+        authors=("Eric Jang and Shixiang Gu and Ben Poole"),
+        year=2017, venue="ICLR",
+        abstract=(
+            "A continuous relaxation of categorical sampling that admits "
+            "reparameterised gradients via the Gumbel-Softmax distribution, "
+            "enabling gradient-based optimisation through discrete random variables."
+        ),
+        method="Add Gumbel noise to logits, divide by temperature τ, take softmax; "
+               "straight-through estimator for hard one-hot evaluation.",
+        benchmarks="VAE with categorical latents; structured-output prediction.",
+        limitations="Straight-through gradient is biased; temperature must be annealed.",
+        connection="Provides the differentiable gate used in adaptive top-k routing.",
+    ),
+    dict(
+        id="2101.03961", key="fedus2022switch", lane="C",
+        title="Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity",
+        authors=("William Fedus and Barret Zoph and Noam Shazeer"),
+        year=2022, venue="JMLR",
+        abstract=(
+            "Switch Transformers simplify MoE routing to k=1 and demonstrate "
+            "trillion-parameter models that train 7x faster than dense T5-XXL at "
+            "matched compute."
+        ),
+        method="Single-expert routing + capacity factor + auxiliary load-balance loss + "
+               "selective precision for the router.",
+        benchmarks="C4 pretraining, downstream NLP transfer.",
+        limitations="Router instability requires bfloat16 / selective FP32; capacity "
+                    "dropouts hurt sample efficiency.",
+        connection="Top-1 learned routing at scale; gate-stability tricks are directly "
+                   "relevant to MARL learned-sparsity gating.",
+    ),
     # --------------------------------- Lane D ---------------------------------
     dict(
         id="1802.05438", key="yang2018meanfield", lane="D",

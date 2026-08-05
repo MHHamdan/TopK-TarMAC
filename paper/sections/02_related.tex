@@ -1,0 +1,55 @@
+\paragraph{Cooperative MARL with CTDE.} Three families dominate the
+cooperative MARL landscape: independent learning \citep{dewitt2020ippo},
+centralised critics with decentralised actors \citep{lowe2017maddpg,
+yu2022mappo, foerster2017coma}, and value-decomposition
+\citep{sunehag2017vdn, rashid2018qmix, son2019qtran, rashid2020wqmix}.
+\citet{kuba2021happo} extended trust-region theory to heterogeneous agents
+via the multi-agent advantage decomposition lemma, and the Multi-Agent
+Transformer \citep{wen2022mat} casts joint-action selection as
+sequence-to-sequence translation. The method developed here is built on
+MAPPO; the critic is unchanged.
+
+\paragraph{Attention as communication.} TarMAC \citep{das2019tarmac}
+introduced soft attention over emitted key/value messages. CommNet
+\citep{sukhbaatar2016commnet} used mean aggregation; DIAL
+\citep{foerster2016dial} backpropagated through a noisy continuous channel;
+IC3Net \citep{singh2018ic3net} added a per-agent gate; ATOC
+\citep{jiang2018atoc} learned a binary attention unit for whether to
+initiate communication; DGN \citep{jiang2018dgn} treats the system as a
+dynamic graph. None of these works reports an explicit FLOPs-vs-return
+trade-off, and the soft-attention variants are all $\mathcal{O}(N^2)$ in
+the aggregation step. Qatten \citep{yang2020qatten} places attention at
+the mixer rather than the channel; the two loci are substitutes that are
+not compared on a level footing in the existing literature.
+
+\paragraph{Sparse attention outside MARL.} Sparse and approximate
+attention for long sequences is mature. Performers
+\citep{choromanski2021performers} approximate softmax with positive
+orthogonal random features for linear-time attention. Reformer
+\citep{kitaev2020reformer} uses locality-sensitive hashing to bucket
+queries and keys. Longformer \citep{beltagy2020longformer} combines a
+sliding window with a small set of global tokens, and BigBird
+\citep{zaheer2020bigbird} adds a random-attention component to recover
+universal-approximation guarantees. The MARL communication channel
+operates at $N \ll L$ and pays for aggregation rather than score
+construction, so a simpler hard-mask top-$k$ aggregation suffices and
+preserves an exact reduce-to-baseline ablation at $k{=}N{-}1$.
+
+\paragraph{Differentiable sparsity and learned routing.} The closest
+prior work to a learned top-$k$ gate over a fixed pool of destinations is
+the sparsely-gated mixture-of-experts (MoE) layer
+\citep{shazeer2017moe}, which routes each token to the top-$k$ experts of
+a large pool via a noisy gating function, and Switch Transformers
+\citep{fedus2022switch}, which simplify the routing to $k{=}1$ and
+introduce capacity-factor and selective-precision tricks to stabilise the
+router. Both report router instability and required auxiliary
+load-balancing losses, foreshadowing the gate-variance behaviour observed
+in this study.
+
+\paragraph{Distributed MARL infrastructure.} Centralised-inference
+architectures including SEED-RL \citep{espeholt2020seedrl} and Ape-X
+\citep{horgan2018apex} consolidate policy evaluation on accelerators;
+RLlib \citep{liang2017rllib}, Acme \citep{hoffman2020acme}, and MARLlib
+\citep{hu2023marllib} provide composable substrates. None of these
+addresses the per-agent attention-aggregation step that this paper
+targets.

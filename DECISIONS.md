@@ -117,3 +117,48 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
 - Rationale: comparing against TarMAC's published numbers while running a different
   architecture is not defensible, and the method name "TopK-TarMAC" is unearned
   until the faithful baseline exists. See AUDIT.md#a4.
+
+---
+
+# Phase B decisions (2026-08-05)
+
+## D-013 — Track paper/ sources in git, but do not push (2026-08-05)
+- `paper/` was gitignored in 6f796c2 ("Public-repo prep ... not pushed to
+  GitHub"), so no manuscript revision has ever been under version control
+  (AUDIT.md D-16). `origin` is git@github.com:MHHamdan/TopK-TarMAC.git.
+- Alternatives: (a) leave ignored and forfeit manuscript history; (b) track
+  sources locally, hold pushes; (c) track and push.
+- Decision: (b). Track paper/sections, paper/figures, paper/tables, main.tex;
+  keep build intermediates and main.pdf ignored. **Commits are local-only
+  until the author confirms the manuscript may become public.**
+- Rationale: the brief requires a regenerated, version-controlled manuscript,
+  but publishing an unsubmitted paper to a public remote is an irreversible
+  outward-facing action that reverses an explicit prior decision. (b) delivers
+  the history without making that call unilaterally.
+
+## D-014 — Align config YAMLs to the runs, not the reverse (2026-08-05)
+- The N=3 and N=6 YAMLs declared 1.5M / 1.0M total_steps while all 45 runs on
+  disk recorded 800k, so `reproduce.sh` would have trained longer than the
+  published numbers and silently produced different results (AUDIT.md D-15).
+- Alternatives: (a) edit YAMLs down to 800k; (b) retrain everything at the
+  declared budget.
+- Decision: (a), plus `scripts/check_config_drift.py` as a hard gate in
+  reproduce.sh so the two can never diverge again.
+- Rationale: (b) costs ~60 GPU-h to reproduce numbers that Phase C supersedes
+  anyway. The gate is what actually prevents recurrence.
+
+## D-015 — Leave peak VRAM blank for historical runs (2026-08-05)
+- MASTER_LOG.csv now carries the required schema, but peak VRAM was never
+  sampled during the 2080 Ti runs.
+- Decision: emit an empty cell, never an imputed one. `train_mappo.py` now
+  captures `torch.cuda.max_memory_allocated` so all Phase C runs populate it.
+- Rationale: a plausible-looking imputed number is worse than a blank.
+
+## D-016 — Fail loudly on an unusable CUDA device (2026-08-05)
+- `torch.cuda.is_available()` returns True on sm_120 hardware that the build
+  has no kernels for. The old `device = cuda if is_available() else cpu` line
+  would select cuda and crash, or in other configurations silently fall back.
+- Decision: `_resolve_device` probes with a real allocation and raises with
+  the arch list and device capability. It never downgrades to CPU silently.
+- Rationale: a silent CPU fallback would invalidate every wall-clock and
+  latency measurement in Phase C -- the paper's motivating claim.

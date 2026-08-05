@@ -139,6 +139,53 @@ def evaluate(agent: MAPPOAgent, make_env: Callable[[int], VecEnvCompatible],
     return {"eval_return_mean": float(arr.mean()), "eval_return_std": float(arr.std())}
 
 
+def _resolve_device(requested: str) -> str:
+    """Resolve a requested device, failing loudly if CUDA is unusable.
+
+    ``torch.cuda.is_available()`` returns True on a GPU whose compute
+    capability the installed build has no kernels for, so the old
+    ``"cuda" if is_available() else "cpu"`` check selected a device that then
+    raised on the first kernel launch (AUDIT.md D-00). Probe with a real
+    allocation instead, and refuse to silently downgrade to CPU -- a run that
+    quietly falls back would invalidate every wall-clock measurement.
+
+    Args:
+        requested: Device string from the trainer config.
+
+    Returns:
+        The device string to use.
+
+    Raises:
+        RuntimeError: If a CUDA device was requested but cannot execute.
+    """
+    if not requested.startswith("cuda"):
+        return requested
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            f"device={requested!r} requested but torch.cuda.is_available() is "
+            f"False. Refusing to fall back to CPU silently."
+        )
+    try:
+        probe = torch.zeros(8, device=requested)
+        (probe + 1).sum().item()
+    except RuntimeError as exc:
+        caps = ", ".join(torch.cuda.get_arch_list())
+        raise RuntimeError(
+            f"device={requested!r} is present but unusable by this PyTorch "
+            f"build ({torch.__version__}, arch list: {caps}); "
+            f"device capability is {torch.cuda.get_device_capability(requested)}. "
+            f"Original error: {exc}"
+        ) from exc
+    return requested
+
+
+def peak_vram_mib(device: str) -> float | None:
+    """Peak allocated VRAM in MiB, or ``None`` on CPU."""
+    if not device.startswith("cuda"):
+        return None
+    return torch.cuda.max_memory_allocated(device) / (2 ** 20)
+
+
 def train(make_env: Callable[[int], VecEnvCompatible],
           model_cfg: MAPPOConfig,
           trainer_cfg: TrainerConfig,
@@ -152,7 +199,9 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                     "seed": seed}, indent=2)
     )
 
-    device = trainer_cfg.device if torch.cuda.is_available() else "cpu"
+    device = _resolve_device(trainer_cfg.device)
+    if device.startswith("cuda"):
+        torch.cuda.reset_peak_memory_stats(device)
     venv = VecEnv(make_env, trainer_cfg.n_envs, base_seed=seed * 1000)
     assert venv.n_agents == model_cfg.n_agents
     assert venv.obs_dim == model_cfg.obs_dim
@@ -316,6 +365,10 @@ def train(make_env: Callable[[int], VecEnvCompatible],
     final_eval = evaluate(agent, make_env,
                           n_episodes=trainer_cfg.eval_episodes * 2,
                           device=device)
+    final_eval["wall_time_s"] = time.time() - start
+    vram = peak_vram_mib(device)
+    if vram is not None:
+        final_eval["peak_vram_mib"] = vram
     torch.save({
         "agent": agent.state_dict(),
         "model_cfg": asdict(model_cfg),

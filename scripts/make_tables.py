@@ -115,7 +115,8 @@ def headline_table(N_list: list[int]) -> str:
 
     head = (r"""\begin{table}[t]
 \centering
-\small
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lccccc c}
 \toprule
 $N$ & Random & MAPPO & + Dense Attn-Comm & + Adaptive TopK (ours) &

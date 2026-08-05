@@ -10,7 +10,7 @@ model:
   use_comm: false       # baseline — no attention communication
 
 trainer:
-  total_steps: 1_500_000
+  total_steps: 800_000
   n_envs: 32
   rollout_len: 25
   ppo_epochs: 10
