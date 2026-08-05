@@ -162,3 +162,53 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
   the arch list and device capability. It never downgrades to CPU silently.
 - Rationale: a silent CPU fallback would invalidate every wall-clock and
   latency measurement in Phase C -- the paper's motivating claim.
+
+---
+
+# Phase C decisions (2026-08-05)
+
+## D-017 — ABORT the specified Phase C sweep at the 200 GPU-h guardrail (2026-08-05)
+- Measured throughput (results/throughput.json) projects ONE arm across
+  N in {3,6,12,24,48} at 10 seeds x 10M steps = 995 GPU-h; a single N=48 cell
+  is 717 GPU-h and a single N=24 cell is 197 GPU-h. Eight arms = ~7,960
+  GPU-h; with LBF/RWARE/SMACv2, ~10,000-14,000 GPU-h.
+- Decision: do not launch. Wrote results/compute_budget.md with the full
+  matrix and a ~60 GPU-h reduced design (Sec 5), per the guardrail's
+  "ask for a smaller design instead".
+- Rationale: the guardrail is explicit and the overrun is 5x on the smallest
+  meaningful unit, not a rounding error.
+
+## D-018 — Training wall-clock cannot test the efficiency claim (2026-08-05)
+- Throughput is identical across MAPPO / dense / adaptive-topk to within 3%
+  at every N >= 6 (N=24: 141/141/141 env-steps/s). The serial Python VecEnv
+  stepping mpe2 dominates; the comm module is invisible in end-to-end time.
+- Decision: the efficiency claim is measured ONLY by the isolated module
+  microbenchmark (scripts/microbenchmark_comm.py). No wall-clock claim will
+  be made from training runs.
+- Rationale: an end-to-end timing that is 97%+ environment cost cannot
+  attribute a difference to the module.
+
+## D-019 — The reported FLOPs saving is not realised by the implementation
+   (2026-08-05)
+- Tracing torch.matmul shows the top-k path executes the SAME dense
+  (B,N,N)x(B,N,d) aggregation matmul as the dense path: the mask is applied
+  to the attention matrix and the zeros are materialised, never skipped
+  (mappo.py:167-175). Executed MACs are identical; measure_flops.py reports
+  up to 91% saved.
+- Decision: every claim of a 21-29% FLOPs reduction is withdrawn from the
+  manuscript. measure_flops.py output is relabelled as an analytic upper
+  bound on an achievable saving, not a measured one. Pinned by a regression
+  test so a future genuinely-sparse gather has to revisit it deliberately.
+- Rationale: it is the difference between a modelled quantity and an executed
+  one, and the manuscript presented the former as the latter.
+
+## D-020 — Reframe the paper as a measurement/negative-result paper (2026-08-05)
+- Framing option 1 from the brief ("budgeted sparse comm attains dense return
+  at reduced latency") is now foreclosed: there is no latency reduction to
+  attain, at any N in [6,192] or batch in [256,4096].
+- Decision: target framing 2/3 - "sparsifying the MARL attention channel does
+  not reduce cost in the regime the literature operates in, and the learned
+  gate costs O(B N^3) memory; the analytic FLOPs accounting that motivates
+  this line of work does not describe what runs."
+- Rationale: this is supported by 30 seconds of measurement, is falsifiable,
+  and is useful to the field. Picked from the data, not before it.

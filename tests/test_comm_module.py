@@ -264,6 +264,55 @@ def test_flops_ratio_is_one_for_dense() -> None:
         assert attention_flops(N, float(N - 1), 16)["msg_gather_over_dense"] == 1.0
 
 
+def test_topk_aggregation_executes_a_dense_matmul() -> None:
+    """The top-k path does the *same* dense matmul as the dense path.
+
+    ``AttentionComm.forward`` masks and renormalises the attention matrix and
+    then calls ``torch.matmul(attn, v)`` with ``attn`` still shaped (B, N, N)
+    -- the zeros are materialised, not skipped. So top-k executes every
+    multiply-accumulate dense executes, plus the top-k selection and scatter
+    on top.
+
+    This test pins the discrepancy in place: ``attention_flops`` reports a
+    saving of ``1 - k/(N-1)`` that the implementation never realises. Any
+    future change that makes top-k genuinely sparse (a gather into a (B, N, k)
+    tensor) will break this test, which is the point -- it should be revisited
+    deliberately, not drifted past.
+    """
+    from scripts.measure_flops import attention_flops
+
+    N, k, B, d = 48, 4, 8, 16
+    seen: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
+    original = torch.matmul
+
+    def traced(a, b, *args, **kwargs):
+        seen.append((tuple(a.shape), tuple(b.shape)))
+        return original(a, b, *args, **kwargs)
+
+    shapes: dict[str, list] = {}
+    try:
+        torch.matmul = traced  # type: ignore[assignment]
+        for mode, kw in (("dense", {}), ("topk", {"topk": k})):
+            seen.clear()
+            cfg = _cfg(n_agents=N, attn_mode=mode, msg_dim=d, **kw)
+            AttentionComm(cfg, in_dim=32)(torch.randn(B, N, 32))
+            shapes[mode] = [s for s in seen if s[0][-1] == N]
+    finally:
+        torch.matmul = original  # type: ignore[assignment]
+
+    assert shapes["dense"] == shapes["topk"], (
+        "top-k no longer mirrors dense's aggregation matmul; if the module "
+        "was made genuinely sparse, update attention_flops and this test"
+    )
+    assert shapes["topk"] == [((B, N, N), (B, N, d))]
+
+    # The counter's claimed saving is real arithmetic on numbers the code
+    # does not execute.
+    claimed = attention_flops(N, float(k), d)["msg_gather_over_dense"]
+    assert claimed == k / (N - 1)
+    assert claimed < 0.1, "this N,k was chosen to make the gap obvious"
+
+
 def test_flops_counter_matches_measured_nonzeros() -> None:
     """The analytic gather count must agree with the module's actual sparsity.
 
