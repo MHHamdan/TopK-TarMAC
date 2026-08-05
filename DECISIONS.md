@@ -69,3 +69,51 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
   proceeding with autonomous decision per Phase-3 protocol.
 - Proposal 002's 2×2 ablation will be partially absorbed into Phase 7 as a free
   attention-locus comparison at N=12.
+
+---
+
+# Phase A decisions (2026-08-05)
+
+## D-009 — Record hardware as 2×96 GiB, not 1×196 GiB (2026-08-05)
+- The brief states "a GPU with ~196 GiB VRAM is now available". `nvidia-smi` shows
+  **two** RTX PRO 6000 Blackwell cards at 97,887 MiB each (~191 GiB aggregate), both
+  shared with other users' processes (~38–45 GiB actually free per device, GPU 0 at
+  100% util at capture).
+- Decision: document the true topology in HARDWARE.md and plan Phase C against
+  per-device free memory, not aggregate total. Multi-GPU means data-parallel seeds,
+  not one large device.
+- Rationale: a sweep sized for a single 196 GiB device would OOM or contend.
+
+## D-010 — Treat the sm_120/torch incompatibility as a Phase B blocker (2026-08-05)
+- torch 2.5.1+cu124 has no sm_120 kernels; `torch.cuda.is_available()` is True but
+  every kernel launch raises. Alternatives: (a) run Phase C on CPU, (b) upgrade torch.
+- Decision: upgrade to a cu128 build (>= 2.7) in Phase B.
+- Rationale: (a) forfeits the wall-clock/latency measurement that is the paper's
+  motivating claim. The upgrade breaks bit-exact reproduction of the existing 45
+  2080 Ti runs, which is accepted and recorded — those runs are superseded by the
+  Phase C program anyway.
+
+## D-011 — `simple_spread` alone cannot support the thesis; a comm-critical env is a
+   precondition, not an enhancement (2026-08-05)
+- The task is fully observable and locally solvable (the paper concedes this at
+  04_experiments.tex:139; EPyMARL S3.2 states it independently). On such a task,
+  "sparsification is free" and "the channel was never used" make identical
+  predictions, so the central hypothesis is unfalsifiable there.
+- Decision: no sparsification result will be reported as a headline until a
+  communication-critical positive control (MPE simple_reference_v3 /
+  simple_speaker_listener_v4) shows the dense channel beating MAPPO.
+- Rationale: without that control, a null sparsification result is uninterpretable
+  and a positive one is uninformative. See AUDIT.md#framing.
+
+## D-012 — The implemented "Dense Attn-Comm" is not TarMAC and will not be called
+   TarMAC (2026-08-05)
+- Verified against arXiv:1810.11187v2: the repo module is single-round, feedforward,
+  same-timestep, and **masks self-attention**, which TarMAC explicitly includes and
+  reports as beneficial. It has no GRU and no one-step message delay.
+- Decision: rename the existing arm to "single-round observation-conditioned
+  attention communication" and implement a faithful TarMAC (GRU, signature/value
+  split with asymmetric dims, self-attention included, one-step delay, multi-round
+  option) as a separate arm in Phase C.
+- Rationale: comparing against TarMAC's published numbers while running a different
+  architecture is not defensible, and the method name "TopK-TarMAC" is unearned
+  until the faithful baseline exists. See AUDIT.md#a4.
