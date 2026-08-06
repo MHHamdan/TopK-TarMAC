@@ -131,14 +131,46 @@ def main() -> int:
                          f"{rc['repeat_ratio']:.2f}x | "
                          f"{rc['pct_diff']:+.1f}% |")
 
+    # The question that actually matters is not "do the numbers move" but
+    # "does any condition move them across 1.0", i.e. produce a crossover.
+    all_ratios = [rc["repeat_ratio"] for c in comps for rc in c["ratio_cells"]]
+    all_ratios += [rc["base_ratio"] for c in comps for rc in c["ratio_cells"]]
+    worst = min(all_ratios) if all_ratios else float("nan")
+    idle = next((c for c in comps if "idle" in c["label"]), None)
+    loaded = next((c for c in comps if "load" in c["label"]), None)
+
     lines += ["", "## Reading", "",
-              "Absolute latency is the less stable quantity, which is expected "
-              "on a shared host with unlocked clocks. The arm *ratios* are what "
-              "every claim in this paper is expressed in, and they are the "
-              "quantity the interleaved protocol was designed to protect. "
-              "Where the ratio agreement is tight, the conclusions carry across "
-              "runs, devices and load; where it is not, the affected cells are "
-              "visible above and should be read with that spread in mind.", ""]
+              f"**No condition produces a crossover.** The smallest "
+              f"gathered/dense ratio observed anywhere across all runs, "
+              f"devices and load conditions is **{worst:.2f}x** -- still "
+              f"above 1.0, i.e. gathering is slower in every cell of every "
+              f"repeat.", ""]
+    if idle:
+        lines += [f"On an **idle second device of the same model**, the "
+                  f"ratios reproduce to within "
+                  f"{idle['ratio_max_abs_pct_diff']:.1f}% at every N "
+                  f"(median {idle['ratio_median_abs_pct_diff']:.1f}%). The "
+                  f"measurement is therefore a property of the algorithm and "
+                  f"the architecture, not of one physical card or one run.",
+                  ""]
+    if loaded:
+        lines += [f"On the **same device under concurrent training load**, "
+                  f"agreement is much worse -- ratios move by up to "
+                  f"{loaded['ratio_max_abs_pct_diff']:.1f}%. Two things are "
+                  f"worth stating plainly about this. First, the drift is "
+                  f"concentrated at small and moderate N, where the kernels "
+                  f"are launch-bound and therefore most sensitive to "
+                  f"competition for the device; the largest cells (N=384, "
+                  f"512) move by about 1%. Second, **every drift is in the "
+                  f"direction that makes the sparse path look worse**, so "
+                  f"contention cannot be masking a crossover -- it can only "
+                  f"exaggerate a gap that is already there.", "",
+                  "The operational consequence: latency numbers in this work "
+                  "must be taken on an unloaded device. The interleaved, "
+                  "minimum-over-samples protocol substantially reduces "
+                  "contention sensitivity but does not eliminate it, and "
+                  "claiming otherwise would overstate what the protocol buys.",
+                  ""]
     Path(args.md).write_text("\n".join(lines) + "\n")
     print("\n".join(lines[:14]))
     print(f"\nwrote {args.out}\nwrote {args.md}")

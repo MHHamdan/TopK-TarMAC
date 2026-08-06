@@ -533,3 +533,40 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
   5. Comparing against an unfused dense baseline when a fused kernel is what
      production uses (D-023).
 - Decision: written as guidance to the field, not as self-criticism.
+
+## D-043 — Drift control: reproducible when idle, load-sensitive when not
+   (2026-08-06)
+- The identical headline sweep re-run ~21 h later, two ways.
+- **Idle second device of the same model:** gathered/dense ratios reproduce
+  to within **3.2%** at every N (median 1.0%); absolute latency to 6.5%. The
+  measurement is a property of the algorithm and architecture, not of one
+  card or one run.
+- **Same device under concurrent training load:** ratios move by up to
+  **56.4%** (median 25.9%), concentrated at small and moderate N where the
+  kernels are launch-bound. N=384 and N=512 move ~1%.
+- Decisive point: **every drift is in the direction that makes the sparse
+  path look worse**, and the smallest gathered/dense ratio observed anywhere
+  across all runs, devices and load conditions is **1.14x**. Contention
+  cannot be hiding a crossover; it can only exaggerate an existing gap.
+- Decision: state that latency numbers must be taken on an unloaded device.
+  The interleaved minimum-over-samples protocol substantially reduces
+  contention sensitivity but does not eliminate it, and claiming otherwise
+  would overstate what it buys. Add median/IQR next to min_ms in an appendix
+  (done) so the dispersion behind each headline number is visible.
+
+## D-044 — Tier 2-4 outcome: six under-powered nulls, reported as such
+   (2026-08-06)
+- All six pre-registered contrasts return "no separation", Holm-adjusted
+  p >= 0.38. This is what the pre-registered power calculation predicted.
+- The primary contrast C1 (attention-selected vs random peers at matched k
+  and matched FLOPs) has point estimate +4.03 (Hodges-Lehmann +4.57,
+  d = +0.60, exact p = 0.357). Directionally consistent with attention
+  selecting informatively; not significant.
+- C4 is the interesting sign: at N=12 the sparse arm's point estimate is
+  *better* than dense by +147 (d = +1.27, p = 0.064), and dense's spread is
+  far wider. Consistent with the gate-variance failure mode the original
+  manuscript identified, but it does not reach significance and will not be
+  reported as a finding.
+- Decision: report every one as under-powered, never as "no effect", and make
+  no equivalence claim anywhere (no TOST margin was pre-registered). The
+  binding constraint is 5 seeds, which follows from the compute guardrail.
