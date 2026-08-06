@@ -359,3 +359,21 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
   not executed" is a poor match for its stated scope. Slow review compounds
   the cost of a fallback that is unlikely to fit.
 - Ranking: TMLR > RLC > MLSys > TAI.
+
+## D-031 — Tier 1 PASSES: the communication channel carries information
+   (2026-08-06)
+- Both positive controls beat comm-free MAPPO with 95% bootstrap CIs
+  excluding zero, over 5 seeds x 2M steps:
+    simple_reference (N=2):        -30.10 vs -34.35, diff +4.26 [+3.15, +5.23]
+    PO simple_spread (N=6, r=1.0): -192.83 vs -204.42, diff +11.59 [+7.13, +16.44]
+- This is the first result in this project where the channel is shown to do
+  something on a task that needs it. Every previous sparsification result was
+  measured on fully observable `simple_spread`, where "sparsification is free"
+  and "the channel was never used" are indistinguishable (D-011).
+- Measured attention entropy on the N=6 control is 0.35 nats against a
+  ln(5)=1.61 maximum, i.e. attention is strongly peaked rather than uniform --
+  which is what makes the tier-2 random-k control a meaningful test rather
+  than a formality.
+- Decision: the D-011 precondition is met; tiers 2-4 are now interpretable and
+  are launched. Any sparsification result from them is a statement about
+  giving up part of a channel that demonstrably works.
