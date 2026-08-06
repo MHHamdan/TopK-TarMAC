@@ -100,7 +100,7 @@ def _time_cuda(fn, reps: int, warmup: int) -> list[float]:
     """Per-iteration milliseconds measured with on-device CUDA events."""
     for _ in range(warmup):
         fn()
-    torch.cuda.synchronize()
+    torch.cuda.synchronize()  # current device; main() pins it via set_device
     samples = []
     for _ in range(reps):
         start = torch.cuda.Event(enable_timing=True)
@@ -429,7 +429,7 @@ def interleaved_timing(rows: list[dict[str, Any]], device: str, reps: int,
         start.record()
         body()
         end.record()
-        torch.cuda.synchronize()
+        torch.cuda.synchronize(device)
         return start.elapsed_time(end)
 
     for key, backward in (("forward", False),
@@ -509,6 +509,11 @@ def main() -> int:
     if device.startswith("cuda") and not torch.cuda.is_available():
         print("CUDA unavailable; refusing to report GPU latency from CPU")
         return 1
+    if device.startswith("cuda"):
+        # Pin the current device so bare `torch.cuda.synchronize()` calls wait
+        # on the queue the work was actually submitted to. Without this, timing
+        # anything on a non-default device measures the event resolution floor.
+        torch.cuda.set_device(device)
 
     free_b = total_b = None
     if device.startswith("cuda"):

@@ -6,7 +6,10 @@ moderate $N$: dense attention communication beats MAPPO at $N{=}6$ with
 Cohen's $d{=}1.06$ and a 95\% bootstrap CI that excludes zero. The
 second answer, for the end-to-end Gumbel-softmax architecture studied
 here, is negative: gate-induced stochasticity scales with $N$ and
-overwhelms the 21--29\% FLOPs reduction it buys; at $N{=}12$,
+overwhelms the 21--29\% analytic FLOPs reduction it was reported to buy
+---a reduction later found never to have been executed, and bounded above by
+$2\times$ in principle (see the retraction in Section~\ref{sec:experiments});
+at $N{=}12$,
 adaptive-$k$ TopK is significantly worse than MAPPO. The diagnostic
 signature --- between-seed standard deviation of 20--40 for adaptive-$k$
 versus $\sim 5$ for dense and baseline --- points to a clear next step:

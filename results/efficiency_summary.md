@@ -109,6 +109,52 @@ batch 256, msg_dim 16, dtype fp32, k = 25% of peers, x86_64
 | 96 | 23 | 0.6406 | 1.8389 | 7.9239 | 9.4593 | 197.3235 | 5.14x | 14.77x | 257 vs 315 |
 | 192 | 47 | 1.3114 | 25.6410 | 54.1705 | 49.6449 | 1393.7212 | 1.94x | 37.86x | 703 vs 931 |
 
+## Appendix: dispersion behind every headline number
+
+`min` is what the tables above report. `median` and the interquartile range describe the same samples; `spread` is the range of per-run medians across the repeated timed blocks.
+
+| N | arm | min (ms) | median (ms) | IQR (ms) | median/min | inter-run spread |
+|---|---|---|---|---|---|---|
+| 6 | dense (fused SDPA) | 0.1174 | 0.1248 | 0.0095 | 1.06x | 9.3% |
+| 6 | dense (unfused) | 0.1241 | 0.1303 | 0.0075 | 1.05x | 7.0% |
+| 6 | top-k masked | 0.1735 | 0.1813 | 0.0112 | 1.05x | 7.5% |
+| 6 | top-k gathered | 0.1457 | 0.1512 | 0.0061 | 1.04x | 2.2% |
+| 6 | adaptive gate | 0.3513 | 0.3682 | 0.0297 | 1.05x | 11.0% |
+| 12 | dense (fused SDPA) | 0.1172 | 0.1213 | 0.0021 | 1.03x | 0.9% |
+| 12 | dense (unfused) | 0.1247 | 0.1284 | 0.0029 | 1.03x | 0.9% |
+| 12 | top-k masked | 0.1791 | 0.1837 | 0.0041 | 1.03x | 0.6% |
+| 12 | top-k gathered | 0.1507 | 0.1553 | 0.0030 | 1.03x | 0.4% |
+| 12 | adaptive gate | 0.3613 | 0.3697 | 0.0101 | 1.02x | 1.1% |
+| 24 | dense (fused SDPA) | 0.0992 | 0.1024 | 0.0019 | 1.03x | 1.1% |
+| 24 | dense (unfused) | 0.1204 | 0.1244 | 0.0032 | 1.03x | 0.6% |
+| 24 | top-k masked | 0.1729 | 0.1777 | 0.0041 | 1.03x | 1.7% |
+| 24 | top-k gathered | 0.1474 | 0.1516 | 0.0042 | 1.03x | 0.9% |
+| 24 | adaptive gate | 0.3453 | 0.3537 | 0.0092 | 1.02x | 0.6% |
+| 48 | dense (fused SDPA) | 0.1082 | 0.1114 | 0.0024 | 1.03x | 1.5% |
+| 48 | dense (unfused) | 0.1283 | 0.1338 | 0.0041 | 1.04x | 1.9% |
+| 48 | top-k masked | 0.1836 | 0.1896 | 0.0076 | 1.03x | 2.3% |
+| 48 | top-k gathered | 0.1576 | 0.1618 | 0.0052 | 1.03x | 1.9% |
+| 48 | adaptive gate | 0.3783 | 0.3851 | 0.0067 | 1.02x | 1.0% |
+| 96 | dense (fused SDPA) | 0.1052 | 0.1142 | 0.0068 | 1.09x | 5.8% |
+| 96 | dense (unfused) | 0.1239 | 0.1528 | 0.0240 | 1.23x | 21.6% |
+| 96 | top-k masked | 0.2141 | 0.2226 | 0.0075 | 1.04x | 3.1% |
+| 96 | top-k gathered | 0.2237 | 0.2313 | 0.0074 | 1.03x | 2.3% |
+| 96 | adaptive gate | 1.6578 | 1.6784 | 0.0166 | 1.01x | 0.9% |
+| 192 | dense (fused SDPA) | 0.1486 | 0.1588 | 0.0097 | 1.07x | 7.2% |
+| 192 | dense (unfused) | 0.2055 | 0.2234 | 0.0194 | 1.09x | 10.4% |
+| 192 | top-k masked | 0.6810 | 0.7065 | 0.0322 | 1.04x | 6.0% |
+| 192 | top-k gathered | 0.7713 | 0.7956 | 0.0355 | 1.03x | 5.3% |
+| 192 | adaptive gate | 11.4178 | 11.5172 | 0.0977 | 1.01x | 1.3% |
+| 384 | dense (fused SDPA) | 0.2945 | 0.3005 | 0.0088 | 1.02x | 8.8% |
+| 384 | dense (unfused) | 1.1600 | 1.1685 | 0.0161 | 1.01x | 5.9% |
+| 384 | top-k masked | 3.4991 | 3.5088 | 0.0046 | 1.00x | 0.1% |
+| 384 | top-k gathered | 3.1736 | 3.1818 | 0.0038 | 1.00x | 0.6% |
+| 384 | adaptive gate | 83.9797 | 84.0072 | 0.0132 | 1.00x | 0.0% |
+| 512 | dense (fused SDPA) | 0.4313 | 0.4345 | 0.0024 | 1.01x | 1.6% |
+| 512 | dense (unfused) | 1.9888 | 1.9932 | 0.0027 | 1.00x | 0.3% |
+| 512 | top-k masked | 7.5568 | 7.5730 | 0.0064 | 1.00x | 0.0% |
+| 512 | top-k gathered | 7.0251 | 7.0459 | 0.0057 | 1.00x | 0.1% |
+
 ## Measurement conditions
 
 | Field | Value |

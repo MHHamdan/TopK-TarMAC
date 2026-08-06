@@ -428,6 +428,32 @@ def test_attention_flop_saving_is_bounded_by_two() -> None:
         assert dense / best < 2.0, f"N={N}: ratio {dense / best:.4f}"
 
 
+def test_structural_sparsity_escapes_the_two_times_bound() -> None:
+    """Proposition 2: structural selection is not capped at 2x.
+
+    The ceiling in the test above depends entirely on needing every score to
+    decide which peers to keep. If the kept set is fixed before any score is
+    computed -- a topology, a distance prior, a hash -- the score matmul is
+    itself sparsifiable and the ratio becomes N/k, which is unbounded.
+
+    This test exists so the escape route is pinned as precisely as the bound,
+    because it is the design target for any successor method.
+    """
+    B, d = 8, 16
+    for N in (48, 192, 512):
+        for k in (1, 4, 16):
+            dense = 2 * B * N * N * d + 2 * B * N * (N - 1) * d
+            data_dependent = 2 * B * N * N * d + 2 * B * N * k * d
+            structural = 2 * B * N * k * d + 2 * B * N * k * d
+            assert dense / data_dependent < 2.0
+            # The structural variant beats the ceiling once k is small
+            # relative to N -- which is exactly the regime top-k targets.
+            if N / k > 2:
+                assert dense / structural > dense / data_dependent
+            assert abs(dense / structural - (N - 0.5) / k) < 1.0, (
+                f"N={N} k={k}: structural ratio should track N/k")
+
+
 def test_dense_sdpa_matches_dense() -> None:
     """The fused SDPA baseline computes the same function as `dense`.
 

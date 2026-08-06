@@ -1,3 +1,4 @@
+\label{sec:experiments}
 \paragraph{Environments.} Evaluation is on MPE
 \texttt{simple\_spread\_v3} from the \texttt{mpe2} package
 \citep{terry2020pettingzoo}, the canonical cooperative navigation
@@ -69,7 +70,8 @@ $[-34.2, +5.0]$). Adaptive TopK is significantly worse than MAPPO: mean
 delta $-65.4$ with bootstrap CI $[-119.7, -28.5]$ that excludes zero on
 the negative side ($d{=}-1.87$). The gate's per-seed standard deviation
 is $40.2$ versus $4.6$ for MAPPO --- a ninefold inflation --- while the
-FLOPs the gate saves over dense rise to $1 - 7.83/11 \approx 29\%$.
+analytic (\emph{not executed}; see the retraction below) aggregation-FLOPs
+ratio the gate would save over dense rises to $1 - 7.83/11 \approx 29\%$.
 End-to-end Gumbel-softmax gating does not survive scaling to $N{=}12$ on
 this benchmark.
 
@@ -96,22 +98,39 @@ standard deviation.}
 \label{fig:scaling}
 \end{figure}
 
-\paragraph{FLOPs / return trade-off.} Figure~\ref{fig:flops} reports the
+
+\paragraph{Retraction of the FLOPs-reduction claim.}
+\emph{This claim is withdrawn.} The implementation these numbers describe
+applies top-$k$ as a \emph{mask} on the dense attention matrix and then
+executes the same dense $(B,N,N)\times(B,N,d)$ aggregation matmul; the
+discarded entries are materialised as zeros, never skipped. Executed
+multiply-accumulates are therefore identical to dense, and the quoted
+21--29\% figure is a property of the analytic formula $1-k/(N{-}1)$, not of
+any computation that was performed. Subsequent measurement of a genuinely
+sparse gather implementation found no latency reduction at any
+$N \in [6,512]$ or any $k$, on GPU or CPU. See the repository's
+\texttt{results/efficiency\_summary.md} and \texttt{DECISIONS.md} (D-019,
+D-021, D-025). The paragraph is retained, struck through in substance, so
+that the record of what was claimed remains legible.
+
+\paragraph{FLOPs / return trade-off (withdrawn).} Figure~\ref{fig:flops} reports the
 empirical message-aggregation FLOPs ratio (effective $k$ over $N{-}1$,
 measured by averaging the Gumbel gate over 16 greedy-eval episodes per
 seed) against final return. At $N{=}6$, Adaptive TopK selects
 $k_{\mathrm{eff}}/(N{-}1) \approx 0.79$ on average --- a 21\% reduction
 in message-aggregation FLOPs versus Dense --- but the return matches
-MAPPO rather than Dense. Dense Pareto-dominates TopK on return, and
-TopK Pareto-dominates Dense on FLOPs; neither method dominates the
-other.
+MAPPO rather than Dense. Dense Pareto-dominates TopK on return. The claim
+that ``TopK Pareto-dominates Dense on FLOPs'' \textbf{does not hold}: the
+saving was never executed, and even a correct sparse implementation is
+bounded above by a factor of two, because selecting peers by attention score
+requires computing every score.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.55\linewidth]{figures/fig4_flops_pareto.pdf}
-\caption{Aggregation FLOPs (relative to dense) vs return at each $N$.
-Adaptive TopK is FLOPs-Pareto-optimal in the relevant operating regime
-but loses return.}
+\caption{\textbf{Withdrawn.} Analytic aggregation-FLOPs ratio (relative to
+dense) vs return at each $N$. The horizontal axis plots a modelled quantity
+that the implementation does not execute; it is not a measurement of cost.}
 \label{fig:flops}
 \end{figure}
 
