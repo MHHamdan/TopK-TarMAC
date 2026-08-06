@@ -98,4 +98,14 @@ environment. These inform interpretation; they do not support claims.
 
 _(append here; empty at time of writing)_
 
-- 2026-08-06: none.
+- 2026-08-06: none. The analysis was executed exactly as specified above:
+  six contrasts, exact permutation test, Holm-Bonferroni, C1 primary. No
+  contrast was added, dropped, re-specified or re-directed after unblinding.
+
+- 2026-08-06, note (not a deviation): for C4 and C6 the 95% bootstrap CI
+  excludes zero while the exact permutation test does not reach significance.
+  The pre-registration named the permutation test as **the** test and the
+  bootstrap interval as approximate at n=5, so the permutation result governs
+  and both contrasts are reported as not separated. This tension is recorded
+  rather than resolved in favour of whichever statistic reads better; it is a
+  direct consequence of n=5 and is exactly what §4 anticipated.
