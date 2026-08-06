@@ -1,0 +1,151 @@
+{
+  "n_arms": 12,
+  "seeds_per_arm": 5,
+  "steps_per_run": 2000000,
+  "arms": [
+    {
+      "run_name": "red_ref_mappo",
+      "tier": 1,
+      "rationale": "Comm-free floor on a task that is unsolvable without communication. If red_ref_dense does not beat this, the comm module is broken and nothing downstream is interpretable.",
+      "env": "simple_reference",
+      "n_agents": 2,
+      "visibility_radius": null,
+      "attn_mode": "none",
+      "topk": null,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_ref_dense",
+      "tier": 1,
+      "rationale": "Dense attention-comm on the communication-critical control. This is the positive control D-011 makes a precondition for any headline.",
+      "env": "simple_reference",
+      "n_agents": 2,
+      "visibility_radius": null,
+      "attn_mode": "dense",
+      "topk": null,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po6_mappo",
+      "tier": 1,
+      "rationale": "Comm-free floor on partially-observable simple_spread, N=6. Unlike simple_reference this scales in N, so it carries the k arms.",
+      "env": "simple_spread",
+      "n_agents": 6,
+      "visibility_radius": 1.0,
+      "attn_mode": "none",
+      "topk": null,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po6_dense",
+      "tier": 1,
+      "rationale": "Dense attention-comm, N=6. The channel effect that the sparsification arms are allowed to give up some of.",
+      "env": "simple_spread",
+      "n_agents": 6,
+      "visibility_radius": 1.0,
+      "attn_mode": "dense",
+      "topk": null,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po6_gather_k2",
+      "tier": 2,
+      "rationale": "Genuinely sparse top-k (gather path), k=2 of 5 peers. Paired with red_po6_random_k2 at identical k and identical executed FLOPs.",
+      "env": "simple_spread",
+      "n_agents": 6,
+      "visibility_radius": 1.0,
+      "attn_mode": "topk_gather",
+      "topk": 2,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po6_random_k2",
+      "tier": 2,
+      "rationale": "Random-k control at matched k=2. Any gap to red_po6_gather_k2 is attributable to WHICH peers attention picked, not how many.",
+      "env": "simple_spread",
+      "n_agents": 6,
+      "visibility_radius": 1.0,
+      "attn_mode": "random_k",
+      "topk": 2,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po6_gather_k1",
+      "tier": 3,
+      "rationale": "Fixed-k grid, k=1 of 5.",
+      "env": "simple_spread",
+      "n_agents": 6,
+      "visibility_radius": 1.0,
+      "attn_mode": "topk_gather",
+      "topk": 1,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po6_gather_k4",
+      "tier": 3,
+      "rationale": "Fixed-k grid, k=4 of 5 (near-dense).",
+      "env": "simple_spread",
+      "n_agents": 6,
+      "visibility_radius": 1.0,
+      "attn_mode": "topk_gather",
+      "topk": 4,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po12_gather_k3",
+      "tier": 3,
+      "rationale": "Fixed-k at N=12, k=3 (25% of peers) -- the k/N ratio the manuscript reports on, at the largest N the training budget allows.",
+      "env": "simple_spread",
+      "n_agents": 12,
+      "visibility_radius": 1.0,
+      "attn_mode": "topk_gather",
+      "topk": 3,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po6_lagrangian",
+      "tier": 4,
+      "rationale": "Adaptive gate under a Lagrangian budget targeting kappa=25% of peers. Dual ascent on the multiplier, so the budget is met rather than traded against return at an arbitrary fixed weight.",
+      "env": "simple_spread",
+      "n_agents": 6,
+      "visibility_radius": 1.0,
+      "attn_mode": "adaptive_topk",
+      "topk": null,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po6_entmax",
+      "tier": 4,
+      "rationale": "alpha-entmax attention, alpha=1.5: sparsity from the normalisation instead of a hard cutoff. Tests the manuscript's own diagnosis that the learned-k gate is the wrong mechanism.",
+      "env": "simple_spread",
+      "n_agents": 6,
+      "visibility_radius": 1.0,
+      "attn_mode": "entmax",
+      "topk": null,
+      "total_steps": 2000000,
+      "seeds": 5
+    },
+    {
+      "run_name": "red_po12_dense",
+      "tier": 4,
+      "rationale": "Dense reference at N=12, so red_po12_gather_k3 has a same-N baseline.",
+      "env": "simple_spread",
+      "n_agents": 12,
+      "visibility_radius": 1.0,
+      "attn_mode": "dense",
+      "topk": null,
+      "total_steps": 2000000,
+      "seeds": 5
+    }
+  ]
+}

@@ -50,6 +50,21 @@ class TrainerConfig:
     # sweep N.
     per_agent_reward: bool = True
 
+    # --- Lagrangian communication budget -------------------------------
+    # Constrains the adaptive gate's expected k to a target kappa instead of
+    # letting it drift, by dual ascent on a multiplier: the standard
+    # constrained-RL formulation (Achiam et al. 2017; Stooke et al. 2020)
+    # rather than a fixed penalty weight, so the budget is *met* rather than
+    # traded off against return at an arbitrary exchange rate.
+    #   lagrangian_k = False        -> arm disabled, zero effect on the loss
+    #   kappa_frac                  -> target expected k as a fraction of N-1
+    #   lambda_lr                   -> dual ascent step on the multiplier
+    lagrangian_k: bool = False
+    kappa_frac: float = 0.25
+    lambda_lr: float = 0.01
+    lambda_init: float = 0.0
+    lambda_max: float = 100.0
+
     # Logging
     log_interval_steps: int = 2_000  # write a row this often
     eval_interval_steps: int = 20_000
@@ -139,6 +154,53 @@ def evaluate(agent: MAPPOAgent, make_env: Callable[[int], VecEnvCompatible],
     return {"eval_return_mean": float(arr.mean()), "eval_return_std": float(arr.std())}
 
 
+def _resolve_device(requested: str) -> str:
+    """Resolve a requested device, failing loudly if CUDA is unusable.
+
+    ``torch.cuda.is_available()`` returns True on a GPU whose compute
+    capability the installed build has no kernels for, so the old
+    ``"cuda" if is_available() else "cpu"`` check selected a device that then
+    raised on the first kernel launch (AUDIT.md D-00). Probe with a real
+    allocation instead, and refuse to silently downgrade to CPU -- a run that
+    quietly falls back would invalidate every wall-clock measurement.
+
+    Args:
+        requested: Device string from the trainer config.
+
+    Returns:
+        The device string to use.
+
+    Raises:
+        RuntimeError: If a CUDA device was requested but cannot execute.
+    """
+    if not requested.startswith("cuda"):
+        return requested
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            f"device={requested!r} requested but torch.cuda.is_available() is "
+            f"False. Refusing to fall back to CPU silently."
+        )
+    try:
+        probe = torch.zeros(8, device=requested)
+        (probe + 1).sum().item()
+    except RuntimeError as exc:
+        caps = ", ".join(torch.cuda.get_arch_list())
+        raise RuntimeError(
+            f"device={requested!r} is present but unusable by this PyTorch "
+            f"build ({torch.__version__}, arch list: {caps}); "
+            f"device capability is {torch.cuda.get_device_capability(requested)}. "
+            f"Original error: {exc}"
+        ) from exc
+    return requested
+
+
+def peak_vram_mib(device: str) -> float | None:
+    """Peak allocated VRAM in MiB, or ``None`` on CPU."""
+    if not device.startswith("cuda"):
+        return None
+    return torch.cuda.max_memory_allocated(device) / (2 ** 20)
+
+
 def train(make_env: Callable[[int], VecEnvCompatible],
           model_cfg: MAPPOConfig,
           trainer_cfg: TrainerConfig,
@@ -152,7 +214,9 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                     "seed": seed}, indent=2)
     )
 
-    device = trainer_cfg.device if torch.cuda.is_available() else "cpu"
+    device = _resolve_device(trainer_cfg.device)
+    if device.startswith("cuda"):
+        torch.cuda.reset_peak_memory_stats(device)
     venv = VecEnv(make_env, trainer_cfg.n_envs, base_seed=seed * 1000)
     assert venv.n_agents == model_cfg.n_agents
     assert venv.obs_dim == model_cfg.obs_dim
@@ -182,8 +246,15 @@ def train(make_env: Callable[[int], VecEnvCompatible],
         "global_step", "wall_time_s", "ep_return_mean", "ep_return_std",
         "policy_loss", "value_loss", "entropy", "approx_kl",
         "eval_return_mean", "eval_return_std",
+        # Mechanism instrumentation (reduced-design item 5): the gate's
+        # realised support and, for the Lagrangian arm, the dual multiplier.
+        # Blank for arms that do not expose them -- never imputed.
+        "mean_k", "attn_entropy", "lagrange_lambda",
     ])
     writer.writeheader()
+
+    # Lagrangian dual variable. Unused unless trainer_cfg.lagrangian_k.
+    lam = float(trainer_cfg.lambda_init)
 
     global_step = 0
     last_log_step = 0
@@ -249,7 +320,7 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                 ret_mb = flat_rets[mb_t]
                 val_old_mb = flat_val_old[mb_t]
 
-                logits, _ = agent.policy_logits(obs_mb)
+                logits, comm_info = agent.policy_logits(obs_mb)
                 dist = Categorical(logits=logits)
                 logp_new = dist.log_prob(act_mb)
                 entropy = dist.entropy().mean()
@@ -273,6 +344,24 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                 loss = (policy_loss
                         + trainer_cfg.value_coef * value_loss
                         - trainer_cfg.entropy_coef * entropy)
+
+                # Lagrangian communication budget. `expected_k` is the gate's
+                # differentiable expected support; the multiplier is updated by
+                # dual ascent on the constraint violation, so lambda grows
+                # while the budget is exceeded and decays once it is met.
+                if trainer_cfg.lagrangian_k and "expected_k" in comm_info:
+                    expected_k = comm_info["expected_k"]
+                    target_k = trainer_cfg.kappa_frac * max(N - 1, 1)
+                    violation = expected_k - target_k
+                    loss = loss + lam * violation
+                    with torch.no_grad():
+                        lam = float(np.clip(
+                            lam + trainer_cfg.lambda_lr * float(violation),
+                            0.0, trainer_cfg.lambda_max))
+                    epoch_metrics.setdefault("lam", []).append(lam)
+                    epoch_metrics.setdefault("ek", []).append(
+                        float(expected_k.detach()))
+
                 optim.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(agent.parameters(), trainer_cfg.max_grad_norm)
@@ -285,6 +374,17 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                 epoch_metrics["vl"].append(value_loss.item())
                 epoch_metrics["ent"].append(entropy.item())
                 epoch_metrics["kl"].append(approx_kl.item())
+                # Mechanism instrumentation: whatever the comm arm exposes.
+                # Absent keys stay absent so the column is blank, not zero.
+                if "mean_k" in comm_info:
+                    epoch_metrics.setdefault("mk", []).append(
+                        float(comm_info["mean_k"]))
+                elif "effective_k" in comm_info:
+                    epoch_metrics.setdefault("mk", []).append(
+                        float(comm_info["effective_k"]))
+                if "mean_attn_entropy" in comm_info:
+                    epoch_metrics.setdefault("ae", []).append(
+                        float(comm_info["mean_attn_entropy"]))
 
         # Logging.
         if global_step - last_log_step >= trainer_cfg.log_interval_steps:
@@ -300,6 +400,11 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                 "value_loss": float(np.mean(epoch_metrics["vl"])),
                 "entropy": float(np.mean(epoch_metrics["ent"])),
                 "approx_kl": float(np.mean(epoch_metrics["kl"])),
+                "mean_k": (float(np.mean(epoch_metrics["mk"]))
+                           if epoch_metrics.get("mk") else ""),
+                "attn_entropy": (float(np.mean(epoch_metrics["ae"]))
+                                 if epoch_metrics.get("ae") else ""),
+                "lagrange_lambda": (lam if trainer_cfg.lagrangian_k else ""),
                 **last_eval_metrics,
             }
             writer.writerow(row)
@@ -316,6 +421,10 @@ def train(make_env: Callable[[int], VecEnvCompatible],
     final_eval = evaluate(agent, make_env,
                           n_episodes=trainer_cfg.eval_episodes * 2,
                           device=device)
+    final_eval["wall_time_s"] = time.time() - start
+    vram = peak_vram_mib(device)
+    if vram is not None:
+        final_eval["peak_vram_mib"] = vram
     torch.save({
         "agent": agent.state_dict(),
         "model_cfg": asdict(model_cfg),

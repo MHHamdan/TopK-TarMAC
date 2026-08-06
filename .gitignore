@@ -36,8 +36,24 @@ data/processed/
 data/*.zip
 data/*.tar*
 
-# --- Paper artefacts (kept private; not pushed to GitHub) ---
-paper/
+# --- Paper artefacts ---
+# Manuscript SOURCES are tracked so the paper has revision history (AUDIT.md
+# D-16: previously the whole of paper/ was ignored, so no manuscript revision
+# existed in git at all). LaTeX build intermediates and the compiled PDF are
+# not tracked -- they are regenerable via `make paper`.
+#
+# NOTE: `origin` is a GitHub remote and paper/ was deliberately untracked in
+# 6f796c2 for privacy. These commits are local-only; do not push without
+# confirming the manuscript may become public (DECISIONS.md D-013).
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.out
+paper/*.log
+paper/*.synctex.gz
+paper/*.fls
+paper/*.fdb_latexmk
+paper/main.pdf
 PAPER_PROMPT.md
 
 # --- Internal planning artefacts (private; not pushed) ---
@@ -46,3 +62,8 @@ STATUS.md
 
 # --- Literature PDFs (license-uncertain; notes + bib are tracked) ---
 literature/papers/*.pdf
+
+# This branch is the PUBLIC code mirror. The manuscript lives only on
+# local branches (D-029) -- origin is a public GitHub remote.
+paper/
+AUDIT.md

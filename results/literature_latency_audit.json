@@ -1,0 +1,144 @@
+{
+  "question": "Among the papers this manuscript cites for sparse or efficient attention, which report MEASURED wall-clock latency/throughput alongside their claimed FLOPs or complexity savings?",
+  "method": "Each paper's full text was read via ar5iv (https://ar5iv.labs.arxiv.org/html/<id>) on 2026-08-05 and searched for (a) any computational-efficiency or complexity claim and (b) any reported measurement of time, speed, throughput, or achieved FLOPs. 'Reports latency' requires a measured temporal quantity attributable to the mechanism -- a figure, table, or sentence giving time/speed. Vague statements such as 'training took a few days' do not qualify, and are recorded as such.",
+  "verified_on": "2026-08-05",
+  "caveat": "This is an audit of what the papers report, not of whether their claims are true. A 'no' means the paper's efficiency argument rests on operation counts or asymptotics alone.",
+  "papers": [
+    {
+      "bibkey": "das2019tarmac",
+      "title": "TarMAC: Targeted Multi-Agent Communication",
+      "arxiv": "1810.11187",
+      "field": "MARL communication",
+      "efficiency_claim": "Qualitative bandwidth argument only: communication vectors are 'significantly more compact (32-d) than the high-dimensional observation space (224x224 image), making our approach particularly attractive for scaling to large agent teams' (Sec 5.3).",
+      "claim_type": "qualitative",
+      "reports_measured_latency": false,
+      "evidence": "No timing, throughput, FLOPs or complexity analysis anywhere. Evaluated purely on success rate and steps-to-completion."
+    },
+    {
+      "bibkey": "sukhbaatar2016commnet",
+      "title": "Learning Multiagent Communication with Backpropagation",
+      "arxiv": "1605.07736",
+      "field": "MARL communication",
+      "efficiency_claim": "None explicit about the communication module.",
+      "claim_type": "none",
+      "reports_measured_latency": false,
+      "evidence": "Only 'The training time varies from a few hours to a few days depending on task and module type' -- a range, not a measurement, and not attributable to the module."
+    },
+    {
+      "bibkey": "singh2018ic3net",
+      "title": "Individualized Controlled Continuous Communication Model",
+      "arxiv": "1812.09755",
+      "field": "MARL communication",
+      "efficiency_claim": "'continuous communication allows efficient training with back-propagation'; gating reduces how often agents communicate; performance gaps 'increase with scale'.",
+      "claim_type": "message counts / convergence epochs",
+      "reports_measured_latency": false,
+      "evidence": "Efficiency argued via episode metrics and epochs to convergence. Only temporal statement is 'StarCraft tasks usually takes more than a day', uncompared to baselines."
+    },
+    {
+      "bibkey": "jiang2018atoc",
+      "title": "Learning Attentional Communication for Multi-Agent Cooperation",
+      "arxiv": "1805.07733",
+      "field": "MARL communication",
+      "efficiency_claim": "Communication is 'restricted by bandwidth and/or range'; the attention unit yields 'efficient and effective communication'; each initiator selects at most m collaborators, and communication occurs every T timesteps.",
+      "claim_type": "agent/message counts",
+      "reports_measured_latency": false,
+      "evidence": "Evidence is collision counts, occupation rates and communication-frequency visualisations. No timing or computational-cost comparison against baselines."
+    },
+    {
+      "bibkey": "jiang2018dgn",
+      "title": "Graph Convolutional Reinforcement Learning (DGN)",
+      "arxiv": "1810.09202",
+      "field": "MARL attention",
+      "efficiency_claim": "'receiving a large amount of information requires high bandwidth and incurs high computational complexity'; each agent 'only requires the (latent) features from its neighbors ... regardless of the number of agents, which makes DGN easily scale'.",
+      "claim_type": "asymptotic / qualitative",
+      "reports_measured_latency": false,
+      "evidence": "No timing, FLOPs, or memory measurement for the attention or graph-convolution layers. Experiments report reward, kill-death ratio and packet delay only."
+    },
+    {
+      "bibkey": "wen2022mat",
+      "title": "Multi-Agent Transformer",
+      "arxiv": "2205.14953",
+      "field": "MARL attention",
+      "efficiency_claim": "Sequence modelling 'reduces the complexity growth of MARL problems with the number of agents from multiplicative to additive, thus rendering linear complexity'; clipping objectives computed in parallel.",
+      "claim_type": "asymptotic",
+      "reports_measured_latency": true,
+      "evidence": "Figure 13 (Appendix C): 'Wall clock time comparison on scenarios with 10M environment steps and different size of agents, demonstrating that MAT enjoys better computational efficiency than HAPPO.' Note the comparison is against HAPPO's sequential update, not against dense attention."
+    },
+    {
+      "bibkey": "kitaev2020reformer",
+      "title": "Reformer: The Efficient Transformer",
+      "arxiv": "2001.04451",
+      "field": "efficient attention (NLP)",
+      "efficiency_claim": "LSH attention reduces O(L^2) to O(L log L).",
+      "claim_type": "asymptotic",
+      "reports_measured_latency": true,
+      "evidence": "Figure 5 (right): 'Speed of attention evaluation as a function of input length for full- and LSH- attention.' 'while regular attention becomes slower at longer sequence length, LSH attention speed remains flat.'"
+    },
+    {
+      "bibkey": "beltagy2020longformer",
+      "title": "Longformer: The Long-Document Transformer",
+      "arxiv": "2004.05150",
+      "field": "efficient attention (NLP)",
+      "efficiency_claim": "Sliding-window + global attention scales linearly in sequence length.",
+      "claim_type": "asymptotic",
+      "reports_measured_latency": true,
+      "evidence": "Figure 1: 'Runtime and memory of full self-attention and different implementations of Longformer's self-attention; Longformer-loop is non-vectorized, Longformer-chunk is vectorized, and Longformer-cuda is a custom cuda kernel implementation.' Critically, they measure the masked variant SEPARATELY from the real sparse kernel and note the chunked variant 'consumes 2x optimal memory since it computes some zero values' -- exactly the masked-vs-gather distinction this manuscript conflated.",
+      "note": "This is the methodological precedent for the present paper's dense / masked / gathered decomposition."
+    },
+    {
+      "bibkey": "zaheer2020bigbird",
+      "title": "Big Bird: Transformers for Longer Sequences",
+      "arxiv": "2007.14062",
+      "field": "efficient attention (NLP)",
+      "efficiency_claim": "'reduces this quadratic dependency to linear'; handles sequences 'up to 8x of what was previously possible using similar hardware'.",
+      "claim_type": "asymptotic + memory",
+      "reports_measured_latency": false,
+      "evidence": "Reports memory capability and downstream task accuracy. Closest to a measurement is 'we trained our models on a reasonable 16GB memory/chip with batch size of 32-64' -- hardware and batch size, not runtime."
+    },
+    {
+      "bibkey": "choromanski2021performers",
+      "title": "Rethinking Attention with Performers",
+      "arxiv": "2009.14794",
+      "field": "efficient attention (NLP)",
+      "efficiency_claim": "FAVOR+ gives linear rather than quadratic attention complexity.",
+      "claim_type": "asymptotic",
+      "reports_measured_latency": true,
+      "evidence": "Figure 3: 'Comparison of Transformer and Performer in terms of forward and backward pass speed and maximum L allowed.' Sec 4.5: 'the Performer can be 2x faster than the Reformer via Jax optimizations'. Measured on V100."
+    },
+    {
+      "bibkey": "fedus2022switch",
+      "title": "Switch Transformers",
+      "arxiv": "2101.03961",
+      "field": "sparse mixture-of-experts",
+      "efficiency_claim": "Sparse routing increases parameters at constant FLOPs per example.",
+      "claim_type": "FLOPs-matched",
+      "reports_measured_latency": true,
+      "evidence": "Table 1 and Table 6 report 'Speed (examples/sec)'; Sec 3.2: 'our Switch-Base 64 expert model trains in one-seventh the time that it would take the T5-Base to get similar perplexity.'"
+    },
+    {
+      "bibkey": "shazeer2017moe",
+      "title": "Outrageously Large Neural Networks: The Sparsely-Gated MoE Layer",
+      "arxiv": "1701.06538",
+      "field": "sparse mixture-of-experts",
+      "efficiency_claim": "1000x capacity increase at minor computational cost; experts account for 37-46% of FLOPs.",
+      "claim_type": "FLOPs + measured",
+      "reports_measured_latency": true,
+      "evidence": "Reports achieved 0.74-1.56 TFLOPS/GPU, and wall-clock training budgets (Table 1: '47 hours, 32 k40s' vs baseline '59 hours, 32 k40s'). Explicitly reports the cases where MoE achieves LOWER TFLOPS/GPU than the dense baseline."
+    }
+  ],
+  "summary": {
+    "marl_communication_and_attention": {
+      "n": 6,
+      "report_measured_latency": 1,
+      "papers_reporting": ["wen2022mat"],
+      "papers_not_reporting": ["das2019tarmac", "sukhbaatar2016commnet", "singh2018ic3net", "jiang2018atoc", "jiang2018dgn"]
+    },
+    "efficient_attention_and_moe_outside_marl": {
+      "n": 6,
+      "report_measured_latency": 5,
+      "papers_reporting": ["kitaev2020reformer", "beltagy2020longformer", "choromanski2021performers", "fedus2022switch", "shazeer2017moe"],
+      "papers_not_reporting": ["zaheer2020bigbird"]
+    },
+    "headline": "1 of 6 MARL communication/attention papers reports a measured temporal quantity for its mechanism, against 5 of 6 in the efficient-attention and sparse-MoE literature the MARL work borrows its complexity argument from."
+  }
+}

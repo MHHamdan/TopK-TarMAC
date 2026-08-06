@@ -70,3 +70,66 @@ Improvement: +18.83 absolute units, +24.2 % over random.
 Baseline reproduces stably (1.5-unit between-seed std at n=5). We have a
 trustworthy MAPPO reference against which to compare the proposed
 TopK-TarMAC method in Phases 6 and 7.
+
+---
+
+# Phase C-2 — reproducing the efficiency measurements (2026-08-05)
+
+These are training-free and take minutes, not GPU-hours. They are the only
+instrument in this repository that can test the paper's cost claim: end-to-end
+training wall-clock is environment-bound and identical across arms to within
+3% (D-018).
+
+```bash
+# Full campaign: headline sweep, k-sparsity sweep, batch-4096 (FLOP-bound),
+# execution modes, bf16, and CPU. Sequential by design -- a second job on the
+# same device would corrupt the between-arm comparison.
+scripts/run_microbenchmarks.sh cuda:0
+
+# Reduce to the tables the claim turns on.
+.venv/bin/python scripts/summarise_microbenchmarks.py     # -> efficiency_summary.md
+.venv/bin/python scripts/analyse_memory.py \
+    --inputs results/microbenchmark_comm.json \
+             results/microbenchmark_comm_batch4096.json   # -> memory_analysis.md
+```
+
+## What the arms mean
+
+`dense` is the unfused reference; `dense_sdpa` the same function through the
+fused kernel; `topk_masked` masks the dense weights and still runs the dense
+aggregation matmul; `topk_gather` is genuinely sparse. **The paper's claim is
+about `topk_gather`.** Comparing against `topk_masked` alone measures an
+implementation artifact, which is what the superseded results did (D-019,
+D-021).
+
+## Protocol caveats that affect what the numbers mean
+
+- **GPU clocks are not locked.** `nvidia-smi -lgc` requires privileges this
+  account does not have. Instead: arms are timed **interleaved rep-by-rep** so
+  interference lands on all of them at once, `min_ms` is reported as the
+  primary statistic (contention can only add time), and per-cell inter-run
+  spread is recorded in every JSON. This moved observed spread from >100% to
+  typically <2%.
+- **Absolute latencies depend on which arms share the interleaved group**
+  (cache interference). Ratios within a group are the comparable quantity.
+- **`collect_info` must be off when timing.** The diagnostic entropy term
+  calls `.item()`, which synchronises the device inside the forward pass. With
+  it on, the measurement is dominated by the synchronisation and dense latency
+  looks flat in N.
+- **No cross-generation replication.** The 2080 Ti host is gone and both local
+  devices are the same Blackwell part (D-028). The CPU run is the only
+  cross-architecture evidence.
+
+## Reproducing the reduced-design training arms
+
+```bash
+.venv/bin/python scripts/make_reduced_design_configs.py   # 12 arms, N <= 12
+scripts/run_reduced_design.sh 1                           # positive control
+.venv/bin/python scripts/summarise_reduced_design.py
+# Only proceed to tier 2 if the tier-1 contrasts read "A > B".
+```
+
+Tier 1 is a gate, not a warm-up: on a fully observable task, "sparsification
+is free" and "the channel was never used" make identical predictions, so a
+sparsification result measured before the channel is shown to carry
+information is uninterpretable (D-011).
