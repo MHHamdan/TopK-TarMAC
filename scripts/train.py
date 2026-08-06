@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.agents.mappo import MAPPOConfig  # noqa: E402
-from src.envs.mpe import MPEConfig, MPESimpleSpread  # noqa: E402
+from src.envs.mpe import ENVS, MPEConfig, MPESimpleSpread  # noqa: E402
 from src.training.train_mappo import TrainerConfig, train  # noqa: E402
 
 
@@ -37,12 +37,18 @@ def main() -> None:
     model_cfg_raw = cfg["model"]
     trainer_cfg_raw = cfg["trainer"]
 
+    env_name = env_cfg.get("name", "simple_spread")
+    if env_name not in ENVS:
+        raise SystemExit(f"unknown env {env_name!r}; known: {sorted(ENVS)}")
+    env_cls = ENVS[env_name]
+
     def make_env(seed: int) -> MPESimpleSpread:
-        return MPESimpleSpread(MPEConfig(
+        return env_cls(MPEConfig(
             n_agents=env_cfg["n_agents"],
             max_cycles=env_cfg.get("max_cycles", 25),
             continuous_actions=False,
             local_ratio=env_cfg.get("local_ratio", 0.5),
+            visibility_radius=env_cfg.get("visibility_radius"),
             seed=seed,
         ))
 
@@ -57,6 +63,7 @@ def main() -> None:
         n_heads=model_cfg_raw.get("n_heads", 1),
         attn_mode=model_cfg_raw.get("attn_mode", "dense"),
         topk=model_cfg_raw.get("topk", 0),
+        entmax_alpha=float(model_cfg_raw.get("entmax_alpha", 1.5)),
     )
     probe.close()
 
@@ -80,6 +87,15 @@ def main() -> None:
         device=trainer_cfg_raw.get("device", "cuda"),
         run_name=args.run_name or cfg.get("run_name", "mappo_default"),
         out_dir=trainer_cfg_raw.get("out_dir", "results"),
+        # These were declared in every YAML but never read, so the configs
+        # silently could not change them (they ran on the dataclass defaults).
+        per_agent_reward=bool(trainer_cfg_raw.get("per_agent_reward", True)),
+        advantage_norm=bool(trainer_cfg_raw.get("advantage_norm", True)),
+        lagrangian_k=bool(trainer_cfg_raw.get("lagrangian_k", False)),
+        kappa_frac=float(trainer_cfg_raw.get("kappa_frac", 0.25)),
+        lambda_lr=float(trainer_cfg_raw.get("lambda_lr", 0.01)),
+        lambda_init=float(trainer_cfg_raw.get("lambda_init", 0.0)),
+        lambda_max=float(trainer_cfg_raw.get("lambda_max", 100.0)),
     )
 
     print(json.dumps({

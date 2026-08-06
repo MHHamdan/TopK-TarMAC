@@ -212,3 +212,150 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
   this line of work does not describe what runs."
 - Rationale: this is supported by 30 seconds of measurement, is falsifiable,
   and is useful to the field. Picked from the data, not before it.
+
+---
+
+# Phase C-2 decisions (2026-08-05) — closing the strawman gap
+
+## D-021 — Implement the real gather path before finalising any framing
+   (2026-08-05)
+- D-019 established that `attn_mode="topk"` masks the dense weight matrix and
+  then runs the same dense aggregation matmul, so the "sparse" arm executed
+  every MAC the dense arm did. Every latency comparison built on it was a
+  comparison against an implementation artifact, not against the method.
+- Decision: add `attn_mode="topk_gather"`, which takes top-k on the raw
+  scores, softmaxes over just those k, and gathers the selected values into
+  (B,N,k,d) contracted as (B*N,1,k)x(B*N,k,d). Keep `topk` (masked) as a
+  separate, explicitly-labelled arm. Report **three curves** everywhere:
+  dense, masked, gathered.
+- Verified: the two produce identical outputs (max abs diff < 1e-10 in
+  float64, `test_topk_gather_matches_masked_topk_exactly`) while executing
+  different FLOPs (2,015,232 vs 2,555,904 at N=48,k=4,B=8,d=16, pinned by
+  `test_topk_gather_executes_fewer_macs_than_dense`).
+- Rationale: refuting a claim requires implementing its strongest form first.
+
+## D-022 — The score matmul is irreducible, so the saving is capped at 2x
+   (2026-08-05)
+- Selecting the top-k peers *by attention score* requires all N scores.
+  Attention FLOPs = scores (2BN^2 d) + aggregation (2BNk d); only the second
+  term is sparsifiable. As k -> 1 the ratio to dense tends to 2 and never
+  reaches it.
+- Decision: state this ceiling as an analytic result in the paper. The
+  manuscript's withdrawn "21-29% FLOPs reduction" was not merely unrealised,
+  it was bounded above by a factor the paper never derived.
+- Pinned by `test_attention_flop_saving_is_bounded_by_two` and
+  `test_score_matmul_is_irreducible_in_every_mode`.
+
+## D-023 — The dense baseline must be the fused SDPA kernel (2026-08-05)
+- The original benchmark compared against an unfused matmul+softmax+matmul.
+  On this hardware `F.scaled_dot_product_attention` dispatches to a fused
+  memory-efficient CUTLASS kernel **in fp32** (`mem_efficient` is available;
+  flash requires fp16/bf16), which never materialises the (B,N,N) weights.
+- Measured at N=512, batch 256, fp32: fused 0.431 ms vs unfused 1.989 ms.
+  Comparing top-k only against the unfused path flatters it by ~4.6x.
+- Decision: `dense_sdpa` is the headline baseline; unfused `dense` is
+  reported alongside it as the historical reference, never alone.
+
+## D-024 — Measurement protocol: interleave arms, report min, do not claim
+   locked clocks (2026-08-05)
+- `nvidia-smi -lgc` is not permitted for this account, and the devices are
+  shared. Timing all reps of arm A then all of arm B produced >100% swings
+  between identical configurations (dense at N=384 measured 1.118 ms and
+  0.299 ms in two runs of the same script).
+- Decision: (a) time arms **interleaved rep-by-rep**, so interference lands
+  on all arms at once and ratios stay valid; (b) report `min_ms` as primary,
+  since contention can only add time; (c) record per-cell inter-run spread in
+  every artifact; (d) state plainly that clocks are unlocked. After the
+  change, spread fell from >100% to typically <2%.
+- Also removed from the timed region: the diagnostic `.item()` call in
+  `AttentionComm.forward`, which synchronises the device inside the forward
+  pass. Its presence is why dense latency originally looked flat in N.
+- Caveat recorded: absolute latencies depend on interleaved-group membership
+  (cache interference); ratios within a group do not.
+
+## D-025 — Result: there is no crossover, at any N or any k (2026-08-05)
+- Sparsity sweep, k/(N-1) in {0.01 .. 0.5} at N in {48..512}: the best k for
+  the gather path is k=1 at every N, and it remains 1.19x-2.42x slower than
+  unfused dense and 1.35x-11.11x slower than fused SDPA.
+- torch.compile and CUDA-graph capture change the picture by <10%, so this is
+  not an eager-mode artifact. Confirmed at batch 4096 (FLOP-bound) as well as
+  256.
+- The one cell where gathering wins any comparison: N=6, batch 4096, where it
+  is 0.92x the fused kernel (which carries fixed overhead at tiny N). It is
+  still 1.17x the unfused dense path there.
+- Decision: report the negative result with the numbers, including the single
+  favourable cell. The gather fix moves top-k from ~1.45x to ~1.23x of dense
+  at small N -- a real improvement over the strawman that does not change the
+  conclusion.
+
+## D-026 — O(B N^3) gate memory is a first-class, validated result (2026-08-05)
+- Derived: the gate materialises (B,N,N-1,N) before summing over the k-bin
+  axis. Measured: offset-corrected fit gives N^3.04 against dense's N^1.96
+  and fused SDPA's N^1.36. The closed form predicts 97.5% of measured peak at
+  N=384, which is the sharper validation than the exponent.
+- At batch 256 the arm consumes 56.5 GiB at N=384 and OOMs at N=512;
+  analytically it exhausts a full 97,887 MiB card at N=465.
+- Decision: promote to a headline result with both the derivation and the
+  measurement, and report the OOM boundary for the full card *and* for the
+  memory actually free on the shared host, because only the former is a
+  property of the hardware.
+
+## D-027 — Reduced design: 12 arms, N <= 12, all N-scaling training-free
+   (2026-08-05)
+- Decision: 12 training arms in four priority tiers (positive control ->
+  random-k control -> fixed-k grid -> Lagrangian/entmax), N <= 12, 5 seeds,
+  2M steps. Generated by `scripts/make_reduced_design_configs.py`.
+  Projected ~30-40 GPU-h, inside the 200 GPU-h guardrail. No JaxMARL port.
+- N-scaling to 512 moves entirely to the training-free microbenchmark, which
+  costs minutes rather than the 995 GPU-h the trained N sweep was projected at
+  (D-017) and which is the only instrument that can test a cost claim (D-018).
+- Comm-critical control implemented two ways, because neither alone suffices:
+  `simple_reference` is logically unsolvable without the channel but fixed at
+  N=2 (so it cannot carry the k arms), and a new partially-observable
+  `simple_spread` (`visibility_radius`) keeps N free. At radius 1.0, N=6, a
+  measured 33% of peers stay visible.
+
+## D-028 — Cross-generation replication is BLOCKED, and will be reported as
+   such (2026-08-05)
+- The brief asks for repetition on the 2080 Ti. That host is no longer the
+  execution environment (HARDWARE.md) and both devices here are the same
+  Blackwell part, so "structurally" versus "on our hardware" cannot be
+  settled on GPUs available to this project.
+- Decision: run the CPU backend as the one available cross-architecture
+  check, and state the gap explicitly in the artifact rather than implying
+  broader coverage. Do not claim cross-generation agreement.
+
+## D-029 — Push code only; the manuscript stays local (2026-08-05)
+- `origin` is git@github.com:MHHamdan/TopK-TarMAC.git and `gh repo view`
+  reports **visibility: PUBLIC**. `paper/` is absent from `origin/main` but is
+  tracked on `phase-c/experiments` (16 files, committed in 6c4c714), so
+  pushing that branch would publish an unsubmitted manuscript.
+- Decision: keep `phase-c/experiments` local. Publish code, tests, configs and
+  measurement artifacts on a separate branch built from `origin/main` that has
+  never contained `paper/` in its history.
+- Rationale: this is the conditional the brief specified, and publishing a
+  manuscript is not reversible by deleting it afterwards.
+
+## D-030 — Phase F venue re-scoring against a refutation-framed paper
+   (2026-08-05)
+- Dropped: **IEEE TPDS**. The contribution is not a parallel/distributed
+  systems advance; the measurements are single-device.
+- **TMLR — primary.** Its acceptance criteria are correctness of claims and
+  sufficiency of evidence, explicitly *not* novelty or significance. That is
+  the exact shape of this paper: a corrected measurement, a refuted
+  implementation claim, and an audit. No page limit suits the three-curve
+  tables. Certification for survey/reproducibility-style contributions is a
+  further fit.
+- **RLC — conference alternative.** RL-specific audience, receptive to
+  empirical-rigour and negative-result papers; the MARL comm literature being
+  audited is its core readership.
+- **MLSys — second conference alternative.** If the framing leans on the
+  kernel-level measurement (fused vs masked vs gathered, CUDA graphs, the
+  O(BN^3) memory cliff) rather than on MARL, this is a natural home.
+- **IEEE TAI — scored down, retained only as a fallback.** Re-scored against
+  a refutation framing: TAI's remit rewards positive methodological or
+  applied contributions, its reviewer pool is not specialised in MARL
+  communication, and a paper whose central result is "the reported saving is
+  not executed" is a poor match for its stated scope. Slow review compounds
+  the cost of a fallback that is unlikely to fit.
+- Ranking: TMLR > RLC > MLSys > TAI.

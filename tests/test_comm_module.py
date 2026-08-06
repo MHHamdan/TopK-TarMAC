@@ -264,24 +264,33 @@ def test_flops_ratio_is_one_for_dense() -> None:
         assert attention_flops(N, float(N - 1), 16)["msg_gather_over_dense"] == 1.0
 
 
-def test_topk_aggregation_executes_a_dense_matmul() -> None:
-    """The top-k path does the *same* dense matmul as the dense path.
+def test_masked_topk_aggregation_executes_a_dense_matmul() -> None:
+    """``attn_mode="topk"`` does the *same* dense matmul as the dense path.
 
-    ``AttentionComm.forward`` masks and renormalises the attention matrix and
-    then calls ``torch.matmul(attn, v)`` with ``attn`` still shaped (B, N, N)
-    -- the zeros are materialised, not skipped. So top-k executes every
-    multiply-accumulate dense executes, plus the top-k selection and scatter
-    on top.
+    This is the strawman variant, kept deliberately. It masks and renormalises
+    the attention matrix and then calls ``torch.matmul(attn, v)`` with ``attn``
+    still shaped (B, N, N) -- the zeros are materialised, not skipped. So it
+    executes every multiply-accumulate dense executes, plus the top-k selection
+    and scatter on top.
 
-    This test pins the discrepancy in place: ``attention_flops`` reports a
-    saving of ``1 - k/(N-1)`` that the implementation never realises. Any
-    future change that makes top-k genuinely sparse (a gather into a (B, N, k)
-    tensor) will break this test, which is the point -- it should be revisited
-    deliberately, not drifted past.
+    ``attn_mode="topk_gather"`` is the variant that actually skips the work;
+    the tests below pin the difference. Benchmarking sparsity against *this*
+    path only would be benchmarking against an implementation artifact.
     """
-    from scripts.measure_flops import attention_flops
-
     N, k, B, d = 48, 4, 8, 16
+    shapes = _traced_matmul_shapes({"dense": {}, "topk": {"topk": k}},
+                                   N=N, B=B, d=d)
+
+    assert shapes["dense"] == shapes["topk"], (
+        "the masked top-k path no longer mirrors dense's aggregation matmul"
+    )
+    assert shapes["topk"] == [((B, N, d), (B, d, N)),   # scores
+                              ((B, N, N), (B, N, d))]   # dense aggregation
+
+
+def _traced_matmul_shapes(modes: dict[str, dict], N: int, B: int,
+                          d: int) -> dict[str, list]:
+    """Record the (lhs, rhs) shapes of every ``torch.matmul`` per mode."""
     seen: list[tuple[tuple[int, ...], tuple[int, ...]]] = []
     original = torch.matmul
 
@@ -289,28 +298,284 @@ def test_topk_aggregation_executes_a_dense_matmul() -> None:
         seen.append((tuple(a.shape), tuple(b.shape)))
         return original(a, b, *args, **kwargs)
 
-    shapes: dict[str, list] = {}
+    out: dict[str, list] = {}
     try:
         torch.matmul = traced  # type: ignore[assignment]
-        for mode, kw in (("dense", {}), ("topk", {"topk": k})):
+        for mode, kw in modes.items():
             seen.clear()
             cfg = _cfg(n_agents=N, attn_mode=mode, msg_dim=d, **kw)
-            AttentionComm(cfg, in_dim=32)(torch.randn(B, N, 32))
-            shapes[mode] = [s for s in seen if s[0][-1] == N]
+            mod = AttentionComm(cfg, in_dim=32)
+            mod.collect_info = False
+            mod(torch.randn(B, N, 32))
+            # Keep only the attention-internal products; the qkv/proj Linears
+            # go through F.linear, not torch.matmul, so nothing else appears.
+            out[mode] = list(seen)
     finally:
         torch.matmul = original  # type: ignore[assignment]
+    return out
 
-    assert shapes["dense"] == shapes["topk"], (
-        "top-k no longer mirrors dense's aggregation matmul; if the module "
-        "was made genuinely sparse, update attention_flops and this test"
+
+# --------------------------------------------------------------------------
+# (f) the gather path is the same function computed with fewer operations
+# --------------------------------------------------------------------------
+
+def test_topk_gather_matches_masked_topk_exactly() -> None:
+    """``topk_gather`` and ``topk`` compute the same function.
+
+    Two facts make this hold: softmax is monotone within a row, so the top-k
+    weights are the top-k scores; and a softmax over just those k scores equals
+    the dense softmax restricted to them and renormalised. If this test fails,
+    the "sparse" path is not the method the dense path is being compared to,
+    and every latency comparison between them is meaningless.
+    """
+    for N in (6, 12, 24):
+        for k in (1, 2, 3, N - 1):
+            torch.manual_seed(N * 100 + k)
+            masked = AttentionComm(
+                _cfg(n_agents=N, attn_mode="topk", topk=k), in_dim=32).double()
+            gather = AttentionComm(
+                _cfg(n_agents=N, attn_mode="topk_gather", topk=k), in_dim=32).double()
+            gather.load_state_dict(masked.state_dict())
+            x = torch.randn(8, N, 32, dtype=torch.double)
+            with torch.no_grad():
+                a, _ = masked(x)
+                b, _ = gather(x)
+            err = (a - b).abs().max().item()
+            assert err < 1e-10, f"N={N} k={k}: gather deviates by {err:.3e}"
+
+
+def test_gather_path_never_materialises_the_dense_weight_matrix() -> None:
+    """The gather path must not execute a (B, N, N) x (B, N, d) product.
+
+    This is the assertion that separates a real sparse implementation from a
+    masked one. The gather contracts (B*N, 1, k) x (B*N, k, d) instead.
+    """
+    N, k, B, d = 48, 4, 8, 16
+    shapes = _traced_matmul_shapes({"topk_gather": {"topk": k}}, N=N, B=B, d=d)
+    agg = [s for s in shapes["topk_gather"] if s[1] == (B, N, d)]
+    assert agg == [], f"gather path still runs a dense aggregation: {agg}"
+    assert ((B, N, 1, k), (B, N, k, d)) in shapes["topk_gather"], shapes
+
+
+def test_topk_gather_executes_fewer_macs_than_dense() -> None:
+    """Executed FLOPs must differ between the dense, masked and gather paths.
+
+    ``measure_flops.attention_flops`` reports an analytic saving. Until the
+    gather path existed, nothing executed it (D-019). This pins the executed
+    counts so the two can never silently diverge again:
+
+      dense / masked : qkv + proj + 2BN^2 d (scores) + 2BN^2 d (aggregate)
+      gather         : qkv + proj + 2BN^2 d (scores) + 2BNk d (aggregate)
+    """
+    from torch.utils.flop_counter import FlopCounterMode
+
+    N, k, B, d, in_dim = 48, 4, 8, 16, 32
+    counts: dict[str, int] = {}
+    for mode, kw in (("dense", {}), ("topk", {"topk": k}),
+                     ("topk_gather", {"topk": k})):
+        mod = AttentionComm(_cfg(n_agents=N, attn_mode=mode, msg_dim=d, **kw),
+                            in_dim=in_dim)
+        mod.collect_info = False
+        counter = FlopCounterMode(display=False)
+        with counter:
+            mod(torch.randn(B, N, in_dim))
+        counts[mode] = counter.get_total_flops()
+
+    proj_flops = 2 * B * N * in_dim * (3 * d) + 2 * B * N * d * d
+    scores = 2 * B * N * N * d
+    assert counts["dense"] == proj_flops + 2 * scores
+    assert counts["topk"] == counts["dense"], (
+        "the masked path is supposed to be dense-cost; if it was optimised, "
+        "the strawman comparison in the manuscript must be revisited"
     )
-    assert shapes["topk"] == [((B, N, N), (B, N, d))]
+    assert counts["topk_gather"] == proj_flops + scores + 2 * B * N * k * d
+    assert counts["topk_gather"] < counts["dense"], (
+        "the gather path executes no fewer FLOPs than dense -- the paper's "
+        "efficiency premise is unimplemented again"
+    )
 
-    # The counter's claimed saving is real arithmetic on numbers the code
-    # does not execute.
-    claimed = attention_flops(N, float(k), d)["msg_gather_over_dense"]
-    assert claimed == k / (N - 1)
-    assert claimed < 0.1, "this N,k was chosen to make the gap obvious"
+
+def test_score_matmul_is_irreducible_in_every_mode() -> None:
+    """Every top-k mode still pays the full (B, N, N) score matmul.
+
+    Selecting the top-k peers *by attention score* requires all N scores, so
+    only the aggregation half of attention is sparsifiable. This bounds the
+    achievable saving at 2x of attention FLOPs no matter how small k is --
+    the ceiling the manuscript's 21-29% claim was measured against.
+    """
+    N, k, B, d = 48, 4, 8, 16
+    shapes = _traced_matmul_shapes(
+        {"dense": {}, "topk": {"topk": k}, "topk_gather": {"topk": k}},
+        N=N, B=B, d=d)
+    for mode, seen in shapes.items():
+        assert ((B, N, d), (B, d, N)) in seen, (
+            f"{mode} does not compute the full score matrix; if a cheap "
+            f"routing proxy was introduced, the 2x ceiling no longer applies"
+        )
+
+
+def test_attention_flop_saving_is_bounded_by_two() -> None:
+    """No choice of k can make sparse attention more than 2x cheaper.
+
+    attention FLOPs = scores (2BN^2 d) + aggregation (2BNk d).
+    dense = 4BN^2 d; gather at k=1 -> 2BN^2 d + 2BN d. The ratio tends to 2
+    from below and never exceeds it.
+    """
+    B, d = 8, 16
+    for N in (6, 12, 24, 48, 192, 512):
+        dense = 2 * B * N * N * d + 2 * B * N * (N - 1) * d
+        best = 2 * B * N * N * d + 2 * B * N * 1 * d
+        assert dense / best < 2.0, f"N={N}: ratio {dense / best:.4f}"
+
+
+def test_dense_sdpa_matches_dense() -> None:
+    """The fused SDPA baseline computes the same function as `dense`.
+
+    It is the baseline a sparse method has to beat on real hardware: it never
+    materialises the (B, N, N) weight matrix, so comparing top-k only against
+    the unfused `dense` path would flatter it.
+    """
+    for N in (6, 24):
+        torch.manual_seed(N)
+        dense = AttentionComm(_cfg(n_agents=N, attn_mode="dense"),
+                              in_dim=32).double()
+        sdpa = AttentionComm(_cfg(n_agents=N, attn_mode="dense_sdpa"),
+                             in_dim=32).double()
+        sdpa.load_state_dict(dense.state_dict())
+        x = torch.randn(8, N, 32, dtype=torch.double)
+        with torch.no_grad():
+            a, _ = dense(x)
+            b, _ = sdpa(x)
+        assert (a - b).abs().max().item() < 1e-10, f"N={N}"
+
+
+def test_random_k_selects_exactly_k_distinct_peers_never_self() -> None:
+    """The random-k control must match top-k's k and exclude self.
+
+    If it could select self, or select the same peer twice, it would not be a
+    matched-cost control and the comparison against top-k would be confounded.
+    """
+    for N in (6, 12, 24):
+        for k in (1, 3, N - 1):
+            torch.manual_seed(N * 10 + k)
+            mod = AttentionComm(
+                _cfg(n_agents=N, attn_mode="random_k", topk=k), in_dim=32)
+            B = 128
+            eye = torch.eye(N, dtype=torch.bool).unsqueeze(0)
+            noise = torch.rand(B, N, N).masked_fill(eye, float("inf"))
+            idx = noise.topk(min(k, N - 1), dim=-1, largest=False).indices
+            self_idx = torch.arange(N).view(1, N, 1).expand_as(idx)
+            assert not bool((idx == self_idx).any()), f"N={N} k={k}: selected self"
+            assert bool((idx.sort(-1).values.diff(dim=-1) > 0).all()), (
+                f"N={N} k={k}: duplicate peer selected")
+            _msg, info = mod(torch.randn(4, N, 32))
+            assert info["effective_k"] == float(min(max(k, 1), N - 1))
+
+
+def test_random_k_differs_from_topk_but_costs_the_same() -> None:
+    """Matched k and matched executed FLOPs, different selected peers.
+
+    That is the whole design of the control: any performance gap between them
+    is attributable to *which* peers were chosen, not to how many.
+    """
+    from torch.utils.flop_counter import FlopCounterMode
+
+    N, k, B, d = 24, 4, 8, 16
+    counts = {}
+    for mode in ("topk_gather", "random_k"):
+        torch.manual_seed(0)
+        mod = AttentionComm(_cfg(n_agents=N, attn_mode=mode, topk=k, msg_dim=d),
+                            in_dim=32)
+        mod.collect_info = False
+        counter = FlopCounterMode(display=False)
+        with counter:
+            mod(torch.randn(B, N, 32))
+        counts[mode] = counter.get_total_flops()
+    assert counts["topk_gather"] == counts["random_k"], counts
+
+    torch.manual_seed(0)
+    a = AttentionComm(_cfg(n_agents=N, attn_mode="topk_gather", topk=k), in_dim=32)
+    b = AttentionComm(_cfg(n_agents=N, attn_mode="random_k", topk=k), in_dim=32)
+    b.load_state_dict(a.state_dict())
+    x = torch.randn(16, N, 32)
+    with torch.no_grad():
+        ma, _ = a(x)
+        mb, _ = b(x)
+    assert not torch.allclose(ma, mb), (
+        "random-k reproduced top-k exactly; the control is not controlling")
+
+
+def test_entmax_produces_exact_zeros_and_sparsifies_with_alpha() -> None:
+    """entmax must yield genuine zeros, and more of them as alpha grows.
+
+    alpha=1 is softmax (dense); larger alpha is sparser. If the support did
+    not shrink with alpha the arm would not be testing the manuscript's own
+    proposed alternative to the gate.
+    """
+    N = 24
+    supports = []
+    for alpha in (1.5, 2.0):
+        torch.manual_seed(0)
+        mod = AttentionComm(
+            _cfg(n_agents=N, attn_mode="entmax", entmax_alpha=alpha), in_dim=32)
+        with torch.no_grad():
+            _msg, info = mod(torch.randn(64, N, 32))
+        supports.append(info["effective_k"])
+        assert 1.0 <= info["effective_k"] <= float(N - 1), info
+    assert supports[1] < supports[0], (
+        f"alpha=2.0 support {supports[1]} not sparser than alpha=1.5 "
+        f"{supports[0]}")
+
+
+def test_entmax_gradient_is_finite_and_nonzero() -> None:
+    """Sparsity must not kill the gradient the arm trains on."""
+    for alpha in (1.5, 2.0):
+        torch.manual_seed(0)
+        mod = AttentionComm(
+            _cfg(n_agents=12, attn_mode="entmax", entmax_alpha=alpha), in_dim=32)
+        msg, _ = mod(torch.randn(32, 12, 32))
+        msg.sum().backward()
+        g = mod.qkv.weight.grad
+        assert g is not None and torch.isfinite(g).all()
+        assert g.abs().max().item() > 0.0, f"alpha={alpha}: gradient vanished"
+
+
+def test_adaptive_gate_exposes_differentiable_expected_k() -> None:
+    """The Lagrangian arm needs a budget term with a gradient.
+
+    ``expected_k`` must stay a tensor: calling ``.item()`` on it would detach
+    the dual constraint from the gate it is supposed to constrain, so the
+    budget would be reported but never enforced.
+    """
+    N = 12
+    torch.manual_seed(0)
+    mod = AttentionComm(_cfg(n_agents=N, attn_mode="adaptive_topk"), in_dim=32)
+    _msg, info = mod(torch.randn(16, N, 32))
+    ek = info["expected_k"]
+    assert isinstance(ek, torch.Tensor), type(ek)
+    assert ek.requires_grad, "expected_k is detached; the budget cannot train"
+    ek.backward()
+    assert mod.k_gate.weight.grad is not None
+    assert mod.k_gate.weight.grad.abs().max().item() > 0.0
+    assert 1.0 <= float(ek.detach()) <= float(N - 1)
+
+
+def test_collect_info_removes_the_device_sync_from_forward() -> None:
+    """With ``collect_info=False`` the forward returns no ``.item()``-derived
+    entry.
+
+    The entropy and mean-k diagnostics call ``.item()``, which synchronises the
+    device inside the forward pass. Leaving that inside a timed region measures
+    the synchronisation rather than the module, which is what made dense
+    latency look flat in N in the first microbenchmark.
+    """
+    for mode, kw in (("dense", {}), ("topk", {"topk": 2}),
+                     ("topk_gather", {"topk": 2}), ("adaptive_topk", {})):
+        mod = AttentionComm(_cfg(n_agents=12, attn_mode=mode, **kw), in_dim=32)
+        mod.collect_info = False
+        _msg, info = mod(torch.randn(4, 12, 32))
+        assert "mean_attn_entropy" not in info
+        assert "mean_k" not in info
 
 
 def test_flops_counter_matches_measured_nonzeros() -> None:

@@ -50,6 +50,21 @@ class TrainerConfig:
     # sweep N.
     per_agent_reward: bool = True
 
+    # --- Lagrangian communication budget -------------------------------
+    # Constrains the adaptive gate's expected k to a target kappa instead of
+    # letting it drift, by dual ascent on a multiplier: the standard
+    # constrained-RL formulation (Achiam et al. 2017; Stooke et al. 2020)
+    # rather than a fixed penalty weight, so the budget is *met* rather than
+    # traded off against return at an arbitrary exchange rate.
+    #   lagrangian_k = False        -> arm disabled, zero effect on the loss
+    #   kappa_frac                  -> target expected k as a fraction of N-1
+    #   lambda_lr                   -> dual ascent step on the multiplier
+    lagrangian_k: bool = False
+    kappa_frac: float = 0.25
+    lambda_lr: float = 0.01
+    lambda_init: float = 0.0
+    lambda_max: float = 100.0
+
     # Logging
     log_interval_steps: int = 2_000  # write a row this often
     eval_interval_steps: int = 20_000
@@ -231,8 +246,15 @@ def train(make_env: Callable[[int], VecEnvCompatible],
         "global_step", "wall_time_s", "ep_return_mean", "ep_return_std",
         "policy_loss", "value_loss", "entropy", "approx_kl",
         "eval_return_mean", "eval_return_std",
+        # Mechanism instrumentation (reduced-design item 5): the gate's
+        # realised support and, for the Lagrangian arm, the dual multiplier.
+        # Blank for arms that do not expose them -- never imputed.
+        "mean_k", "attn_entropy", "lagrange_lambda",
     ])
     writer.writeheader()
+
+    # Lagrangian dual variable. Unused unless trainer_cfg.lagrangian_k.
+    lam = float(trainer_cfg.lambda_init)
 
     global_step = 0
     last_log_step = 0
@@ -298,7 +320,7 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                 ret_mb = flat_rets[mb_t]
                 val_old_mb = flat_val_old[mb_t]
 
-                logits, _ = agent.policy_logits(obs_mb)
+                logits, comm_info = agent.policy_logits(obs_mb)
                 dist = Categorical(logits=logits)
                 logp_new = dist.log_prob(act_mb)
                 entropy = dist.entropy().mean()
@@ -322,6 +344,24 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                 loss = (policy_loss
                         + trainer_cfg.value_coef * value_loss
                         - trainer_cfg.entropy_coef * entropy)
+
+                # Lagrangian communication budget. `expected_k` is the gate's
+                # differentiable expected support; the multiplier is updated by
+                # dual ascent on the constraint violation, so lambda grows
+                # while the budget is exceeded and decays once it is met.
+                if trainer_cfg.lagrangian_k and "expected_k" in comm_info:
+                    expected_k = comm_info["expected_k"]
+                    target_k = trainer_cfg.kappa_frac * max(N - 1, 1)
+                    violation = expected_k - target_k
+                    loss = loss + lam * violation
+                    with torch.no_grad():
+                        lam = float(np.clip(
+                            lam + trainer_cfg.lambda_lr * float(violation),
+                            0.0, trainer_cfg.lambda_max))
+                    epoch_metrics.setdefault("lam", []).append(lam)
+                    epoch_metrics.setdefault("ek", []).append(
+                        float(expected_k.detach()))
+
                 optim.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(agent.parameters(), trainer_cfg.max_grad_norm)
@@ -334,6 +374,17 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                 epoch_metrics["vl"].append(value_loss.item())
                 epoch_metrics["ent"].append(entropy.item())
                 epoch_metrics["kl"].append(approx_kl.item())
+                # Mechanism instrumentation: whatever the comm arm exposes.
+                # Absent keys stay absent so the column is blank, not zero.
+                if "mean_k" in comm_info:
+                    epoch_metrics.setdefault("mk", []).append(
+                        float(comm_info["mean_k"]))
+                elif "effective_k" in comm_info:
+                    epoch_metrics.setdefault("mk", []).append(
+                        float(comm_info["effective_k"]))
+                if "mean_attn_entropy" in comm_info:
+                    epoch_metrics.setdefault("ae", []).append(
+                        float(comm_info["mean_attn_entropy"]))
 
         # Logging.
         if global_step - last_log_step >= trainer_cfg.log_interval_steps:
@@ -349,6 +400,11 @@ def train(make_env: Callable[[int], VecEnvCompatible],
                 "value_loss": float(np.mean(epoch_metrics["vl"])),
                 "entropy": float(np.mean(epoch_metrics["ent"])),
                 "approx_kl": float(np.mean(epoch_metrics["kl"])),
+                "mean_k": (float(np.mean(epoch_metrics["mk"]))
+                           if epoch_metrics.get("mk") else ""),
+                "attn_entropy": (float(np.mean(epoch_metrics["ae"]))
+                                 if epoch_metrics.get("ae") else ""),
+                "lagrange_lambda": (lam if trainer_cfg.lagrangian_k else ""),
                 **last_eval_metrics,
             }
             writer.writerow(row)
