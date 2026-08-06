@@ -62,8 +62,3 @@ STATUS.md
 
 # --- Literature PDFs (license-uncertain; notes + bib are tracked) ---
 literature/papers/*.pdf
-
-# This branch is the PUBLIC code mirror. The manuscript lives only on
-# local branches (D-029) -- origin is a public GitHub remote.
-paper/
-AUDIT.md
