@@ -5,6 +5,42 @@ inter-agent communication channel can be sparsified to top-$k$
 destinations — with $k$ adapted per agent per step — without sacrificing
 task return in cooperative MARL.
 
+> ## ⚠ Retraction: the efficiency claim (August 2026)
+>
+> **An earlier version of this work reported a 21–29% FLOPs reduction from
+> top-$k$ attention. That claim is withdrawn.**
+>
+> The implementation it described applied top-$k$ as a *mask* on the dense
+> attention matrix and then executed the same dense
+> $(B,N,N)\times(B,N,d)$ aggregation matmul. The discarded entries were
+> materialised as zeros, never skipped, so the executed multiply-accumulate
+> count was identical to dense attention. The reported saving was a property
+> of the analytic formula $1-k/(N-1)$, not of anything the code computed.
+>
+> A genuinely sparse gather implementation was then written and measured
+> against a fused-SDPA dense baseline. It is **slower at every agent count
+> and every sparsity level tested** — 0 of 46 cells in a
+> $d \times \text{batch} \times N \times k$ sweep beat unfused dense — on GPU
+> and on CPU, in fp32 and bf16, eager, `torch.compile`d and CUDA-graph
+> captured. Two further results came out of the re-measurement:
+>
+> - Selecting peers *by attention score* requires computing every score, so
+>   the achievable FLOPs saving is **bounded above by 2×** regardless of $k$
+>   ([proposition](results/proposition_flops_bound.md)). Structural sparsity
+>   escapes this bound; data-dependent top-$k$ cannot.
+> - Both paths are memory-bound, and the sparse path has *lower* arithmetic
+>   intensity than the dense one, so removing arithmetic cannot help
+>   ([roofline](results/roofline.md)).
+> - The adaptive gate costs $\mathcal{O}(BN^3)$ activation memory
+>   ([analysis](results/memory_analysis.md)).
+>
+> Evidence: [`results/efficiency_summary.md`](results/efficiency_summary.md),
+> [`results/component_decomposition.md`](results/component_decomposition.md),
+> [`results/crossover_surface.md`](results/crossover_surface.md).
+> Decision record: `DECISIONS.md` D-019, D-021–D-026.
+> The manuscript in `paper/` carries the retraction inline and is otherwise
+> unrevised pending a rewrite.
+
 ## Contents
 
 - A clean MAPPO baseline and an attention-communication module

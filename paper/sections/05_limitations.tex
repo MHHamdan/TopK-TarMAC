@@ -1,0 +1,29 @@
+\paragraph{Scope of validity.} The empirical claims of this paper apply
+to cooperative-navigation tasks in the MPE family at agent counts
+$N \in \{3, 6, 12\}$, trained with on-policy MAPPO under the
+hyperparameters listed in the Experiments section. SMAC and SMACv2
+\citep{samvelyan2019smac, ellis2022smacv2} are not evaluated. Neither are
+the sparse-reward, partially observable task families --- level-based
+foraging and multi-robot warehouse \citep{christianos2020seac} --- on
+which communication is load-bearing, nor the vectorised JAX
+reimplementations \citep{rutherford2023jaxmarl} that would make a
+ten-seed sweep at larger $N$ tractable. Larger $N$ values where the
+asymptotic $\mathcal{O}(N^2) \to \mathcal{O}(Nk)$ gap should be most
+visible are not exercised in the current run set.
+
+\paragraph{Gate-variance diagnosis is correlational.} The
+ninefold inflation of between-seed standard deviation that accompanies
+the adaptive-$k$ gate is consistent with gate-induced stochasticity
+dominating the policy-gradient signal, but the study does not perform a
+controlled intervention isolating the gate as the variance source.
+Mechanisms that would establish causality --- freezing the gate to a
+fixed-$k$ schedule after pre-training, swapping Gumbel-softmax for a
+straight-through Bernoulli, or directly logging the policy-gradient norm
+contributed by the gate parameters --- are deferred.
+
+\paragraph{Wall-clock not measured.} The 2080 Ti rollout regime is
+CPU-bound, so the FLOPs savings predicted by the
+$k_{\mathrm{eff}}/(N{-}1)$ ratio are not realised in measured wall time
+at this scale. A GPU-bound rollout regime, which is the relevant regime
+for distributed agentic-RL infrastructure, is the natural setting in
+which to validate the wall-clock implication of the FLOPs analysis.

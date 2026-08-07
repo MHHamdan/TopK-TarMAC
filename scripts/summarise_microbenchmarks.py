@@ -141,6 +141,39 @@ def exec_modes(pay: dict) -> list[str]:
     return out + [""]
 
 
+def appendix_dispersion(pay: dict) -> list[str]:
+    """min / median / IQR / inter-run spread for every headline cell.
+
+    `min_ms` is the headline statistic because contention can only add time,
+    but reporting it alone hides how noisy the sample was. This is the table
+    that lets a reader check whether the minimum was a fluke: if median and
+    IQR track min closely, the cell was quiet; if they do not, the sample was
+    contended and the min is doing real work.
+    """
+    out = ["## Appendix: dispersion behind every headline number", "",
+           "`min` is what the tables above report. `median` and the "
+           "interquartile range describe the same samples; "
+           "`spread` is the range of per-run medians across the repeated "
+           "timed blocks.", "",
+           "| N | arm | min (ms) | median (ms) | IQR (ms) | median/min | "
+           "inter-run spread |",
+           "|---|---|---|---|---|---|---|"]
+    for n in sorted({r["n_agents"] for r in rows_for(pay)}):
+        for a in ORDER:
+            r = next((x for x in rows_for(pay)
+                      if x["n_agents"] == n and x["arm"] == a), None)
+            if r is None or r["oom"] or not r.get("forward"):
+                continue
+            f = r["forward"]
+            iqr = f["p75_ms"] - f["p25_ms"]
+            out.append(
+                f"| {n} | {LABEL[a]} | {f['min_ms']:.4f} | "
+                f"{f['median_ms']:.4f} | {iqr:.4f} | "
+                f"{f['median_ms'] / f['min_ms']:.2f}x | "
+                f"{f['inter_run_spread_pct']:.1f}% |")
+    return out + [""]
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--out", default=str(R / "efficiency_summary.md"))
@@ -189,6 +222,8 @@ def main() -> int:
                   "architecture, it is a property of the arithmetic and the "
                   "memory traffic, not of one vendor's kernels.", ""]
         lines += headline(cpu, "fp32, batch 256, CPU")
+
+    lines += appendix_dispersion(main_pay)
 
     # Provenance the reader needs to judge the numbers.
     lines += ["## Measurement conditions", "",

@@ -1,0 +1,40 @@
+Centralised-inference distributed RL architectures
+\citep{espeholt2020seedrl, horgan2018apex} consolidate policy evaluation on
+accelerators, making the per-step forward pass the dominant contributor to
+training wall-clock at large agent counts. In cooperative MARL with
+attention-based inter-agent communication
+\citep{das2019tarmac, sukhbaatar2016commnet, foerster2016dial,
+jiang2018atoc}, that forward pass is dominated by the dense aggregation of
+messages across all $N{-}1$ peers per agent: an $\mathcal{O}(N^2)$ cost in
+the number of agents. As $N$ scales toward the dozens or hundreds of
+agents relevant to swarm robotics, mean-field MARL
+\citep{yang2018meanfield}, and large-scale agentic RL infrastructure
+\citep{liang2017rllib}, this cost becomes a binding constraint.
+
+Attention sparsification has been studied extensively for long-sequence
+language modelling \citep{choromanski2021performers, kitaev2020reformer,
+beltagy2020longformer, zaheer2020bigbird}, but the MARL communication
+setting differs in two ways. First, the aggregation count itself, not the
+score matrix, is the cost bottleneck: per-agent decoders consume the
+aggregated message vector, and reducing the number of messages aggregated
+directly reduces the per-step compute and bandwidth. Second, training is
+on-policy with high seed variance, so any sparsification mechanism must
+not amplify the policy-gradient noise.
+
+This paper makes three contributions.
+\begin{itemize}
+\item TopK-TarMAC, an attention-communication module that aggregates the
+  top-$k$ peer messages per agent and learns a per-agent $k_i$
+  end-to-end via a Gumbel-softmax gate; the module reduces exactly to
+  dense TarMAC at $k{=}N{-}1$ and to MAPPO at $k{=}0$.
+\item An empirical comparison on MPE \texttt{simple\_spread} at
+  $N \in \{3, 6, 12\}$ with 5 / 5 / 3 seeds, reporting per-cell mean,
+  standard deviation, Welch's $t$, Cohen's $d$, and a 10\,000-resample
+  percentile bootstrap CI on the per-seed return delta.
+\item A diagnosis of the failure mode of end-to-end Gumbel gating: gate
+  variance scales with $N$ faster than the (analytic, and as later
+  measurement showed never-executed) FLOPs the gate was reported to save,
+  motivating budget-constrained sparsification (Lagrangian dual, entmax
+  projections, or static distance-calibrated routing) as the natural
+  follow-up.
+\end{itemize}

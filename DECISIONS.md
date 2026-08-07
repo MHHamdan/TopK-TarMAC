@@ -377,3 +377,196 @@ Numbered list. Each entry: decision, date, alternatives considered, rationale.
 - Decision: the D-011 precondition is met; tiers 2-4 are now interpretable and
   are launched. Any sparsification result from them is a statement about
   giving up part of a channel that demonstrably works.
+
+---
+
+# Phase C-3 decisions (2026-08-06) — causal account, scope, and remedy
+
+## D-032 — Remedy the manuscript exposure by correcting in place, NOT by
+   rewriting history (2026-08-06)
+- The full manuscript source and PDF are reachable from `origin/main` history
+  (commit 740a32a, 19 files). Untracking `paper/` at the tip did not remove
+  them.
+- Rejected: history rewrite + force-push. A force-push does not delete
+  objects -- GitHub continues to serve unreachable commits by SHA, and any
+  fork retains them permanently -- so it would not achieve the goal, while
+  breaking every existing clone.
+- Decision: publish a **corrected** `paper/` instead. The withdrawn FLOPs
+  claims are struck in place (abstract, intro, experiments, conclusion) with
+  an explicit retraction paragraph, and README carries a prominent retraction
+  notice pointing at the measurement artifacts.
+- Rationale: the honest remedy for a published wrong claim is a visible
+  correction, not an attempt to make the record disappear that would fail on
+  its own terms.
+
+## D-033 — TMLR policy verified; an anonymised code mirror is mandatory
+   (2026-08-06)
+- Verified against jmlr.org/tmlr editorial policies and author guide:
+  - arXiv/preprints are **permitted** ("publicly declared ... non-archival").
+  - Review is **double-blind** and "submissions must be anonymized".
+  - Critically: "double blind of the TMLR submission itself must be
+    maintained by **not linking to another version that includes the authors'
+    names**."
+  - Supplementary material up to 100 MB, PDF or ZIP.
+  - Submissions must use the **TMLR LaTeX stylefile**; no page limit, but
+    length must be justified by content.
+- The public repository URL is `github.com/MHHamdan/TopK-TarMAC` -- the
+  account name identifies the author. Linking it in a submission would breach
+  anonymity.
+- Decision: cite an anonymised mirror (e.g. anonymous.4open.science) at
+  submission and swap to the real URL at camera-ready. Ship the code ZIP as
+  supplementary. This is a requirement, not a precaution.
+
+## D-034 — Phase E re-scope: TMLR style, no IEEEtran (2026-08-06)
+- Decision: do **not** convert the manuscript to IEEEtran. Target the TMLR
+  stylefile.
+- Venue order re-scoped to: **TMLR (primary) > MLSys > RLC > TAI (last)**.
+  MLSys moves ahead of RLC because the contribution is now predominantly a
+  kernel-level measurement result -- decomposition, roofline, memory cliff --
+  with MARL as the application domain, and that is MLSys's core subject.
+
+## D-035 — The causal mechanism, measured (2026-08-06)
+- Component decomposition (`results/component_decomposition.md`) times each
+  stage separately. At N=512, k=127, batch 256:
+    topk_select 3.897 ms, gather_v 0.986 ms,
+    agg_dense   0.247 ms, agg_sparse 0.845 ms.
+- Two findings, both stronger than the hypothesis they tested:
+  1. **The aggregation saving is negative.** The sparse contraction
+     (B*N,1,k)x(B*N,k,d) is 3.4x *slower* than the dense
+     (B,N,N)x(B,N,d) it replaces, despite 4x fewer MACs: a batched matrix-
+     vector product has far lower arithmetic intensity than a real GEMM.
+  2. **Selection dominates everything.** `topk_select` alone is 15.8x the
+     entire dense aggregation.
+- So the loss is not a failure of the sparse contraction that better
+  engineering could fix; it is intrinsic to ranking all N scores.
+
+## D-036 — Crossover surface: 0 of 46 cells (2026-08-06)
+- Swept d in {32,64,128,256} x batch in {32,256,4096} x N in {12,48,192,512},
+  taking the *best* k per cell -- the most favourable case sparsity can
+  construct for itself.
+- **Gathering beats unfused dense in 0 of 46 measured cells** and fused SDPA
+  in 1 of 46. The ratio is 1.16x-2.46x throughout, i.e. remarkably flat over
+  an 8x range of d and a 128x range of batch.
+- Decision: report this as a characterised region, not as isolated anomalies.
+  The flatness is itself the result: the outcome is structural rather than a
+  tuning artifact. 2 cells skipped for memory and recorded as skipped.
+
+## D-037 — Roofline: the result is memory-bound, hence architecture-independent
+   (2026-08-06)
+- Machine balance measured, not quoted from datasheets: RTX PRO 6000
+  Blackwell 76.8 TFLOP/s fp32 and 1448.8 GB/s, ridge point **53.0 FLOP/byte**;
+  CPU 1.66 TFLOP/s and 450.8 GB/s, ridge point **3.68**.
+- Analytic arithmetic intensity: dense 1.85-4.18, gather **0.66 flat**
+  (0.16x-0.34x of dense). At N=512 the gather path moves 4.158 GB to perform
+  2.763 GFLOP, against dense's 1.107 GB for 4.631 GFLOP -- **3.8x the traffic
+  for 0.6x the arithmetic**.
+- Both paths sit far below both ridge points, i.e. memory-bound, where
+  latency tracks bytes and removing MACs cannot help. The two stages top-k
+  adds (selection, gather) have arithmetic intensity exactly 0.
+- This explains why the result reproduces on CPU despite an order-of-magnitude
+  different machine balance: it follows from the ratio of the two paths'
+  intensities, a property of the algorithm.
+
+## D-038 — The 2x bound stated as a proposition with its escape route
+   (2026-08-06)
+- `results/proposition_flops_bound.md`. Proposition 1: for any selection rule
+  requiring the full score vector, C_dense/C_topk = 2N/(N+k) < 2 for all
+  k >= 1. Assumptions A1-A5 stated individually, with A2 (data-dependent
+  selection) identified as the only load-bearing one.
+- Proposition 2 (escape): structural selection -- fixed topology, distance
+  prior, LSH/clustering in o(N^2 d), learned static graph -- makes the score
+  matmul itself sparsifiable, giving ratio N/k, unbounded. This is why
+  Longformer and BigBird obtain asymptotic savings where data-dependent
+  top-k cannot.
+- Decision: make the escape route explicit rather than burying it. It becomes
+  the primary future-work direction and justifies a distance-calibrated arm.
+  Pinned by two tests.
+
+## D-039 — The PO environment's difficulty confound is published, not hidden
+   (2026-08-06)
+- `results/po_env_characterisation.md` documents the modification exactly
+  (rule, what is unchanged, the aliasing caveat, the code path) and measures
+  visibility under a random policy across N x R.
+- The confound: simple_spread's world does not grow with N, so density rises
+  and a fixed radius hides a different fraction at each N. At R=1.0 the
+  visible fraction falls 0.342 -> 0.307 -> 0.263 -> 0.235 for N = 3, 6, 9, 12,
+  while absolute visible peers rises 0.68 -> 1.54 -> 2.10 -> 2.58.
+- Decision: report the table, and make **no claim based on comparing returns
+  across N in this environment**. N-scaling claims come only from the
+  training-free microbenchmark. A per-N calibrated radius is the right fix
+  for a future N study and is recorded as such.
+
+## D-040 — Latent device-context bug in the timing harness, found and fixed
+   (2026-08-06)
+- `torch.cuda.synchronize()` with no argument synchronises the *current*
+  device. Timing tensors on `cuda:1` while the current device is `cuda:0`
+  waits on the wrong queue and returns the CUDA-event resolution floor
+  (~0.4 us) for every kernel regardless of size -- which is exactly what the
+  first component-decomposition run produced.
+- Fixed by pinning `torch.cuda.set_device(device)` and passing the device to
+  every `synchronize`. **The previously committed results are unaffected**:
+  all of them ran on `cuda:0`, which was already the current device.
+- Recorded because a benchmark that silently reports the timer's floor is the
+  same class of defect as the `.item()` synchronisation (D-024), and the
+  paper's protocol section should carry both.
+
+## D-041 — Scope bounds the abstract must state (2026-08-06)
+- The claim is about **centralised-inference computational cost only**. It is
+  explicitly **not** about bandwidth-constrained distributed deployment, where
+  the objective is reducing transmitted messages and where top-k sparsity may
+  well be the right design. Conflating the two would overstate the result.
+- Further bounds to state up front: single-round attention; SDPA; d = 64;
+  N <= 512; PyTorch 2.11 / CUDA 12.8; one GPU architecture (sm_120) plus x86
+  CPU. No claim is made outside these.
+
+## D-042 — The benchmarking pitfalls are technical content, not commentary
+   (2026-08-06)
+- The protocol subsection will carry the defects as numbered, reproducible
+  pitfalls for other benchmarkers, with the measured cost of each:
+  1. A diagnostic `.item()` inside the timed forward synchronises the device;
+     it made dense attention latency appear flat in N.
+  2. Timing arms in sequential blocks on a shared device; >100% swings
+     between identical configurations, fixed by rep-by-rep interleaving.
+  3. `torch.cuda.synchronize()` without a device argument on a non-default
+     device; returns the event resolution floor (D-040).
+  4. Benchmarking a masked implementation as though it were sparse (D-019).
+  5. Comparing against an unfused dense baseline when a fused kernel is what
+     production uses (D-023).
+- Decision: written as guidance to the field, not as self-criticism.
+
+## D-043 — Drift control: reproducible when idle, load-sensitive when not
+   (2026-08-06)
+- The identical headline sweep re-run ~21 h later, two ways.
+- **Idle second device of the same model:** gathered/dense ratios reproduce
+  to within **3.2%** at every N (median 1.0%); absolute latency to 6.5%. The
+  measurement is a property of the algorithm and architecture, not of one
+  card or one run.
+- **Same device under concurrent training load:** ratios move by up to
+  **56.4%** (median 25.9%), concentrated at small and moderate N where the
+  kernels are launch-bound. N=384 and N=512 move ~1%.
+- Decisive point: **every drift is in the direction that makes the sparse
+  path look worse**, and the smallest gathered/dense ratio observed anywhere
+  across all runs, devices and load conditions is **1.14x**. Contention
+  cannot be hiding a crossover; it can only exaggerate an existing gap.
+- Decision: state that latency numbers must be taken on an unloaded device.
+  The interleaved minimum-over-samples protocol substantially reduces
+  contention sensitivity but does not eliminate it, and claiming otherwise
+  would overstate what it buys. Add median/IQR next to min_ms in an appendix
+  (done) so the dispersion behind each headline number is visible.
+
+## D-044 — Tier 2-4 outcome: six under-powered nulls, reported as such
+   (2026-08-06)
+- All six pre-registered contrasts return "no separation", Holm-adjusted
+  p >= 0.38. This is what the pre-registered power calculation predicted.
+- The primary contrast C1 (attention-selected vs random peers at matched k
+  and matched FLOPs) has point estimate +4.03 (Hodges-Lehmann +4.57,
+  d = +0.60, exact p = 0.357). Directionally consistent with attention
+  selecting informatively; not significant.
+- C4 is the interesting sign: at N=12 the sparse arm's point estimate is
+  *better* than dense by +147 (d = +1.27, p = 0.064), and dense's spread is
+  far wider. Consistent with the gate-variance failure mode the original
+  manuscript identified, but it does not reach significance and will not be
+  reported as a finding.
+- Decision: report every one as under-powered, never as "no effect", and make
+  no equivalence claim anywhere (no TOST margin was pre-registered). The
+  binding constraint is 5 seeds, which follows from the compute guardrail.

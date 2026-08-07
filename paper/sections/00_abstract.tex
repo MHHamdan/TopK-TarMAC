@@ -1,0 +1,21 @@
+Soft-attention inter-agent communication is a powerful primitive for
+cooperative multi-agent reinforcement learning (MARL), but every published
+realisation aggregates over all $N{-}1$ peers per agent per step, incurring
+an $\mathcal{O}(N^2)$ cost that dominates the inference budget of
+centralised-inference distributed training. \textbf{Correction (2026-08):
+the efficiency premise stated in this sentence, and the FLOPs reductions
+reported in Section~4, are withdrawn; see the retraction there.} This paper investigates whether
+the attention channel can be sparsified to top-$k$ destinations, with $k$
+adapted per agent per step by a learned gate trained end-to-end with the
+policy. The proposed architecture, TopK-TarMAC, reduces exactly to dense
+TarMAC when the gate selects $N{-}1$ destinations and to MAPPO when it
+selects none. A five-seed evaluation on the MPE \texttt{simple\_spread}
+benchmark at $N \in \{3, 6, 12\}$ produces three findings. Dense attention
+communication delivers a large improvement over the MAPPO baseline at
+moderate agent count ($N{=}6$, Cohen's $d{=}1.06$, bootstrap CI
+$[+2.3, +26.5]$). End-to-end Gumbel-softmax gating, however, degrades as
+$N$ grows and at $N{=}12$ underperforms MAPPO with $d{=}-1.87$ and a
+bootstrap CI that excludes zero on the negative side. Per-seed standard
+deviation grows from $4.6$ at the MAPPO baseline to $40.2$ at $N{=}12$ for
+the adaptive gate, identifying gate variance as the dominant failure mode
+and motivating budget-constrained sparsification as the natural next step.
