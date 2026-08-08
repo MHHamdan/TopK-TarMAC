@@ -1,0 +1,58 @@
+Each of the following produced a wrong number during this study before it was
+caught. We report them as technical content for anyone benchmarking attention
+variants, with the measured magnitude of each error, because a benchmarking
+result is only as trustworthy as the harness that produced it.
+
+\paragraph{P1. A diagnostic \texttt{.item()} inside the timed region.} The
+module computed a mean-attention-entropy statistic in its forward pass. The
+call synchronises the device \emph{inside} the region under measurement, so the
+benchmark measures the synchronisation, not the module. Symptom: dense
+attention latency appeared \emph{flat in $N$} --- $0.20$\,ms at $N{=}6$ rising
+only to $0.48$\,ms at $N{=}192$ --- which we initially and wrongly read as
+evidence that the $\mathcal{O}(N^2)$ cost does not manifest. Fix: gate all
+diagnostics behind a flag that is off while timing.
+
+\paragraph{P2. Timing arms in sequential blocks on a shared device.} Running
+all repetitions of arm $A$ and then all of arm $B$ makes the comparison hostage
+to whatever else used the device during each block. Symptom: swings above
+$100\%$ between identical configurations of the same script, and in one case a
+$3.7\times$ discrepancy for the same arm at the same $N$. Fix: interleave arms
+repetition by repetition so interference lands on all of them simultaneously,
+and report ratios, which are paired, alongside absolute latency, which is not.
+This reduced observed spread from $>100\%$ to typically $<2\%$.
+
+\paragraph{P3. \texttt{torch.cuda.synchronize()} without a device argument.}
+The no-argument form synchronises the \emph{current} device. Timing work
+submitted to a non-default device therefore waits on the wrong queue. Symptom:
+every kernel, at every size, reports the CUDA-event resolution floor of
+$\approx0.4\,\mu$s --- a result that looks like a spectacular speedup rather
+than an obvious error. Fix: pin the device and pass it explicitly to every
+synchronisation.
+
+\paragraph{P4. Benchmarking a masked implementation as though it were sparse.}
+The distinction of Section~\ref{sec:three}. Symptom: the ``sparse'' arm is
+uniformly slower than dense, which is correct for that implementation but says
+nothing about the method, since \Mask{} executes every multiply--accumulate
+dense does plus selection on top. A FLOPs counter based on $1 - k/(N-1)$ will
+happily report a $91\%$ saving for code whose executed operation count is
+identical to dense. Fix: assert that executed FLOPs differ between the two
+paths, and that the sparse path issues no $(B,N,N)\times(B,N,d)$ product. We
+pin both as regression tests.
+
+\paragraph{P5. Comparing against an unfused dense baseline.} If the deployed
+alternative is a fused kernel, an unfused reference flatters the sparse method
+--- by $4.6\times$ at $N{=}512$ in our setting. Note also that the fused path
+is invisible to standard FLOP counters, which report zero for it, so a
+FLOPs-only comparison cannot see the baseline that matters. Fix: report both,
+and check which SDPA backend actually serves the shape and dtype in question
+(in \texttt{fp32} only the memory-efficient kernel was available to us;
+FlashAttention requires half precision).
+
+\paragraph{A general form.} P1 and P3 are instrumentation errors that inflate
+or flatten the measurement; P2 is a design error that lets a shared environment
+leak into the comparison; P4 and P5 are specification errors about \emph{what
+is being compared to what}. The last two are the more dangerous, because the
+resulting numbers are internally consistent and reproducible --- they are simply
+answers to a different question than the one the paper asks. The defence is to
+state the operation count each arm executes alongside its latency, which makes a
+mismatch between the claimed and the executed algorithm visible immediately.

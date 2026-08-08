@@ -1,9 +1,10 @@
-# TopK-TarMAC: Sparse attention communication for cooperative MARL
+# The FLOPs You Save Are Not the Time You Spend
 
-Research codebase studying whether the TarMAC-style soft-attention
-inter-agent communication channel can be sparsified to top-$k$
-destinations — with $k$ adapted per agent per step — without sacrificing
-task return in cooperative MARL.
+Research codebase behind a measurement study of sparse attention in
+cooperative multi-agent communication. It began as an attempt to sparsify a
+TarMAC-style attention channel to top-$k$ destinations; it ended as a
+refutation of the efficiency premise behind that idea, plus the analysis and
+benchmark harness needed to establish it.
 
 > ## ⚠ Retraction: the efficiency claim (August 2026)
 >
@@ -38,8 +39,12 @@ task return in cooperative MARL.
 > [`results/component_decomposition.md`](results/component_decomposition.md),
 > [`results/crossover_surface.md`](results/crossover_surface.md).
 > Decision record: `DECISIONS.md` D-019, D-021–D-026.
-> The manuscript in `paper/` carries the retraction inline and is otherwise
-> unrevised pending a rewrite.
+> The manuscript in `paper/` has been **rewritten around the corrected
+> results** and retargeted to TMLR. It is now
+> *"The FLOPs You Save Are Not the Time You Spend: Sparse Attention in
+> Multi-Agent Communication"*. `scripts/check_paper_numbers.py` gates every
+> headline number in the LaTeX against the JSON artifact it came from, so the
+> prose cannot drift from the measurements again.
 
 ## Contents
 

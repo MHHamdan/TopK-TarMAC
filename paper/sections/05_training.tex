@@ -1,0 +1,117 @@
+Sparsification could still be worthwhile if it were free in return. Testing that
+requires care, because on a fully observable task ``sparsification is free'' and
+``the channel was never used'' make identical predictions. We therefore gate the
+study on a positive control and pre-register the analysis.
+
+\subsection{Design}
+
+Twelve arms, $N \le 12$, five seeds, $2$M environment steps each, in four
+priority tiers. All $N$-scaling is delegated to the training-free measurement
+of Section~\ref{sec:measurement}, both because end-to-end wall-clock in this
+pipeline is environment-bound (throughput differs by $<3\%$ across arms at every
+$N \ge 6$, so it cannot attribute a difference to the module) and because a
+trained $N$ sweep was projected at $995$ GPU-hours against a $200$-hour budget.
+
+\paragraph{Communication-critical controls.} We use two, because neither
+suffices alone. \texttt{simple\_reference} is logically unsolvable without the
+channel --- each agent can observe only its partner's goal --- but is fixed at
+$N{=}2$, so it cannot carry the $k$ arms. We therefore also introduce a
+partially observable \texttt{simple\_spread}: for each agent $i$ and peer $j$,
+if $\lVert \text{peer\_rel}[i,j] \rVert_2 > R$ then that entry is zeroed.
+Nothing else changes --- reward, action space, landmark observations, episode
+length and observation dimension are all untouched. We use $R{=}1.0$ throughout.
+
+Because this is a custom variant, we characterise it rather than asking for
+trust. Under a uniform random policy the mean fraction of peers visible at
+$R{=}1.0$ is $0.342, 0.307, 0.263, 0.235$ for $N = 3, 6, 9, 12$, while the
+absolute number of visible peers rises $0.68 \to 1.54 \to 2.10 \to 2.58$. The
+two move in opposite directions because \texttt{simple\_spread} does not grow
+its world with $N$, so density rises and a fixed radius hides a different
+fraction at each $N$. \textbf{This is a difficulty confound across $N$, and it
+is why no claim in this paper compares returns across $N$ in this
+environment.} A per-$N$ calibrated radius would remove it and is the right
+design for a future $N$ study.
+
+\subsection{Pre-registration}
+
+The analysis plan was written and committed when $8$ of $40$ runs had completed
+and before any tier-2--4 result was inspected. It fixes: the primary endpoint
+(final greedy evaluation return, one number per seed); the six contrasts and
+their direction; the test (exact two-sided permutation on the difference of
+means, enumerating all $\binom{10}{5} = 252$ assignments); the effect sizes
+(Hodges--Lehmann, Cohen's $d$); the interval (percentile bootstrap, flagged as
+approximate at $n{=}5$); and the multiplicity correction (Holm--Bonferroni over
+the six, FWER $0.05$).
+
+It also fixes the power expectation \emph{in advance}: the smallest attainable
+two-sided $p$ at $5$ vs $5$ is $2/252 = 0.0079$, against a strictest Holm
+threshold of $0.05/6 = 0.0083$. At most one contrast in the family can reach
+corrected significance, and only on perfect separation. Any null is therefore
+under-powered rather than evidence of absence, and no equivalence claim is
+available because no TOST margin was pre-registered.
+
+\subsection{Results}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Tier-1 positive control (inspected before pre-registration; excluded
+from the correction) and the six pre-registered contrasts. All six return no
+separation. HL is Hodges--Lehmann.}
+\label{tab:training}
+\begin{tabular}{llrrrrr}
+\toprule
+& \textbf{Contrast} & $A-B$ & HL & $d$ & $p$ & $p_{\text{Holm}}$ \\
+\midrule
+\multicolumn{7}{l}{\emph{Positive control}} \\
+G1 & dense $-$ MAPPO, \texttt{simple\_reference} & $+4.26$ & --- & --- & $0.008$ & --- \\
+G2 & dense $-$ MAPPO, PO \texttt{simple\_spread} $N{=}6$ & $+11.59$ & --- & --- & $0.008$ & --- \\
+\midrule
+\multicolumn{7}{l}{\emph{Pre-registered family}} \\
+C1$^\star$ & gathered $k{=}2$ $-$ random $k{=}2$ & $+4.03$ & $+4.57$ & $+0.60$ & $0.357$ & $1.000$ \\
+C2 & gathered $k{=}2$ $-$ dense & $-0.61$ & $-1.98$ & $-0.12$ & $0.865$ & $1.000$ \\
+C3 & gathered $k{=}4$ $-$ gathered $k{=}1$ & $+1.76$ & $+1.21$ & $+0.26$ & $0.659$ & $1.000$ \\
+C4 & gathered $k{=}3$ $-$ dense, $N{=}12$ & $+147.01$ & $+122.94$ & $+1.27$ & $0.064$ & $0.381$ \\
+C5 & Lagrangian budget $-$ dense & $-6.74$ & $-3.39$ & $-0.93$ & $0.183$ & $0.730$ \\
+C6 & entmax $-$ dense & $-5.56$ & $-5.44$ & $-1.13$ & $0.119$ & $0.595$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The channel works.} Both positive controls separate: dense
+attention-communication beats communication-free MAPPO by $+4.26$
+$[+3.15, +5.23]$ on \texttt{simple\_reference} and $+11.59$ $[+7.13, +16.44]$
+on the partially observable task, at the smallest $p$ the design can produce.
+Measured attention entropy on the $N{=}6$ control is $0.35$ nats against a
+$\ln 5 = 1.61$ ceiling, so attention is strongly peaked rather than uniform.
+Sparsification is therefore being applied to a channel that demonstrably
+carries information --- the precondition that makes the rest interpretable.
+
+\paragraph{Everything else is an under-powered null.} All six pre-registered
+contrasts return no separation, with Holm-adjusted $p \ge 0.38$. This is the
+outcome the pre-registered power calculation predicted, and we report it as
+under-powered, not as ``no effect''.
+
+The primary contrast C1 is the one the design exists for:
+\texttt{gathered} and \texttt{random-}$k$ are matched on $k$, on executed
+FLOPs and on every hyperparameter, differing only in whether peers are chosen
+by attention score or uniformly at random. Its point estimate favours
+attention ($+4.03$, HL $+4.57$, $d = +0.60$) but does not approach
+significance. We can say the design lacked power to detect a selection effect
+of this size; we cannot say attention selects arbitrarily.
+
+Two honest caveats. C4's sign is the opposite of the expected direction --- at
+$N{=}12$ the sparse arm's point estimate is \emph{better} than dense by $+147$,
+with dense far more variable, consistent with the gate-variance failure mode
+reported for learned gates --- but it does not reach significance and we do not
+report it as a finding. And for C4 and C6 the bootstrap interval excludes zero
+while the permutation test does not; the pre-registration named the permutation
+test as the test, so it governs, and we record the tension rather than
+resolving it toward whichever statistic reads better.
+
+\paragraph{Mechanism, descriptive only.} The Lagrangian arm meets its budget:
+expected $k$ settles at $1.16$ against a target of $1.25$, with the dual
+multiplier decaying to zero once the constraint is satisfied. Entmax settles at
+a support of $1.64$ of $5$ peers without any explicit budget. Attention entropy
+falls from $0.35$ (dense) to $0.12$ ($k{=}2$) to $0.00$ ($k{=}1$), as it must.
+These inform interpretation; they support no claim.

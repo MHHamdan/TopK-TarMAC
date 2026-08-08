@@ -1,55 +1,94 @@
-\paragraph{Cooperative MARL with CTDE.} Three families dominate the
-cooperative MARL landscape: independent learning \citep{dewitt2020ippo},
-centralised critics with decentralised actors \citep{lowe2017maddpg,
-yu2022mappo, foerster2017coma}, and value-decomposition
-\citep{sunehag2017vdn, rashid2018qmix, son2019qtran, rashid2020wqmix}.
-\citet{kuba2021happo} extended trust-region theory to heterogeneous agents
-via the multi-agent advantage decomposition lemma, and the Multi-Agent
-Transformer \citep{wen2022mat} casts joint-action selection as
-sequence-to-sequence translation. The method developed here is built on
-MAPPO; the critic is unchanged.
+\paragraph{Attention-based inter-agent communication.} CommNet
+\citep{sukhbaatar2016commnet} broadcasts mean-pooled hidden states; TarMAC
+\citep{das2019tarmac} introduces signature-based targeting so that receivers
+weight senders; IC3Net \citep{singh2018ic3net} gates whether an agent speaks at
+all; ATOC \citep{jiang2018atoc} forms bounded communication groups; DGN
+\citep{jiang2018dgn} restricts attention to a spatial neighbourhood; MAT
+\citep{wen2022mat} casts the joint policy as a sequence model. These works
+motivate restricted communication with a cost argument --- bandwidth,
+complexity, or ``receiving a large amount of information $\ldots$ incurs high
+computational complexity'' \citep{jiang2018dgn}.
 
-\paragraph{Attention as communication.} TarMAC \citep{das2019tarmac}
-introduced soft attention over emitted key/value messages. CommNet
-\citep{sukhbaatar2016commnet} used mean aggregation; DIAL
-\citep{foerster2016dial} backpropagated through a noisy continuous channel;
-IC3Net \citep{singh2018ic3net} added a per-agent gate; ATOC
-\citep{jiang2018atoc} learned a binary attention unit for whether to
-initiate communication; DGN \citep{jiang2018dgn} treats the system as a
-dynamic graph. None of these works reports an explicit FLOPs-vs-return
-trade-off, and the soft-attention variants are all $\mathcal{O}(N^2)$ in
-the aggregation step. Qatten \citep{yang2020qatten} places attention at
-the mixer rather than the channel; the two loci are substitutes that are
-not compared on a level footing in the existing literature.
+\paragraph{The audit.} We checked whether that argument is ever accompanied by
+a measurement. For each paper we read the full text and recorded (i) whether it
+makes a computational-efficiency or complexity claim about its mechanism and
+(ii) whether it reports any measured temporal quantity --- time, speed,
+throughput, or achieved FLOP/s --- attributable to that mechanism. A statement
+such as ``training took a few days'' does not qualify and is recorded as not
+qualifying. Table~\ref{tab:audit} reports the result.
 
-\paragraph{Sparse attention outside MARL.} Sparse and approximate
-attention for long sequences is mature. Performers
-\citep{choromanski2021performers} approximate softmax with positive
-orthogonal random features for linear-time attention. Reformer
-\citep{kitaev2020reformer} uses locality-sensitive hashing to bucket
-queries and keys. Longformer \citep{beltagy2020longformer} combines a
-sliding window with a small set of global tokens, and BigBird
-\citep{zaheer2020bigbird} adds a random-attention component to recover
-universal-approximation guarantees. The MARL communication channel
-operates at $N \ll L$ and pays for aggregation rather than score
-construction, so a simpler hard-mask top-$k$ aggregation suffices and
-preserves an exact reduce-to-baseline ablation at $k{=}N{-}1$.
+\begin{table}[t]
+\centering
+\small
+\caption{Does the paper measure what it claims to save? ``Reports latency''
+requires a measured temporal quantity attributable to the mechanism. The
+comparison group is the efficient-attention and sparse mixture-of-experts
+literature from which the MARL complexity argument is borrowed.}
+\label{tab:audit}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Paper} & \textbf{Efficiency claim} & \textbf{Type} & \textbf{Reports latency} \\
+\midrule
+\multicolumn{4}{l}{\emph{Multi-agent communication / attention}} \\
+CommNet \citep{sukhbaatar2016commnet}      & none explicit          & ---          & no \\
+TarMAC \citep{das2019tarmac}               & compact messages       & qualitative  & no \\
+IC3Net \citep{singh2018ic3net}             & fewer messages         & counts       & no \\
+ATOC \citep{jiang2018atoc}                 & bounded group size     & counts       & no \\
+DGN \citep{jiang2018dgn}                   & neighbourhood scaling  & asymptotic   & no \\
+MAT \citep{wen2022mat}                     & linear in $N$          & asymptotic   & \textbf{yes} \\
+\midrule
+\multicolumn{4}{l}{\emph{Efficient attention / sparse mixture-of-experts}} \\
+Reformer \citep{kitaev2020reformer}        & $\mathcal{O}(L\log L)$ & asymptotic   & \textbf{yes} \\
+Longformer \citep{beltagy2020longformer}   & $\mathcal{O}(L)$       & asymptotic   & \textbf{yes} \\
+BigBird \citep{zaheer2020bigbird}          & $\mathcal{O}(L)$       & asymptotic   & no \\
+Performer \citep{choromanski2021performers}& $\mathcal{O}(L)$       & asymptotic   & \textbf{yes} \\
+Switch \citep{fedus2022switch}             & FLOPs-matched          & FLOPs        & \textbf{yes} \\
+Sparse MoE \citep{shazeer2017moe}          & large capacity, low cost & FLOPs      & \textbf{yes} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\paragraph{Differentiable sparsity and learned routing.} The closest
-prior work to a learned top-$k$ gate over a fixed pool of destinations is
-the sparsely-gated mixture-of-experts (MoE) layer
-\citep{shazeer2017moe}, which routes each token to the top-$k$ experts of
-a large pool via a noisy gating function, and Switch Transformers
-\citep{fedus2022switch}, which simplify the routing to $k{=}1$ and
-introduce capacity-factor and selective-precision tricks to stabilise the
-router. Both report router instability and required auxiliary
-load-balancing losses, foreshadowing the gate-variance behaviour observed
-in this study.
+One of six multi-agent communication papers reports a measured temporal
+quantity for its mechanism, against five of six in the literature the argument
+is imported from. We stress what this table is and is not. It is an audit of
+\emph{reporting practice}, not of correctness: a ``no'' means the efficiency
+argument rests on operation counts or asymptotics alone, not that the argument
+is wrong. It also has an obvious selection caveat --- these are the papers this
+line of work cites, not a random sample of MARL.
 
-\paragraph{Distributed MARL infrastructure.} Centralised-inference
-architectures including SEED-RL \citep{espeholt2020seedrl} and Ape-X
-\citep{horgan2018apex} consolidate policy evaluation on accelerators;
-RLlib \citep{liang2017rllib}, Acme \citep{hoffman2020acme}, and MARLlib
-\citep{hu2023marllib} provide composable substrates. None of these
-addresses the per-agent attention-aggregation step that this paper
-targets.
+The asymmetry is nonetheless informative, because the borrowed argument does
+not transfer cleanly. The efficient-attention results hold at sequence lengths
+of $10^3$--$10^5$, where attention is genuinely the bottleneck; MARL
+communication operates at $N \lesssim 10^2$, where it is not. And the borrowed
+methods are structurally sparse, so they escape the ceiling of
+Section~\ref{sec:analysis} that data-dependent top-$k$ is subject to.
+
+\paragraph{Measurement discipline in the efficient-attention literature.} One
+precedent deserves particular mention because it anticipates the distinction
+this paper turns on. Longformer \citep{beltagy2020longformer} reports runtime
+and memory for \emph{three} implementations of the same attention pattern: a
+loop version, a vectorised ``chunks'' version, and a custom CUDA kernel. The
+authors note that the chunked variant consumes roughly twice the optimal memory
+because it ``computes some zero values'' --- that is, they measured a masked
+implementation separately from a genuinely sparse one, and reported the
+difference. FlashAttention \citep{dao2022flashattention} and memory-efficient
+attention \citep{rabe2021selfattention} make the same point from the other
+direction: the winning implementations of dense attention reduce memory traffic
+without changing the operation count at all, which is precisely the axis a
+FLOPs-based argument cannot see.
+
+\paragraph{Sparse and budgeted attention mechanisms.} Sparsemax
+\citep{martins2016sparsemax} and $\alpha$-entmax \citep{peters2019entmax}
+obtain exact zeros from the normalisation itself rather than a hard cutoff;
+Gumbel-softmax \citep{jang2017gumbel} provides the relaxation used by learned
+discrete gates; constrained-RL formulations
+\citep{achiam2017cpo,stooke2020pidlagrangian} supply the dual machinery for
+enforcing a communication budget rather than trading it against return at a
+fixed weight. We implement entmax and a Lagrangian budget as arms in
+Section~\ref{sec:training}.
+
+\paragraph{Empirical rigour in MARL.} Our training protocol follows the
+recommendations of \citet{papoudakis2021epymarl} for MARL benchmarking, and we
+report effect sizes and intervals rather than bare means. Our environments come
+from the PettingZoo/MPE family \citep{terry2020pettingzoo}, and our learner is
+MAPPO \citep{yu2022mappo}.

@@ -1,40 +1,90 @@
-Centralised-inference distributed RL architectures
-\citep{espeholt2020seedrl, horgan2018apex} consolidate policy evaluation on
-accelerators, making the per-step forward pass the dominant contributor to
-training wall-clock at large agent counts. In cooperative MARL with
-attention-based inter-agent communication
-\citep{das2019tarmac, sukhbaatar2016commnet, foerster2016dial,
-jiang2018atoc}, that forward pass is dominated by the dense aggregation of
-messages across all $N{-}1$ peers per agent: an $\mathcal{O}(N^2)$ cost in
-the number of agents. As $N$ scales toward the dozens or hundreds of
-agents relevant to swarm robotics, mean-field MARL
-\citep{yang2018meanfield}, and large-scale agentic RL infrastructure
-\citep{liang2017rllib}, this cost becomes a binding constraint.
+Cooperative multi-agent reinforcement learning (MARL) systems increasingly pass
+learned messages between agents, and attention is the dominant mechanism for
+deciding what to listen to \citep{das2019tarmac,jiang2018atoc,jiang2018dgn}.
+Because every agent attends to every other, the channel costs
+$\mathcal{O}(N^2)$ per step, and a natural proposal follows: restrict each
+agent to its top-$k$ peers, with $k \ll N$. The argument is intuitive, and it
+is nearly always supported the same way --- by an operation count. If dense
+aggregation touches $N-1$ peers and sparse aggregation touches $k$, then a
+$1 - k/(N-1)$ fraction of the work disappears.
 
-Attention sparsification has been studied extensively for long-sequence
-language modelling \citep{choromanski2021performers, kitaev2020reformer,
-beltagy2020longformer, zaheer2020bigbird}, but the MARL communication
-setting differs in two ways. First, the aggregation count itself, not the
-score matrix, is the cost bottleneck: per-agent decoders consume the
-aggregated message vector, and reducing the number of messages aggregated
-directly reduces the per-step compute and bandwidth. Second, training is
-on-policy with high seed variance, so any sparsification mechanism must
-not amplify the policy-gradient noise.
+This paper asks whether that fraction is real. The answer is no, in two
+distinct senses, and the gap between them is the point.
 
-This paper makes three contributions.
+\paragraph{The count is smaller than advertised.} Selecting the top-$k$ peers
+\emph{by attention score} requires computing every score. The score matrix is
+therefore irreducible, and only the value aggregation --- half of attention ---
+can be sparsified at all. Section~\ref{sec:analysis} states this as a
+proposition: the achievable reduction in attention FLOPs is bounded above by
+$2\times$, for every $k$ and every $N$, approached only as $k/N \to 0$. The
+familiar $1-k/(N-1)$ describes one of two equal terms and overstates the
+achievable saving by a factor approaching two. The bound has a precise escape
+route, which we make explicit because it is the design target for any successor
+method: if the sparsity pattern is \emph{structural} --- fixed by a topology, a
+spatial prior, or a hash computable in $o(N^2 d)$ --- the score matmul becomes
+sparsifiable too and the ratio reaches $N/k$, unbounded. This is exactly why
+Longformer and BigBird obtain asymptotic savings where data-dependent top-$k$
+cannot \citep{beltagy2020longformer,zaheer2020bigbird}.
+
+\paragraph{Even the reduced count is not a saving in time.} A count is a model
+of cost, not a measurement of it. We find that the implementation pattern in
+common use does not execute the saving at all: top-$k$ is applied as a
+\emph{mask} on the dense attention matrix, the discarded entries are
+materialised as zeros, and the same dense $(B,N,N)\times(B,N,d)$ aggregation
+matmul runs. Executed multiply--accumulates are identical to dense. We
+implement the genuinely sparse gather the claim refers to, verify it computes
+the same function to floating-point tolerance while executing measurably fewer
+FLOPs, and benchmark dense, masked and gathered as three separate curves
+against a fused SDPA baseline. The gathered implementation is slower than dense
+everywhere we look: $46$ of $46$ cells in a head-width $\times$ batch $\times$
+$N$ $\times$ $k$ sweep, on two hardware architectures, at two precisions, under
+three execution modes.
+
+\paragraph{Why, mechanistically.} Section~\ref{sec:measurement} decomposes the
+sparse path stage by stage. Two facts account for the result. Top-$k$ selection
+alone costs $15.8\times$ the entire dense aggregation at $N{=}512$; and the
+sparse contraction is \emph{itself} $3.4\times$ slower than the dense matmul it
+replaces, despite performing four times fewer multiply--accumulates, because a
+batched matrix--vector product has far lower arithmetic intensity than a real
+GEMM. A roofline analysis with empirically measured machine balance shows both
+paths sitting far below the ridge point on GPU and CPU alike: both are
+memory-bound, the sparse path moves $3.8\times$ the traffic for $0.6\times$ the
+arithmetic, and removing arithmetic from a memory-bound kernel does not make it
+faster. This is also why the result reproduces on a CPU whose machine balance
+differs from the GPU's by more than an order of magnitude --- it follows from
+the ratio of the two paths' intensities, which is a property of the algorithm.
+
+\paragraph{Contributions.}
 \begin{itemize}
-\item TopK-TarMAC, an attention-communication module that aggregates the
-  top-$k$ peer messages per agent and learns a per-agent $k_i$
-  end-to-end via a Gumbel-softmax gate; the module reduces exactly to
-  dense TarMAC at $k{=}N{-}1$ and to MAPPO at $k{=}0$.
-\item An empirical comparison on MPE \texttt{simple\_spread} at
-  $N \in \{3, 6, 12\}$ with 5 / 5 / 3 seeds, reporting per-cell mean,
-  standard deviation, Welch's $t$, Cohen's $d$, and a 10\,000-resample
-  percentile bootstrap CI on the per-seed return delta.
-\item A diagnosis of the failure mode of end-to-end Gumbel gating: gate
-  variance scales with $N$ faster than the (analytic, and as later
-  measurement showed never-executed) FLOPs the gate was reported to save,
-  motivating budget-constrained sparsification (Lagrangian dual, entmax
-  projections, or static distance-calibrated routing) as the natural
-  follow-up.
+  \item A $2\times$ ceiling on the FLOPs saving achievable by any
+    score-based top-$k$ attention, stated with its assumptions separated and
+    its escape route made explicit (Section~\ref{sec:analysis}).
+  \item A three-way decomposition of the implementation space --- dense,
+    masked, gathered --- showing that the masked variant in common use executes
+    the dense operation count, and a corrected sparse implementation that does
+    not (Sections~\ref{sec:analysis}--\ref{sec:measurement}).
+  \item A measurement campaign over $N \le 512$, head width $16$--$256$, batch
+    $32$--$4096$, two dtypes, three execution modes and two architectures,
+    finding no crossover anywhere, with a component decomposition and roofline
+    account of the cause, and a drift control quantifying reproducibility
+    (Section~\ref{sec:measurement}).
+  \item The finding that a learned per-agent gate costs $\mathcal{O}(BN^3)$
+    activation memory --- derived, and validated at a fitted exponent of
+    $3.04$ (Section~\ref{sec:measurement}).
+  \item A pre-registered training study separating ``the channel does nothing''
+    from ``sparsifying the channel is free'', with a positive control that
+    passes and six sparsification contrasts reported as the under-powered nulls
+    they are (Section~\ref{sec:training}).
+  \item An audit of measured-latency reporting across the literature this
+    argument is drawn from, and five reproducible benchmarking pitfalls, each
+    of which produced a spurious result during this study
+    (Sections~\ref{sec:related} and~\ref{sec:pitfalls}).
 \end{itemize}
+
+\paragraph{Scope.} Every claim here concerns \emph{centralised-inference
+computational cost}: the wall-clock and memory of executing the communication
+module on one device. It is explicitly \emph{not} a claim about
+bandwidth-constrained distributed deployment, where the objective is to reduce
+the number of messages physically transmitted and where top-$k$ sparsity may
+well be the correct design. Section~\ref{sec:limitations} states the full
+envelope.

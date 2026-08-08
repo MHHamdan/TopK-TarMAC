@@ -1,29 +1,35 @@
-\documentclass[10pt,letterpaper]{article}
+\documentclass[10pt]{article} % For LaTeX2e
+\usepackage{tmlr}
+% If accepted, instead use the following line for the camera-ready submission:
+%\usepackage[accepted]{tmlr}
+% To de-anonymize for a preprint server, instead use:
+%\usepackage[preprint]{tmlr}
 
-% Workshop-paper style — no proprietary template required; keeps the build
-% reproducible across machines without external .sty files.
-\usepackage[a4paper, margin=1in]{geometry}
-\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{amsmath, amssymb, amsfonts, amsthm}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{microtype}
+\usepackage{multirow}
 \usepackage{hyperref}
-\usepackage{xcolor}
-\usepackage{caption}
-\usepackage{subcaption}
-\usepackage[round, sort&compress]{natbib}
-\bibliographystyle{plainnat}
-\setlength{\bibsep}{2pt plus 0.3ex}
+\usepackage{url}
 
-\title{TopK-TarMAC: Adaptive Sparse Attention for Scalable Multi-Agent
-Communication}
+\newtheorem{proposition}{Proposition}
+\newcommand{\Gath}{\textsc{gathered}}
+\newcommand{\Mask}{\textsc{masked}}
 
-\author{Mohammed Hamdan\\
-{\small \texttt{mh2022ets@gmail.com}}}
+\title{The FLOPs You Save Are Not the Time You Spend:\\
+Sparse Attention in Multi-Agent Communication}
 
-\date{}
+% Authors must not appear in the submitted version. They are hidden as long as
+% the tmlr package is used without the [accepted] or [preprint] options.
+\author{\name Anonymous \email anonymous@example.com \\
+      \addr Anonymous Institution}
+
+\def\month{08}  % Insert correct month for camera-ready version
+\def\year{2026} % Insert correct year for camera-ready version
+\def\openreview{\url{https://openreview.net/forum?id=XXXX}} % Insert correct link
 
 \begin{document}
+
 \maketitle
 
 \begin{abstract}
@@ -31,23 +37,53 @@ Communication}
 \end{abstract}
 
 \section{Introduction}
+\label{sec:intro}
 \input{sections/01_intro.tex}
 
-\section{Related Work}
+\section{Related Work: Who Measures, and Who Counts}
+\label{sec:related}
 \input{sections/02_related.tex}
 
-\section{Method}
-\input{sections/03_method.tex}
+\section{What Sparsifying Attention Can and Cannot Save}
+\label{sec:analysis}
+\input{sections/03_analysis.tex}
 
-\section{Experiments}
-\input{sections/04_experiments.tex}
+\section{Measuring the Cost}
+\label{sec:measurement}
+\input{sections/04_measurement.tex}
+
+\section{Does Sparsification Cost Return?}
+\label{sec:training}
+\input{sections/05_training.tex}
+
+\section{Five Pitfalls in Attention Benchmarking}
+\label{sec:pitfalls}
+\input{sections/06_pitfalls.tex}
 
 \section{Limitations}
-\input{sections/05_limitations.tex}
+\label{sec:limitations}
+\input{sections/07_limitations.tex}
 
 \section{Conclusion}
-\input{sections/06_conclusion.tex}
+\label{sec:conclusion}
+\input{sections/08_conclusion.tex}
 
+\subsubsection*{Broader Impact Statement}
+This work is a measurement and correction study of a computational-efficiency
+claim. It introduces no new capability and no new data. Its intended effect is
+to reduce wasted compute in the design of multi-agent communication
+architectures by discouraging optimisation against an operation count that
+does not predict runtime. We note that a negative efficiency result of this
+kind is specific to the deployment regime studied
+(Section~\ref{sec:limitations}) and should not be read as an argument against
+sparse communication in bandwidth-constrained settings, where the objective is
+different.
+
+\bibliographystyle{tmlr}
 \bibliography{references}
+
+\appendix
+\section{Appendix}
+\input{sections/09_appendix.tex}
 
 \end{document}
