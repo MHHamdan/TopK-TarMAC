@@ -27,6 +27,19 @@ costs, and the literature does not consistently distinguish them.
     materialises the $(B,N,N)$ weight matrix at all.
 \end{description}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig1_schematic.pdf}
+\caption{The same top-$k$ attention, computed three ways. All three form the
+full score matrix, because selecting peers by score requires every score. They
+differ in what happens next: the fused kernel never materialises the weights;
+the masked variant stores the discarded entries as zeros and multiplies them
+anyway, so its executed operation count equals dense; only the gathered variant
+compacts the kept rows and shrinks the product. \textbf{The efficiency claim in
+the literature is a claim about the third row.}}
+\label{fig:schematic}
+\end{figure}
+
 \Gath{} and \Mask{} compute the same function. Two facts make this so:
 softmax is monotone within a row, so the top-$k$ weights are the top-$k$
 scores; and a softmax over just those $k$ scores equals the dense softmax
@@ -119,6 +132,18 @@ ratio is the ridge point above which a kernel is compute-bound. Measuring
 rather than quoting datasheet peaks keeps the comparison honest about the
 specific device and dtype.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig4_roofline.pdf}
+\caption{Roofline with \emph{measured} machine balance. On the GPU both paths
+sit far below the ridge, so both are memory-bound and removing arithmetic
+cannot buy time. On the CPU --- whose balance is an order of magnitude lower
+--- the dense path reaches the ridge while the gathered path, pinned at
+intensity $0.66$ for every $N$, does not. That asymmetry is why the gap is
+\emph{wider} on CPU, not narrower.}
+\label{fig:roofline}
+\end{figure}
+
 \begin{table}[t]
 \centering
 \small
@@ -144,7 +169,7 @@ x86\_64 CPU (\texttt{fp32})            & 1.66 TFLOP/s & 450.8 GB/s  & 3.68 FLOP/
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:roofline} gives the result. The gathered path adds two stages
+Table~\ref{tab:roofline} and Figure~\ref{fig:roofline} give the result. The gathered path adds two stages
 that move substantial memory for \emph{zero} arithmetic --- the top-$k$
 selection and the gather --- so its intensity is pinned near $0.66$ and does
 not improve with $N$. At $N{=}512$ the sparse path moves $4.16$\,GB to perform

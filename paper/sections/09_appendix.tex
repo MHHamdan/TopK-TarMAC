@@ -40,6 +40,40 @@ $1.02$--$1.06\times$, so no headline number depends on an outlying fast sample.
 The complete table for all $N$ and all arms, together with the raw per-run
 medians, is included in the released artifacts.
 
+\subsection{Crossover surface, tabulated}
+\label{app:surface}
+
+The numbers behind Figure~\ref{fig:crossover}.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Best-$k$ gathered latency divided by unfused dense. Values $<1$ would
+indicate sparsity winning; none do. ``skip'' marks cells whose activation
+memory exceeded the budget (at $d{=}256$, $B{=}4096$, $N{=}512$ the gathered
+value tensor alone is $\approx$273\,GiB) and which are recorded as skipped
+rather than dropped.}
+\label{tab:surface}
+\begin{tabular}{rrrrrr}
+\toprule
+$d$ & batch & $N{=}12$ & $N{=}48$ & $N{=}192$ & $N{=}512$ \\
+\midrule
+32  & 32   & 1.22 & 1.20 & 1.19 & 2.29 \\
+32  & 256  & 1.21 & 1.21 & 1.83 & 2.43 \\
+32  & 4096 & 1.35 & 1.98 & 1.48 & 2.36 \\
+64  & 32   & 1.22 & 1.22 & 1.22 & 2.35 \\
+64  & 256  & 1.23 & 1.22 & 1.76 & 2.46 \\
+64  & 4096 & 1.50 & 1.85 & 1.47 & 2.36 \\
+128 & 32   & 1.21 & 1.22 & 1.24 & 1.87 \\
+128 & 256  & 1.23 & 1.27 & 1.52 & 2.12 \\
+128 & 4096 & 1.45 & 1.91 & 1.50 & skip \\
+256 & 32   & 1.23 & 1.20 & 1.16 & 1.47 \\
+256 & 256  & 1.19 & 1.31 & 1.37 & 1.71 \\
+256 & 4096 & 1.28 & 1.61 & 1.45 & skip \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Verification of the corrected implementation}
 \label{app:verification}
 
