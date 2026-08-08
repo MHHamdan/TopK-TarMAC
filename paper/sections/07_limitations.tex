@@ -1,0 +1,60 @@
+\paragraph{What the claim covers.} Every cost result here concerns
+\textbf{centralised-inference computational cost}: the wall-clock latency and
+memory of executing the communication module on a single device, where all
+agents' observations are available to one process. It is \emph{not} a claim
+about bandwidth-constrained distributed deployment. In that regime the
+objective is different --- reducing the number of messages physically
+transmitted over a link --- and top-$k$ sparsification may well be the correct
+design even though it does not reduce local compute. Conflating the two would
+misrepresent this result, and the analytic ceiling of
+Proposition~\ref{prop:ceiling} says nothing about transmitted bytes.
+
+\paragraph{Measurement envelope.} Single-round attention; scaled dot-product
+attention with the fused backends available in PyTorch 2.11 / CUDA 12.8; input
+embedding width $64$; head width $d \in \{16,32,64,128,256\}$; $N \le 512$;
+batch $32$--$4096$; \texttt{fp32} and \texttt{bf16}; eager, \texttt{torch.compile}
+and CUDA-graph execution. Hardware: one GPU architecture (NVIDIA Blackwell,
+sm\_120) and one x86\_64 CPU. We make no claim outside this envelope.
+
+\paragraph{No cross-generation GPU replication.} The strongest available
+robustness evidence is the CPU result, whose machine balance differs from the
+GPU's by more than an order of magnitude, plus an idle second device of the
+same model. We were unable to replicate on a different GPU generation --- the
+older hardware that produced this project's earlier runs is no longer
+available. ``Structurally'' versus ``on this architecture'' is therefore
+supported by the roofline argument and the CPU agreement rather than by a
+second GPU generation, and a reader who weights that evidence differently
+should discount the generality accordingly.
+
+\paragraph{Unlocked clocks.} We lacked the privilege to lock GPU clocks. We
+compensate with interleaved timing, minimum-over-samples reporting, published
+dispersion (Appendix~\ref{app:dispersion}) and an explicit drift control
+(Section~\ref{sec:drift}), and we report that absolute latency under
+concurrent load can move by tens of percent. Ratios are far more stable, and
+all claims are stated in ratios.
+
+\paragraph{Statistical power of the training study.} Five seeds per arm gives a
+minimum attainable two-sided permutation $p$ of $0.0079$ against a Holm
+threshold of $0.0083$ for six contrasts. This is enough to detect only perfect
+separation, and it is a consequence of the compute budget, not a property of
+the methods. The six null contrasts of Section~\ref{sec:training} should be
+read as ``this design could not resolve an effect of this size'', and no
+equivalence between sparse and dense is claimed anywhere. A study powered to
+resolve the $d \approx 0.6$ effect suggested by C1 would need roughly $45$
+seeds per arm.
+
+\paragraph{Environment.} The partially observable \texttt{simple\_spread}
+variant is our own, documented in Section~\ref{sec:training} and released. It
+carries a difficulty confound across $N$ that we measure and publish, and which
+is why no across-$N$ return comparison appears in this paper. Results on MPE
+tasks may not transfer to environments with different observation structure.
+
+\paragraph{Implementation scope.} \Gath{} is a straightforward PyTorch
+implementation using \texttt{gather} and a batched contraction; it is not a
+hand-written fused kernel. A custom kernel that fuses selection, gather and
+contraction would reduce the memory traffic that
+Section~\ref{sec:roofline} identifies as the binding constraint, and could
+plausibly close part of the gap. It could not, however, escape
+Proposition~\ref{prop:ceiling}, nor avoid ranking all $N$ scores. We regard
+such a kernel as the most informative single follow-up to this work, together
+with the structural-sparsity direction of Proposition~\ref{prop:escape}.

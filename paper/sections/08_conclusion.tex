@@ -1,0 +1,40 @@
+The efficiency case for sparsifying inter-agent attention rests on an operation
+count. We examined that count and then measured what runs.
+
+The count is smaller than reported: because selecting peers by attention score
+requires every score, only half of attention is sparsifiable and the achievable
+FLOPs reduction is bounded by $2\times$, not by $1 - k/(N-1)$. The count is
+also, in the implementation pattern we found in use, not executed at all ---
+masking the dense attention matrix leaves the dense aggregation matmul in
+place. And when we implemented the sparse gather the claim actually refers to,
+verified it computes the same function, and measured it against a fused dense
+baseline, it was slower in every one of $46$ cells spanning head width, batch,
+agent count and sparsity level, on two architectures, at two precisions, under
+three execution modes. Selection alone costs an order of magnitude more than
+the aggregation it is meant to shrink, the sparse contraction is itself slower
+than the dense one, and both paths are memory-bound --- so removing arithmetic
+was never going to help.
+
+None of this shows that sparse multi-agent communication is a bad idea. It
+shows that the standard argument for it does not survive measurement in the
+centralised-inference regime, and it identifies precisely what a successor
+method must do differently. Proposition~\ref{prop:escape} is the constructive
+half of the result: a method whose sparsity pattern is fixed \emph{before} the
+scores are computed --- by topology, by a spatial prior, by a hash --- is not
+subject to the ceiling and can reach $N/k$. In an environment with spatial
+structure, distance-calibrated routing is the natural instance, and it is where
+we would spend the next unit of effort. A fused kernel that eliminates the
+intermediate traffic between selection, gather and contraction is the other.
+
+The wider lesson is methodological, and it is not specific to MARL. An
+operation count is a model of cost. Like any model it can be wrong in two ways:
+it can mis-estimate the quantity it describes, and the quantity it describes
+can fail to govern the outcome anyone cares about. Both happened here. The
+remedy is cheap --- report executed operation counts beside measured latency,
+so that a divergence between the algorithm claimed and the algorithm executed
+becomes visible immediately. Our audit suggests the surrounding literature has
+largely not been doing this: one of six multi-agent communication papers
+reports any measured temporal quantity for its mechanism, against five of six
+in the efficient-attention work the argument was borrowed from. We release the
+harness, the corrected implementation, the pre-registration and the five
+benchmarking pitfalls that produced spurious results along the way.

@@ -1,21 +1,42 @@
-Soft-attention inter-agent communication is a powerful primitive for
-cooperative multi-agent reinforcement learning (MARL), but every published
-realisation aggregates over all $N{-}1$ peers per agent per step, incurring
-an $\mathcal{O}(N^2)$ cost that dominates the inference budget of
-centralised-inference distributed training. \textbf{Correction (2026-08):
-the efficiency premise stated in this sentence, and the FLOPs reductions
-reported in Section~4, are withdrawn; see the retraction there.} This paper investigates whether
-the attention channel can be sparsified to top-$k$ destinations, with $k$
-adapted per agent per step by a learned gate trained end-to-end with the
-policy. The proposed architecture, TopK-TarMAC, reduces exactly to dense
-TarMAC when the gate selects $N{-}1$ destinations and to MAPPO when it
-selects none. A five-seed evaluation on the MPE \texttt{simple\_spread}
-benchmark at $N \in \{3, 6, 12\}$ produces three findings. Dense attention
-communication delivers a large improvement over the MAPPO baseline at
-moderate agent count ($N{=}6$, Cohen's $d{=}1.06$, bootstrap CI
-$[+2.3, +26.5]$). End-to-end Gumbel-softmax gating, however, degrades as
-$N$ grows and at $N{=}12$ underperforms MAPPO with $d{=}-1.87$ and a
-bootstrap CI that excludes zero on the negative side. Per-seed standard
-deviation grows from $4.6$ at the MAPPO baseline to $40.2$ at $N{=}12$ for
-the adaptive gate, identifying gate variance as the dominant failure mode
-and motivating budget-constrained sparsification as the natural next step.
+Attention-based inter-agent communication aggregates over all $N-1$ peers per
+agent per step, and a substantial line of work proposes sparsifying it to the
+top-$k$ most relevant peers. The efficiency case for doing so is almost always
+made by counting operations rather than by measuring time. We show that the
+count does not survive contact with the hardware, and that it could not have
+delivered much even if it had.
+
+We contribute, first, an analytic ceiling: because selecting the top-$k$ peers
+\emph{by attention score} requires computing all $N$ scores, only the value
+aggregation is sparsifiable, and the achievable reduction in attention FLOPs is
+bounded above by $2\times$ for any $k$ and any $N$ --- not the $1-k/(N-1)$ that
+is usually reported. Structural sparsity, whose pattern is fixed before any
+score is computed, escapes this bound; data-dependent top-$k$ cannot.
+
+Second, we measure what actually executes. We find that a widely reproduced
+implementation pattern applies top-$k$ as a \emph{mask} on the dense attention
+matrix and then runs the same dense aggregation matmul, so its executed
+multiply--accumulate count is identical to dense attention and the reported
+saving is never performed. We implement the genuinely sparse gather that the
+claim is about and benchmark all three variants --- dense, masked, gathered ---
+against a fused SDPA baseline. Across a sweep of head width, batch size, agent
+count and sparsity level, the gathered implementation is slower than dense in
+$46$ of $46$ cells, on GPU and CPU, in \texttt{fp32} and \texttt{bf16}, eager,
+compiled and CUDA-graph captured. A component decomposition and a roofline
+analysis explain why: top-$k$ selection alone costs $15.8\times$ the entire
+dense aggregation at $N{=}512$, the sparse contraction is itself slower than
+the dense one it replaces, and the sparse path moves $3.8\times$ the memory
+traffic for $0.6\times$ the arithmetic. Both paths are memory-bound, and
+removing arithmetic from a memory-bound kernel does not save time. We also find
+that a learned per-agent gate costs $\mathcal{O}(BN^3)$ activation memory
+(fitted exponent $3.04$), exhausting a $96$\,GiB device at $N{=}465$.
+
+Third, a pre-registered training study on a communication-critical task
+confirms that the channel carries information, while six pre-registered
+sparsification contrasts are under-powered nulls at five seeds and are reported
+as such. Finally, an audit of the papers this literature cites for its
+efficiency argument finds that $1$ of $6$ multi-agent communication papers
+reports any measured temporal quantity for its mechanism, against $5$ of $6$ in
+the efficient-attention and sparse mixture-of-experts work the argument is
+borrowed from. We release the benchmark harness, the corrected implementation,
+and five reproducible benchmarking pitfalls that produced spurious results
+during this study.
