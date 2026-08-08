@@ -80,46 +80,21 @@ swept head width $d \in \{32,64,128,256\}$ against batch $\in
 \emph{best} $k$ for the gather path --- the most favourable case sparsity can
 construct for itself.
 
-\begin{table}[t]
-\centering
-\small
-\caption{Best-$k$ gathered latency divided by unfused dense. Values $<1$ would
-indicate sparsity winning; none do. ``skip'' marks cells whose activation
-memory exceeded the budget (at $d{=}256$, $B{=}4096$, $N{=}512$ the gathered
-value tensor alone is $\approx$273\,GiB) and which are recorded as skipped
-rather than dropped.}
-\label{tab:surface}
-\begin{tabular}{rrrrrr}
-\toprule
-$d$ & batch & $N{=}12$ & $N{=}48$ & $N{=}192$ & $N{=}512$ \\
-\midrule
-32  & 32   & 1.22 & 1.20 & 1.19 & 2.29 \\
-32  & 256  & 1.21 & 1.21 & 1.83 & 2.43 \\
-32  & 4096 & 1.35 & 1.98 & 1.48 & 2.36 \\
-64  & 32   & 1.22 & 1.22 & 1.22 & 2.35 \\
-64  & 256  & 1.23 & 1.22 & 1.76 & 2.46 \\
-64  & 4096 & 1.50 & 1.85 & 1.47 & 2.36 \\
-128 & 32   & 1.21 & 1.22 & 1.24 & 1.87 \\
-128 & 256  & 1.23 & 1.27 & 1.52 & 2.12 \\
-128 & 4096 & 1.45 & 1.91 & 1.50 & skip \\
-256 & 32   & 1.23 & 1.20 & 1.16 & 1.47 \\
-256 & 256  & 1.19 & 1.31 & 1.37 & 1.71 \\
-256 & 4096 & 1.28 & 1.61 & 1.45 & skip \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.62\linewidth]{figures/fig_crossover.pdf}
-\caption{The crossover surface of Table~\ref{tab:surface}. Every cell is
-$>1$: there is no operating point in the surveyed region at which a
-genuinely sparse top-$k$ implementation is faster than dense attention. Blank
-cells exceeded the memory budget.}
+\includegraphics[width=0.86\linewidth]{figures/fig2_crossover.pdf}
+\caption{The crossover surface. For every $(d, B, N)$ the \emph{best} $k$ for
+the gather path is shown, i.e.\ the most favourable case sparsity can construct
+for itself. Every cell exceeds $1$, and the ratio stays within
+$1.16$--$2.46\times$ across an eightfold range of head width and a $128$-fold
+range of batch --- the flatness is the finding. Hatched cells exceeded the
+memory budget.}
 \label{fig:crossover}
 \end{figure}
 
-\textbf{Gathering beats unfused dense in $0$ of $46$ measured cells}, and the
+
+\textbf{Gathering beats unfused dense in $0$ of $46$ measured cells}
+(the underlying numbers are tabulated in Appendix~\ref{app:surface}), and the
 fused baseline in $1$ of $46$ (at $d{=}128$, $B{=}4096$, $N{=}12$, where the
 fused kernel's fixed overhead dominates at tiny $N$). The ratio stays within
 $1.16$--$2.46\times$ across an eightfold range of head width and a
@@ -135,6 +110,18 @@ two quantities: the \emph{saving} the sparse contraction buys
 ($\texttt{agg\_dense} - \texttt{agg\_sparse}$) and the \emph{overhead}
 selection costs
 ($\texttt{topk} + \texttt{gather} + \texttt{softmax}_k - \texttt{softmax}_N$).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig3_decomposition.pdf}
+\caption{\textbf{Left:} how the gathered path spends its time, as a share of
+its own total (absolute totals above each bar, in ms). Selection grows from
+$30\%$ to $67\%$ of the budget as $N$ rises. \textbf{Right:} the aggregation
+that sparsity was supposed to shrink. The sparse contraction is slower than the
+dense matmul it replaces at every $N$, reaching $3.4\times$ at $N{=}512$ while
+performing roughly four times fewer multiply--accumulates.}
+\label{fig:decomp}
+\end{figure}
 
 \begin{table}[t]
 \centering
@@ -158,7 +145,7 @@ $N$ & $k$ & \texttt{topk} & \texttt{gather} & \texttt{agg\_dense} & \texttt{agg\
 \end{tabular}
 \end{table}
 
-Two facts emerge, and both are stronger than the hypothesis they were meant to
+Figure~\ref{fig:decomp} and Table~\ref{tab:decomp} agree on two facts, and both are stronger than the hypothesis they were meant to
 test. First, \textbf{the aggregation saving is negative}: the sparse
 $(B\!\cdot\!N,1,k)\times(B\!\cdot\!N,k,d)$ contraction is $3.4\times$
 \emph{slower} than the dense $(B,N,N)\times(B,N,d)$ matmul it replaces at
@@ -180,6 +167,16 @@ $(B,N,K,1)$ gate probabilities with $K = N-1$, materialising $(B,N,N-1,N)$
 before reducing. Activation memory is therefore $\mathcal{O}(BN^3)$ against
 dense attention's $\mathcal{O}(BN^2)$ and the fused kernel's
 $\mathcal{O}(BNd)$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig5_memory.pdf}
+\caption{Peak activation memory against agent count, batch $256$, with the
+offset-corrected fitted exponent beside each arm. The learned gate grows
+cubically and is the first arm to exhaust the device; gathering saves no memory
+over masking, because the gathered value tensor replaces the zeros it avoids.}
+\label{fig:memory}
+\end{figure}
 
 We validate the derivation rather than asserting it. Fitting $\text{peak} \sim
 N^p$ over $N \ge 48$ with a constant offset removed gives $p = 3.04$ for the
