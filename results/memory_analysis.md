@@ -22,19 +22,7 @@ batch 256, msg_dim 16, fp32, NVIDIA RTX PRO 6000 Blackwell Server Edition
 | `dense_sdpa` | O(B N d) | 1.36 | 161.5 | 0.0495 | — |
 | `topk_masked` | O(B N^2) | 2.02 | 1673.9 | 0.1529 | — |
 | `topk_gather` | O(B N^2 + B N k d) | 1.98 | 1800.1 | 0.7066 | — |
-| `adaptive` | O(B N^3) | 3.04 | 56556.5 | 0.9752 | 512 |
-
-## 2. Measured — batch4096_fp32_cuda:0
-
-batch 4096, msg_dim 16, fp32, NVIDIA RTX PRO 6000 Blackwell Server Edition
-
-| Arm | Analytic order | Fitted N^p (offset-corrected) | Peak VRAM at largest N (MiB) | Predicted/measured | OOM at N |
-|---|---|---|---|---|---|
-| `dense` | O(B N^2) | 2.10 | 1649.3 | 0.3492 | — |
-| `dense_sdpa` | O(B N d) | 1.58 | 881.4 | 0.0545 | — |
-| `topk_masked` | O(B N^2) | 2.13 | 4428.5 | 0.1301 | — |
-| `topk_gather` | O(B N^2 + B N k d) | 2.10 | 4949.5 | 0.5722 | — |
-| `adaptive` | O(B N^3) | 2.68 | 15782.5 | 0.8668 | 192 |
+| `adaptive` | O(B N^3) | 3.10 | 7298.7 | 0.9421 | 384 |
 
 ## 3. Predicted OOM boundary — batch256_fp32_cuda:0
 
@@ -42,20 +30,8 @@ Smallest N at which the dominant activation tensor alone exceeds the budget.
 
 | Arm | Full 97 887 MiB card | Free on the shared host |
 |---|---|---|
-| `dense` | 10012 | 9924 |
+| `dense` | 10012 | 7385 |
 | `dense_sdpa` | >1e5 | >1e5 |
-| `topk_masked` | 10012 | 9924 |
-| `topk_gather` | 4479 | 4440 |
-| `adaptive` | 465 | 463 |
-
-## 3. Predicted OOM boundary — batch4096_fp32_cuda:0
-
-Smallest N at which the dominant activation tensor alone exceeds the budget.
-
-| Arm | Full 97 887 MiB card | Free on the shared host |
-|---|---|---|
-| `dense` | 2503 | 2481 |
-| `dense_sdpa` | >1e5 | >1e5 |
-| `topk_masked` | 2503 | 2481 |
-| `topk_gather` | 1121 | 1111 |
-| `adaptive` | 185 | 184 |
+| `topk_masked` | 10012 | 7385 |
+| `topk_gather` | 4479 | 3305 |
+| `adaptive` | 465 | 380 |

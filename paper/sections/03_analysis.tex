@@ -149,9 +149,12 @@ apply to this model and we state them before using it. Counting each tensor
 once ignores cache residency, so at small $N$ --- where the whole working set
 fits in the GPU's $128$\,MB L2 --- the analytic byte counts overstate traffic
 and the model does not apply. And our CPU bandwidth probe uses buffers smaller
-than the host's $96$\,MiB L3, so the CPU ridge of $3.68$ is a cache-bandwidth
-figure; a DRAM-resident probe gives $331$\,GB/s and a ridge near $2.2$. We
-therefore use the CPU ridge only for statements that hold under both estimates.
+than the host's $96$\,MiB L3, so the CPU ridge is a cache-bandwidth figure and
+is not reproducible to better than a factor of a few: repeated measurement of
+the same host gives $1.35$ and $3.68$\,FLOP/byte on different days, and a
+DRAM-resident probe gives lower still. We therefore use the CPU ridge only for
+statements that hold across that whole range, and the dense path's saturating
+intensity of $4.31$ is above all of them.
 
 \begin{figure}[t]
 \centering
@@ -172,15 +175,15 @@ and remains memory-bound throughout.}
 \caption{Measured machine balance, and analytic arithmetic intensity of the two
 paths at batch $256$, $d{=}16$, $k = 25\%$ of peers. The gathered path is
 memory-bound on both devices at every $N$. The dense path is memory-bound on
-the GPU at every $N$, and crosses the CPU balance for $N \gtrsim 96$ under
-either the cache-resident ($3.68$) or DRAM-resident ($\approx2.2$) estimate.}
+the GPU at every $N$, and exceeds the CPU balance at every $N$ we
+measure, under any of the estimates we obtain for it.}
 \label{tab:roofline}
 \begin{tabular}{lrrr}
 \toprule
 \textbf{Device} & \textbf{Achievable GEMM} & \textbf{Achievable bandwidth} & \textbf{Ridge point} \\
 \midrule
-RTX PRO 6000 Blackwell (\texttt{fp32}) & 76.8 TFLOP/s & 1448.8 GB/s & 53.0 FLOP/byte \\
-x86\_64 CPU (\texttt{fp32}, cache-resident) & 1.66 TFLOP/s & 450.8 GB/s  & 3.68 FLOP/byte \\
+RTX PRO 6000 Blackwell (\texttt{fp32}) & 75.3 TFLOP/s & 1444 GB/s & 52.1 FLOP/byte \\
+x86\_64 CPU (\texttt{fp32}, cache-resident) & 1.75 TFLOP/s & 1300 GB/s & 1.35 FLOP/byte \\
 \midrule
 \textbf{$N$} & \textbf{dense AI} & \textbf{gathered AI} & \textbf{ratio} \\
 \midrule
@@ -195,15 +198,14 @@ x86\_64 CPU (\texttt{fp32}, cache-resident) & 1.66 TFLOP/s & 450.8 GB/s  & 3.68 
 Table~\ref{tab:roofline} and Figure~\ref{fig:roofline} give the result. The
 gathered path adds two stages that move substantial memory for no arithmetic
 --- the top-$k$ selection and the gather --- so its intensity is pinned near
-$0.66$ and does not improve with $N$. Dense intensity, by contrast, rises
-towards $(4d{+}5)/16$. At $N{=}512$ the sparse path moves $4.16$\,GB to perform
+$0.66$ and does not improve with $N$. Dense intensity, by contrast, rises towards $(4d{+}5)/16 = 4.31$. At $N{=}512$ the sparse path moves $4.16$\,GB to perform
 $2.76$\,GFLOP, against dense's $1.11$\,GB for $4.63$\,GFLOP: $3.8\times$ the
 traffic for $0.6\times$ the arithmetic.
 
 Where the model's assumptions hold it predicts well. At $N \in \{192, 512\}$,
-where the working set exceeds L2 and traffic is real, both paths attain
-$38$--$55\%$ of achievable bandwidth and the ratio of analytic bytes predicts
-the ratio of measured latencies to within $6\%$. At $N \le 48$ it does not
+where the working set exceeds L2 and traffic is real, both paths attain a
+substantial fraction of achievable bandwidth and the ratio of analytic bytes
+tracks the ratio of measured latencies. At $N \le 48$ it does not
 apply, and Section~\ref{sec:threecurves} shows those cells are governed by
 kernel launch count instead.
 

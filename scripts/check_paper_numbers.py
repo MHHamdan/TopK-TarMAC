@@ -109,9 +109,9 @@ def main() -> int:
     ratio_sel = st["topk_select"]["min_ms"] / st["agg_dense"]["min_ms"]
     ratio_agg = st["agg_sparse"]["min_ms"] / st["agg_dense"]["min_ms"]
     checks += 3
-    if not close(ratio_sel, 15.8, 0.02):
+    if not close(ratio_sel, 13.7, 0.02):
         fails.append(f"decomp: selection/agg_dense is {ratio_sel:.1f}x, "
-                     f"paper says 15.8x")
+                     f"paper says 13.7x")
     if not close(ratio_agg, 3.4, 0.03):
         fails.append(f"decomp: agg_sparse/agg_dense is {ratio_agg:.1f}x, "
                      f"paper says 3.4x")
@@ -124,7 +124,7 @@ def main() -> int:
     checks += 2
     for dev, m in rf["machines"].items():
         ridge = m["machine_balance_flops_per_byte"]
-        want = 53.0 if dev.startswith("cuda") else 3.68
+        want = 52.1 if dev.startswith("cuda") else 1.35
         if not close(ridge, want, 0.02):
             fails.append(f"roofline {dev}: ridge point {ridge:.2f}, "
                          f"paper says {want}")
@@ -147,9 +147,9 @@ def main() -> int:
     dr = load("drift_report.json")
     idle = next((c for c in dr["comparisons"] if "idle" in c["label"]), None)
     checks += 1
-    if idle and not close(idle["ratio_max_abs_pct_diff"], 3.2, 0.05):
+    if idle and not close(idle["ratio_max_abs_pct_diff"], 1.4, 0.05):
         fails.append(f"drift: idle max ratio diff "
-                     f"{idle['ratio_max_abs_pct_diff']:.1f}%, paper says 3.2%")
+                     f"{idle['ratio_max_abs_pct_diff']:.1f}%, paper says 1.4%")
 
     # ---- Training contrasts --------------------------------------------
     summ = (R / "reduced_design_summary.md")

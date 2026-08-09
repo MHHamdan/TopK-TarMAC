@@ -20,34 +20,32 @@ medians across seven repeated timed blocks.}
 $N$ & arm & min (ms) & median (ms) & IQR (ms) & median/min & spread \\
 \midrule
 \multirow{5}{*}{6}
- & fused dense & 0.1174 & 0.1248 & 0.0095 & 1.06 & 9.3\% \\
- & unfused dense & 0.1241 & 0.1303 & 0.0075 & 1.05 & 7.0\% \\
- & \Mask     & 0.1735 & 0.1813 & 0.0112 & 1.05 & 7.5\% \\
- & \Gath   & 0.1457 & 0.1512 & 0.0061 & 1.04 & 2.2\% \\
- & gate        & 0.3513 & 0.3682 & 0.0297 & 1.05 & 11.0\% \\
+ & fused dense & 0.1199 & 0.1239 & 0.0021 & 1.03 & 0.9\% \\
+ & unfused dense & 0.1266 & 0.1307 & 0.0031 & 1.03 & 0.9\% \\
+ & \Mask     & 0.1751 & 0.1796 & 0.0044 & 1.03 & 0.7\% \\
+ & \Gath   & 0.1460 & 0.1498 & 0.0029 & 1.03 & 0.4\% \\
+ & gate        & 0.3937 & 0.4036 & 0.0095 & 1.03 & 0.8\% \\
 \midrule
 \multirow{5}{*}{12}
- & fused dense & 0.1172 & 0.1213 & 0.0021 & 1.03 & 0.9\% \\
- & unfused dense & 0.1247 & 0.1284 & 0.0029 & 1.03 & 0.9\% \\
- & \Mask     & 0.1791 & 0.1837 & 0.0041 & 1.03 & 0.6\% \\
- & \Gath   & 0.1507 & 0.1553 & 0.0030 & 1.03 & 0.4\% \\
- & gate        & 0.3613 & 0.3697 & 0.0101 & 1.02 & 1.1\% \\
+ & fused dense & 0.1213 & 0.1241 & 0.0019 & 1.02 & 0.2\% \\
+ & unfused dense & 0.1271 & 0.1316 & 0.0029 & 1.04 & 0.4\% \\
+ & \Mask     & 0.1751 & 0.1809 & 0.0041 & 1.03 & 0.3\% \\
+ & \Gath   & 0.1476 & 0.1514 & 0.0027 & 1.03 & 0.1\% \\
+ & gate        & 0.4066 & 0.4157 & 0.0097 & 1.02 & 0.7\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Across the full \texttt{fp32}, batch-$256$ sweep the median-to-minimum ratio
-runs from $1.00\times$ to $1.23\times$. The $1.23\times$ is a single outlier:
-unfused dense at $N{=}96$, whose inter-run spread of $21.6\%$ is the largest in
-the campaign. Because that cell is the denominator of the $N{=}96$ headline
-ratio, we state its sensitivity explicitly. Recomputing every headline ratio
-from medians rather than minima gives $1.16$, $1.21$, $1.22$, $1.21$, $1.51$,
-$3.56$, $2.72$, $3.54$ for $N = 6 \ldots 512$, against $1.17$, $1.21$, $1.22$,
-$1.23$, $1.81$, $3.75$, $2.74$, $3.53$ from minima: the $N{=}96$ cell moves by
-$16\%$ and every other $N$ by less than $5.1\%$, and all eight remain above
-$1$. No conclusion in the paper depends on the choice of statistic; the
-$N{=}96$ magnitude does. The complete table for all $N$ and all arms, with the
-raw per-run medians, is in the released artifacts.
+runs from $1.00\times$ to $1.06\times$, the largest being unfused dense at
+$N{=}192$, whose inter-run spread of $5.1\%$ is the widest in the campaign. No
+headline number therefore rests on an outlying fast sample. Recomputing every
+headline ratio from medians rather than minima gives $1.15$, $1.15$, $1.16$,
+$1.14$, $1.59$, $2.79$, $2.45$, $3.28$ for $N = 6 \ldots 512$, against $1.15$,
+$1.16$, $1.17$, $1.15$, $1.61$, $2.90$, $2.46$, $3.28$ from minima: every cell
+moves by less than $3.6\%$ and all eight remain above $1$. No conclusion in the
+paper depends on the choice of statistic. The complete table for all $N$ and
+all arms, with the raw per-run medians, is in the released artifacts.
 
 \subsection{Crossover surface, tabulated}
 \label{app:surface}
@@ -60,7 +58,7 @@ Table~\ref{tab:surface} gives the numbers behind Figure~\ref{fig:crossover}.
 \caption{Best-$k$ gathered latency divided by \emph{unfused} dense, GPU,
 \texttt{fp32}, eager. Values $<1$ would indicate the gathered path winning;
 none do. Against the fused baseline one cell falls below $1$ ($d{=}128$,
-$B{=}4096$, $N{=}12$, ratio $0.859$). ``skip'' marks cells whose activation
+$B{=}4096$, $N{=}12$, ratio $0.86$). ``skip'' marks cells whose activation
 memory exceeded the budget (at $d{=}256$, $B{=}4096$, $N{=}512$ the gathered
 value tensor alone is $\approx$273\,GiB) and which are recorded as skipped
 rather than dropped.}
@@ -69,25 +67,25 @@ rather than dropped.}
 \toprule
 $d$ & batch & $N{=}12$ & $N{=}48$ & $N{=}192$ & $N{=}512$ \\
 \midrule
-32  & 32   & 1.22 & 1.20 & 1.19 & 2.29 \\
-32  & 256  & 1.21 & 1.21 & 1.83 & 2.43 \\
-32  & 4096 & 1.35 & 1.98 & 1.48 & 2.36 \\
-64  & 32   & 1.22 & 1.22 & 1.22 & 2.35 \\
-64  & 256  & 1.23 & 1.22 & 1.76 & 2.46 \\
-64  & 4096 & 1.50 & 1.85 & 1.47 & 2.36 \\
-128 & 32   & 1.21 & 1.22 & 1.24 & 1.87 \\
-128 & 256  & 1.23 & 1.27 & 1.52 & 2.12 \\
-128 & 4096 & 1.45 & 1.91 & 1.50 & skip \\
-256 & 32   & 1.23 & 1.20 & 1.16 & 1.47 \\
-256 & 256  & 1.19 & 1.31 & 1.37 & 1.71 \\
-256 & 4096 & 1.28 & 1.61 & 1.45 & skip \\
+32  & 32   & 1.17 & 1.18 & 1.18 & 2.19 \\
+32  & 256  & 1.18 & 1.19 & 1.83 & 2.40 \\
+32  & 4096 & 1.35 & 1.97 & 1.48 & 2.33 \\
+64  & 32   & 1.17 & 1.19 & 1.22 & 2.29 \\
+64  & 256  & 1.19 & 1.23 & 1.75 & 2.44 \\
+64  & 4096 & 1.49 & 1.84 & 1.47 & 2.34 \\
+128 & 32   & 1.17 & 1.19 & 1.23 & 1.81 \\
+128 & 256  & 1.19 & 1.24 & 1.51 & 2.10 \\
+128 & 4096 & 1.45 & 1.91 & 1.49 & skip \\
+256 & 32   & 1.18 & 1.18 & 1.18 & 1.44 \\
+256 & 256  & 1.17 & 1.25 & 1.37 & 1.70 \\
+256 & 4096 & 1.26 & 1.57 & 1.45 & skip \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Reading down the $d$ axis at $N{=}512$ shows the trend discussed in
-Section~\ref{sec:surface}: $2.29 \to 2.35 \to 1.87 \to 1.47$ at $B{=}32$ and
-$2.43 \to 2.46 \to 2.12 \to 1.71$ at $B{=}256$. The two cells that would
+Section~\ref{sec:surface}: $2.19 \to 2.29 \to 1.81 \to 1.44$ at $B{=}32$ and
+$2.40 \to 2.44 \to 2.10 \to 1.70$ at $B{=}256$. The two cells that would
 continue the trend at $B{=}4096$ are the ones that exceeded memory.
 
 \subsection{Verification of the corrected implementation}
@@ -118,9 +116,9 @@ asserted:
     verified $<2$, and the structural variant of
     Proposition~\ref{prop:escape} is verified to track $N/k$.
   \item \textbf{Selection order is irrelevant.} \texttt{topk} with
-    \texttt{sorted=False} agrees with the sorted call to
-    $5.4\times10^{-7}$ in \texttt{fp32} at every $(N,k)$ tested, confirming that
-    the softmax and gather are permuted consistently.
+    \texttt{sorted=False}, which the gathered path uses, agrees with the
+    sorted call to $5.4\times10^{-7}$ in \texttt{fp32} at every $(N,k)$ tested,
+    confirming that the softmax and gather are permuted consistently.
 \end{itemize}
 
 \subsection{The partially observable environment}
@@ -170,7 +168,9 @@ bootstrap/permutation tension discussed in Section~\ref{sec:training}.
 Two provenance caveats. The aggregate provenance record covers the earlier
 microbenchmark phases of this project, which ran on different hardware that is
 no longer available; run-level provenance for the training arms is in the
-per-run configuration files rather than in that record. And the CPU numbers in
-Section~\ref{sec:cpu} were taken with the glibc heap pinned, which the archived
-campaign did not do; the archived CPU series is superseded for that reason and
-is retained in the artifacts with a note.
+per-run configuration files rather than in that record. The CPU numbers in Section~\ref{sec:cpu} were taken with the glibc heap
+pinned; an earlier campaign that did not do so is superseded and retained in the
+artifacts with a note. The activation-memory measurement is reported from a run
+with the whole card free, since a shared-host repeat exhausts memory one $N$
+earlier for the gate; the fitted exponents for the other four arms are identical
+between the two runs.

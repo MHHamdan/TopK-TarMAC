@@ -22,10 +22,10 @@ sparse multi-agent communication is a bad idea. The result is confined to
 centralised inference on a single device; in bandwidth-constrained distributed
 settings the objective is the number of messages transmitted, which our
 analysis does not address and our measurements do not touch. Nor have we shown
-that no implementation can cross over. Two of the slacks in ours are known and
-quantified --- an unnecessary sort in the selection call, and a selection kernel
-running at roughly $8\%$ of achievable bandwidth --- and removing both leaves
-the ordering intact but narrows the gap. What survives every correction we
+that no implementation can cross over. One slack in ours we removed --- an unnecessary sort in the selection call,
+worth $5$--$24\%$ --- and one remains and is quantified: the selection kernel
+still runs at roughly $9\%$ of achievable bandwidth, and closing that gap
+entirely narrows the margin without reversing it. What survives every correction we
 could make is the requirement to form and rank the full score matrix, which is
 the assumption the ceiling rests on.
 

@@ -493,8 +493,13 @@ def fig_roofline() -> None:
         ax.text(ridge * 1.12, ylo * 1.45, "compute-bound", fontsize=6.8,
                 color=MUTED, ha="left", va="bottom")
         rtxt = f"{ridge:.1f}" if ridge >= 10 else f"{ridge:.2f}"
-        ax.text(ridge, peak * 1.45, f"ridge {rtxt}", fontsize=6.6,
-                color=MUTED, ha="center", va="bottom",
+        # When the ridge sits in the left third of the window (the CPU panel,
+        # whose balance is ~1.4) a centred label collides with the legend, so
+        # push it to the right of the line instead.
+        left_third = ridge < (xlo * (xhi / xlo) ** 0.33)
+        ax.text(ridge * (1.18 if left_third else 1.0), peak * 1.45,
+                f"ridge {rtxt}", fontsize=6.6, color=MUTED,
+                ha="left" if left_third else "center", va="bottom",
                 bbox=dict(facecolor="white", edgecolor="none", pad=1.0),
                 zorder=6)
 
@@ -516,9 +521,13 @@ def fig_roofline() -> None:
                     shrinkA=1.0, shrinkB=2.5)
         # Above the roof, while the gathered label goes below it: the two sit
         # on opposite sides of the line and cannot be swapped by eye.
+        # On the CPU panel the ridge label occupies the space above-left of
+        # the first dense point, so that label goes below the roof instead.
+        f_off, f_ha, f_va = ((-15, 14), "right", "center") if gpu \
+            else ((0, -15), "center", "top")
         ax.annotate(f"$N$={ns[0]}", xy=(dx[0], min(peak, bw * dx[0])),
-                    xytext=(-15, 14), textcoords="offset points",
-                    fontsize=6.6, color=C_DENSE, ha="right", va="center",
+                    xytext=f_off, textcoords="offset points",
+                    fontsize=6.6, color=C_DENSE, ha=f_ha, va=f_va,
                     arrowprops=lead, zorder=6)
         ax.annotate(f"$N$={ns[-1]}", xy=(dx[-1], min(peak, bw * dx[-1])),
                     xytext=(10, 20), textcoords="offset points",
@@ -551,14 +560,17 @@ def fig_roofline() -> None:
             ax.spines[sp].set_visible(False)
         if not gpu:
             past = [(n, a) for n, a in zip(ns, dx) if a > ridge]
-            ax.text(xhi / 1.15, peak * 0.30,
+            ax.text(xhi / 1.05, peak * 0.55,
                     "dense AI " + ", ".join(f"{a:.2f}" for _, a in past)
                     + f"\nat $N$={', '.join(str(n) for n, _ in past)}"
                     + f"\nexceed the ridge {ridge:.2f}",
                     fontsize=6.2, color=C_DENSE, ha="right", va="top",
                     linespacing=1.35, zorder=6)
-        ax.legend(frameon=False, fontsize=7.2, borderpad=0.2, handlelength=1.6,
-                  loc="upper left")
+        # Both panels plot the same two series, so one legend serves both; on
+        # the CPU panel it would sit under the ridge label.
+        if gpu:
+            ax.legend(frameon=False, fontsize=7.2, borderpad=0.2,
+                      handlelength=1.6, loc="upper left")
 
     fig.tight_layout(w_pad=2.4, rect=(0, 0.055, 1, 1))
     fig.text(0.005, 0.005,

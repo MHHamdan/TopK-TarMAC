@@ -23,13 +23,15 @@ Third, what it costs. Across a head-width $\times$ batch $\times$ $N$ $\times$
 $k$ sweep on one GPU architecture, the gathered path is slower than unfused
 dense in all $46$ cells and slower than the fused kernel in $45$; the ordering
 also holds on a CPU whose machine balance differs by more than an order of
-magnitude. A component decomposition and a roofline analysis with measured
+magnitude, where it is $2.0$--$3.1\times$ slower than unfused dense. A component decomposition and a roofline analysis with measured
 machine balance explain why: selection and gather move memory for no
 arithmetic, the sparse contraction is slower than the dense matmul it replaces,
 and at $N{=}512$ the sparse path moves $3.8\times$ the traffic for $0.6\times$
 the arithmetic. Removing arithmetic from a memory-bound kernel does not save
-time. We report two respects in which our own sparse path is slower than it
-need be, and show the ordering survives both.
+time. We tune the sparse path where it is cheap to do so, and report what remains
+on the table: its selection kernel still runs at under a tenth of the
+bandwidth the same device achieves elsewhere, and closing that gap entirely
+would not reverse the ordering.
 
 A pre-registered training study confirms the channel carries information, while
 six pre-registered sparsification contrasts are under-powered nulls at five
