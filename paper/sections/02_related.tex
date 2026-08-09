@@ -5,8 +5,12 @@ TarMAC \citep{das2019tarmac} introduces signature-based targeting so that
 receivers weight senders; IC3Net \citep{singh2018ic3net} gates whether an agent
 speaks at all; ATOC \citep{jiang2018atoc} forms bounded communication groups;
 DGN \citep{jiang2018dgn} restricts attention to a spatial neighbourhood; MAT
-\citep{wen2022mat} casts the joint policy as a sequence model. Several motivate
-restricted communication with a cost argument. DGN, for instance, observes that
+\citep{wen2022mat} casts the joint policy as a sequence model. The pattern
+persists in applied systems: MARL-IoTP \citep{hamdan2026marliotp} pairs
+heterogeneous MAPPO agents with an attention-based message aggregator for edge
+orchestration, and ablates that aggregator against mean pooling. Several of
+these works motivate restricted communication with a cost argument. DGN, for
+instance, observes that
 receiving a large amount of information ``requires high bandwidth and incurs
 high computational complexity'' \citep{jiang2018dgn} --- a claim about both
 transmitted bytes and local compute, of which only the second is what this
@@ -92,8 +96,8 @@ or achieved FLOP/s --- attributable to that mechanism. A statement such as
 \begin{table}[t]
 \centering
 \small
-\caption{Type of evidence offered for efficiency claims, in the twelve papers
-this work draws on ($n{=}6$ per group). ``Reports latency'' requires a measured
+\caption{Type of evidence offered for efficiency claims, in the twelve
+audited papers ($n{=}6$ per group). ``Reports latency'' requires a measured
 temporal quantity attributable to the mechanism. This is an audit of reporting
 practice in a small, deliberately selected set --- the papers we ourselves
 relied on --- not a sample of either literature, and a ``no'' means the

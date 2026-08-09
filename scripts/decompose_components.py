@@ -68,7 +68,7 @@ def build_stages(b: int, n: int, k: int, d: int, in_dim: int, device: str,
     scores = torch.matmul(q, kk.transpose(-1, -2)) / (d ** 0.5)
     scores = scores.masked_fill(eye, float("-inf"))
     weights = F.softmax(scores, dim=-1)
-    top_scores, top_idx = scores.topk(k, dim=-1)
+    top_scores, top_idx = scores.topk(k, dim=-1, sorted=False)
     idx_exp = top_idx.reshape(b, n * k, 1).expand(b, n * k, d)
     v_g = v.gather(1, idx_exp).view(b, n, k, d)
     w_k = F.softmax(top_scores, dim=-1)
@@ -84,7 +84,7 @@ def build_stages(b: int, n: int, k: int, d: int, in_dim: int, device: str,
         return F.softmax(scores, dim=-1)
 
     def topk_select() -> Any:
-        return scores.topk(k, dim=-1)
+        return scores.topk(k, dim=-1, sorted=False)
 
     def softmax_k() -> Any:
         return F.softmax(top_scores, dim=-1)

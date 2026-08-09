@@ -84,20 +84,30 @@ def main() -> int:
     p.add_argument("--repeats", nargs="+", default=[
         str(R / "microbenchmark_drift_cuda_0.json"),
         str(R / "microbenchmark_drift_cuda_1.json")])
+    p.add_argument("--labels", nargs="+", default=None,
+                   help="One label per repeat. Without this the label is "
+                        "inferred from whether the repeat device matches the "
+                        "base device, which cannot distinguish an idle repeat "
+                        "from a loaded one on the same card.")
     p.add_argument("--out", default=str(R / "drift_report.json"))
     p.add_argument("--md", default=str(R / "drift_report.md"))
     args = p.parse_args()
 
     base = json.loads(Path(args.base).read_text())
     comps = []
-    for rp in args.repeats:
+    if args.labels and len(args.labels) != len(args.repeats):
+        raise SystemExit("--labels must give one label per --repeats entry")
+    for i, rp in enumerate(args.repeats):
         if not Path(rp).exists():
             continue
         rep = json.loads(Path(rp).read_text())
-        same = rep["device"] == base["device"]
-        comps.append(compare(base, rep, "same device, ~21 h later, under "
-                             "concurrent training load" if same else
-                             "second device (same model), idle"))
+        if args.labels:
+            label = args.labels[i]
+        else:
+            same = rep["device"] == base["device"]
+            label = ("same device, ~21 h later, under concurrent training load"
+                     if same else "second device (same model), idle")
+        comps.append(compare(base, rep, label))
     if not comps:
         print("no drift repeats found")
         return 1
@@ -136,35 +146,43 @@ def main() -> int:
     all_ratios = [rc["repeat_ratio"] for c in comps for rc in c["ratio_cells"]]
     all_ratios += [rc["base_ratio"] for c in comps for rc in c["ratio_cells"]]
     worst = min(all_ratios) if all_ratios else float("nan")
-    idle = next((c for c in comps if "idle" in c["label"]), None)
     loaded = next((c for c in comps if "load" in c["label"]), None)
 
+    # Per-cell sign counts, so the directional statement below is counted
+    # rather than asserted. A ratio moving UP is adverse to the sparse path.
+    def signs(c: dict) -> tuple[int, int, int]:
+        up = sum(1 for rc in c["ratio_cells"] if rc["pct_diff"] > 0)
+        dn = sum(1 for rc in c["ratio_cells"] if rc["pct_diff"] < 0)
+        return up, dn, len(c["ratio_cells"])
+
     lines += ["", "## Reading", "",
-              f"**No condition produces a crossover.** The smallest "
-              f"gathered/dense ratio observed anywhere across all runs, "
-              f"devices and load conditions is **{worst:.2f}x** -- still "
-              f"above 1.0, i.e. gathering is slower in every cell of every "
-              f"repeat.", ""]
-    if idle:
-        lines += [f"On an **idle second device of the same model**, the "
-                  f"ratios reproduce to within "
-                  f"{idle['ratio_max_abs_pct_diff']:.1f}% at every N "
-                  f"(median {idle['ratio_median_abs_pct_diff']:.1f}%). The "
-                  f"measurement is therefore a property of the algorithm and "
-                  f"the architecture, not of one physical card or one run.",
-                  ""]
+              f"The smallest gathered/dense ratio in **these drift artifacts** "
+              f"({', '.join(c['label'] for c in comps)}) is "
+              f"**{worst:.2f}x**, still above 1.0. This is a statement about "
+              f"the runs compared here only: it is not a minimum over every "
+              f"run in the project, and in particular it does not cover other "
+              f"devices, precisions or execution modes, which are reported "
+              f"separately.", ""]
+    for c in comps:
+        up, dn, tot = signs(c)
+        lines += [f"On **{c['label']}**, ratios move by a median of "
+                  f"{c['ratio_median_abs_pct_diff']:.1f}% and at most "
+                  f"{c['ratio_max_abs_pct_diff']:.1f}% at any N; "
+                  f"{up} of {tot} cells move against the sparse path and "
+                  f"{dn} of {tot} in its favour.", ""]
     if loaded:
-        lines += [f"On the **same device under concurrent training load**, "
-                  f"agreement is much worse -- ratios move by up to "
-                  f"{loaded['ratio_max_abs_pct_diff']:.1f}%. Two things are "
-                  f"worth stating plainly about this. First, the drift is "
-                  f"concentrated at small and moderate N, where the kernels "
-                  f"are launch-bound and therefore most sensitive to "
-                  f"competition for the device; the largest cells (N=384, "
-                  f"512) move by about 1%. Second, **every drift is in the "
-                  f"direction that makes the sparse path look worse**, so "
-                  f"contention cannot be masking a crossover -- it can only "
-                  f"exaggerate a gap that is already there.", "",
+        up, dn, tot = signs(loaded)
+        lines += [f"Drift under load is concentrated at small and moderate N, "
+                  f"where kernels are launch-bound and therefore most "
+                  f"sensitive to competition for the device. The directional "
+                  f"result ({up} of {tot} cells adverse) comes from a single "
+                  f"contention pattern and should be read as a margin "
+                  f"argument, not an impossibility proof: no condition "
+                  f"measured here moves any cell within "
+                  f"{100.0 * (worst - 1.0):.0f}% of a crossover, but an "
+                  f"interferer that penalised the dense path more than the "
+                  f"launch-bound sparse one is not excluded by these data.",
+                  "",
                   "The operational consequence: latency numbers in this work "
                   "must be taken on an unloaded device. The interleaved, "
                   "minimum-over-samples protocol substantially reduces "

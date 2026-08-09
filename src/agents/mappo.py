@@ -191,7 +191,11 @@ class AttentionComm(nn.Module):
         scores = torch.matmul(q, k.transpose(-1, -2)) / (d ** 0.5)
         scores = scores.masked_fill(eye_mask, float("-inf"))
         k_eff = self._k_eff(N)
-        top_scores, top_idx = scores.topk(k_eff, dim=-1)   # (B, N, k)
+        # sorted=False: the k retained entries are permuted consistently by
+        # top_idx through the softmax and the gather, so their order does not
+        # affect the result. Sorting them is pure overhead on the stage that
+        # dominates this path.
+        top_scores, top_idx = scores.topk(k_eff, dim=-1, sorted=False)  # (B,N,k)
         w = F.softmax(top_scores, dim=-1)                  # (B, N, k)
 
         # Gather the selected value rows: (B, N, k, d). No zeros materialised.
@@ -227,7 +231,8 @@ class AttentionComm(nn.Module):
         # noise and take the k smallest, with self forced to the back.
         noise = torch.rand(B, N, N, device=q.device)
         noise = noise.masked_fill(eye_mask, float("inf"))
-        idx_sel = noise.topk(k_eff, dim=-1, largest=False).indices  # (B,N,k)
+        idx_sel = noise.topk(k_eff, dim=-1, largest=False,
+                             sorted=False).indices  # (B,N,k)
 
         sel_scores = scores.gather(-1, idx_sel)
         w = F.softmax(sel_scores, dim=-1)
@@ -313,7 +318,7 @@ class AttentionComm(nn.Module):
             attn = weights
         elif self.cfg.attn_mode == "topk":
             k_eff = min(max(self.cfg.topk, 1), N - 1)
-            topk_vals, topk_idx = weights.topk(k_eff, dim=-1)
+            topk_vals, topk_idx = weights.topk(k_eff, dim=-1, sorted=False)
             mask = torch.zeros_like(weights)
             mask.scatter_(-1, topk_idx, 1.0)
             attn = weights * mask
