@@ -9,22 +9,23 @@ $a_i = \mathrm{softmax}(s_i)$ for the attention weights. Dense attention
 computes $m_i = a_i V$.
 
 A top-$k$ variant keeps only the $k$ largest entries of $a_i$ and renormalises.
-Crucially, the \emph{same function} admits implementations with very different
-costs, and the literature does not consistently distinguish them.
+The same function admits implementations with very different costs, and the
+distinction between them is the one this paper turns on.
 
 \begin{description}
-  \item[\Mask.] Compute $a_i$ in full, multiply by a $\{0,1\}$ mask,
+  \item[Masked top-$k$.] Compute $a_i$ in full, multiply by a $\{0,1\}$ mask,
     renormalise, and evaluate $m_i = \tilde{a}_i V$ with $\tilde{a}_i$ still
     dense in memory. The discarded entries are materialised as zeros. Executed
-    multiply--accumulates are \emph{identical} to dense, plus the cost of
-    selection and masking.
-  \item[\Gath.] Take the top-$k$ of the raw scores, softmax over those $k$
-    values only, gather the corresponding value rows into a $(B,N,k,d)$ tensor,
-    and contract $(B\!\cdot\!N,1,k)\times(B\!\cdot\!N,k,d)$. No zeros are
-    materialised and the aggregation genuinely shrinks.
+    multiply--accumulates are identical to dense, plus the cost of selection
+    and masking.
+  \item[Gathered top-$k$.] Take the top-$k$ of the raw scores, softmax over
+    those $k$ values only, gather the corresponding value rows into a
+    $(B,N,k,d)$ tensor, and contract
+    $(B\!\cdot\!N,1,k)\times(B\!\cdot\!N,k,d)$. No zeros are materialised and
+    the aggregation genuinely shrinks.
   \item[Fused dense.] Compute the same function as dense through a fused kernel
     \citep{dao2022flashattention,rabe2021selfattention} that never
-    materialises the $(B,N,N)$ weight matrix at all.
+    materialises the $(B,N,N)$ weight matrix.
 \end{description}
 
 \begin{figure}[t]
@@ -35,20 +36,21 @@ full score matrix, because selecting peers by score requires every score. They
 differ in what happens next: the fused kernel never materialises the weights;
 the masked variant stores the discarded entries as zeros and multiplies them
 anyway, so its executed operation count equals dense; only the gathered variant
-compacts the kept rows and shrinks the product. \textbf{The efficiency claim in
-the literature is a claim about the third row.}}
+compacts the kept rows and shrinks the product. The efficiency argument
+examined in this paper is an argument about the third row.}
 \label{fig:schematic}
 \end{figure}
 
-\Gath{} and \Mask{} compute the same function. Two facts make this so:
-softmax is monotone within a row, so the top-$k$ weights are the top-$k$
-scores; and a softmax over just those $k$ scores equals the dense softmax
-restricted to them and renormalised. We verify agreement to $<10^{-10}$ in
-\texttt{float64} and pin it with a regression test. \textbf{The efficiency
-claim in the literature is a claim about \Gath{}}; benchmarking \Mask{}
-measures an implementation artifact, and benchmarking against unfused dense
-flatters the sparse method by ignoring what production kernels actually cost.
-We therefore report all three throughout.
+Figure~\ref{fig:schematic} sets the three side by side. Gathered and masked
+top-$k$ compute the same function: softmax is monotone within a row, so the
+top-$k$ weights are the top-$k$ scores, and a softmax over just those $k$
+scores equals the dense softmax restricted to them and renormalised. We verify
+agreement to $<10^{-10}$ in \texttt{float64} and pin it with a regression test
+(Appendix~\ref{app:verification}). The operation-count argument is about the
+gathered variant; timing the masked variant measures an implementation
+artifact, and timing either against unfused dense alone ignores what a
+production kernel costs. We therefore report all three throughout, each against
+both dense baselines.
 
 \subsection{A ceiling on what sparsity can save}
 \label{sec:bound}
@@ -79,24 +81,32 @@ since $Nkd > 0$. The ratio decreases monotonically in $k$ and tends to $2$ as
 $k/N \to 0$.
 \end{proof}
 
-The commonly reported figure $1 - k/(N-1)$ describes the aggregation term
-alone, which is at most half of attention; quoting it as \emph{the} saving
-overstates the achievable reduction by a factor approaching two, before any
-question of whether it is realised in time.
+We use $N^2d$ rather than $N(N{-}1)d$ because it is the count the
+implementations actually execute: self-masking is applied by writing $-\infty$
+into the diagonal of a full $N \times N$ score matrix, not by skipping work.
+Counting the masked-out diagonal exactly instead would give
+$2(N{-}1)/\bigl((N{-}1)+k\bigr)$, which is strictly smaller than $2N/(N+k)$ for
+every $1 \le k \le N-1$. Proposition~\ref{prop:ceiling} is therefore a valid
+upper bound under either convention, and a slightly loose one under the exact
+count. The figure $1 - k/(N-1)$, which describes the aggregation term alone,
+is at most half of attention; read as \emph{the} saving it overstates the
+achievable reduction by a factor approaching two, before any question of
+whether it is realised in time.
 
-The assumptions are worth separating, because only one of them is load-bearing.
-\textbf{(A1) Single round}: with $R$ rounds both terms scale by $R$ and the
-ratio is unchanged. \textbf{(A2) Data-dependent selection}: the kept set is a
-function of the scores, so all $N$ scores must be formed. \textbf{(A3) Per
-head}: with $H$ heads of width $d/H$ both terms scale identically.
-\textbf{(A4) Projections excluded}: including the shared $qkv$ and output
-projections moves the ratio strictly closer to $1$, so
-Proposition~\ref{prop:ceiling} remains a valid upper bound. \textbf{(A5)
-Selection cost excluded}: counting the top-$k$ operation itself can only
-decrease the ratio --- and Section~\ref{sec:decomp} shows this term dominates
-in practice.
+The assumptions are worth separating, because only one of them is
+load-bearing. \textbf{(A1) Single round}: with $R$ rounds both terms scale by
+$R$ and the ratio is unchanged. \textbf{(A2) Data-dependent selection}: the
+kept set is a function of the scores, so all $N$ scores must be formed.
+\textbf{(A3) Per head}: with $H$ heads of width $d/H$ both terms scale
+identically. \textbf{(A4) Projections excluded}: including the shared $qkv$ and
+output projections moves the ratio strictly closer to $1$, so the bound
+remains valid. \textbf{(A5) Selection cost excluded}: counting the top-$k$
+operation itself can only decrease the ratio, and Section~\ref{sec:decomp}
+shows this term is large in practice.
 
-Only A2 lifts the ceiling when it fails.
+A2 is the assumption that carries the result. It is a statement about a class
+of selection rules, not about sparsity in general, and when it fails the
+ceiling lifts.
 
 \begin{proposition}[Escape]
 \label{prop:escape}
@@ -110,37 +120,49 @@ $C_{\text{dense}}/C_{\mathrm{struct}} = N/k$, which is unbounded in $N/k$.
 Qualifying rules include a fixed communication topology, a spatial or distance
 prior, a locality-sensitive hash, and a learned \emph{static} graph. This is
 why Longformer and BigBird obtain asymptotic savings where data-dependent
-top-$k$ cannot, and it is the concrete design target for any successor method:
-\textbf{to beat $2\times$, a method must decide where to look before
-looking.} In an environment with spatial structure, a distance-calibrated
-selector is the obvious candidate, and we record it as the primary future
-direction.
+top-$k$ cannot \citep{beltagy2020longformer,zaheer2020bigbird}: their patterns
+are fixed before any score is formed. It is also the concrete design target for
+a successor method --- to exceed $2\times$, a method must decide where to look
+before looking. In an environment with spatial structure a distance-calibrated
+selector is the obvious candidate.
+
+Proposition~\ref{prop:escape} concerns operation counts only. It says that
+structural selection removes the assumption responsible for the ceiling; it
+does not say that any particular structural method attains a proportional
+speedup, which is a separate question and one the rest of this paper suggests
+should be asked separately.
 
 \subsection{Why the ceiling is not the binding constraint}
 \label{sec:roofline}
 
 Proposition~\ref{prop:ceiling} bounds a quantity that, in this regime, does not
-govern runtime. Attention here is memory-bound, and for memory-bound kernels
-time tracks bytes moved, not arithmetic performed
-\citep{williams2009roofline}.
+govern runtime. For memory-bound kernels time tracks bytes moved rather than
+arithmetic performed \citep{williams2009roofline}, and the two paths differ far
+more in bytes than in FLOPs.
 
 We compute arithmetic intensity $\mathrm{AI} = \text{FLOPs} / \text{bytes}$
 analytically per stage, counting each tensor read and written once, and compare
 it against a \emph{measured} machine balance: a large GEMM gives achievable
 FLOP/s, a large device-to-device copy gives achievable bandwidth, and their
-ratio is the ridge point above which a kernel is compute-bound. Measuring
-rather than quoting datasheet peaks keeps the comparison honest about the
-specific device and dtype.
+ratio is the ridge point above which a kernel is compute-bound. Two caveats
+apply to this model and we state them before using it. Counting each tensor
+once ignores cache residency, so at small $N$ --- where the whole working set
+fits in the GPU's $128$\,MB L2 --- the analytic byte counts overstate traffic
+and the model does not apply. And our CPU bandwidth probe uses buffers smaller
+than the host's $96$\,MiB L3, so the CPU ridge of $3.68$ is a cache-bandwidth
+figure; a DRAM-resident probe gives $331$\,GB/s and a ridge near $2.2$. We
+therefore use the CPU ridge only for statements that hold under both estimates.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig4_roofline.pdf}
-\caption{Roofline with \emph{measured} machine balance. On the GPU both paths
-sit far below the ridge, so both are memory-bound and removing arithmetic
-cannot buy time. On the CPU --- whose balance is an order of magnitude lower
---- the dense path reaches the ridge while the gathered path, pinned at
-intensity $0.66$ for every $N$, does not. That asymmetry is why the gap is
-\emph{wider} on CPU, not narrower.}
+\caption{Roofline with measured machine balance. Marker heights are the roof
+evaluated at each path's analytic intensity, not achieved throughput. On the
+GPU (ridge $53.0$) both paths lie deep in the memory-bound region at every $N$.
+On the CPU, whose balance is more than an order of magnitude lower, the dense
+path's intensity saturates at $(4d{+}5)/16 = 4.31$ and crosses the measured
+balance for $N \gtrsim 96$, while the gathered path stays pinned near $0.66$
+and remains memory-bound throughout.}
 \label{fig:roofline}
 \end{figure}
 
@@ -148,16 +170,17 @@ intensity $0.66$ for every $N$, does not. That asymmetry is why the gap is
 \centering
 \small
 \caption{Measured machine balance, and analytic arithmetic intensity of the two
-paths at batch $256$, $d{=}16$, $k = 25\%$ of peers. Both paths sit far below
-both ridge points, i.e.\ both are memory-bound; the sparse path is
-\emph{further} below.}
+paths at batch $256$, $d{=}16$, $k = 25\%$ of peers. The gathered path is
+memory-bound on both devices at every $N$. The dense path is memory-bound on
+the GPU at every $N$, and crosses the CPU balance for $N \gtrsim 96$ under
+either the cache-resident ($3.68$) or DRAM-resident ($\approx2.2$) estimate.}
 \label{tab:roofline}
 \begin{tabular}{lrrr}
 \toprule
 \textbf{Device} & \textbf{Achievable GEMM} & \textbf{Achievable bandwidth} & \textbf{Ridge point} \\
 \midrule
 RTX PRO 6000 Blackwell (\texttt{fp32}) & 76.8 TFLOP/s & 1448.8 GB/s & 53.0 FLOP/byte \\
-x86\_64 CPU (\texttt{fp32})            & 1.66 TFLOP/s & 450.8 GB/s  & 3.68 FLOP/byte \\
+x86\_64 CPU (\texttt{fp32}, cache-resident) & 1.66 TFLOP/s & 450.8 GB/s  & 3.68 FLOP/byte \\
 \midrule
 \textbf{$N$} & \textbf{dense AI} & \textbf{gathered AI} & \textbf{ratio} \\
 \midrule
@@ -169,16 +192,26 @@ x86\_64 CPU (\texttt{fp32})            & 1.66 TFLOP/s & 450.8 GB/s  & 3.68 FLOP/
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:roofline} and Figure~\ref{fig:roofline} give the result. The gathered path adds two stages
-that move substantial memory for \emph{zero} arithmetic --- the top-$k$
-selection and the gather --- so its intensity is pinned near $0.66$ and does
-not improve with $N$. At $N{=}512$ the sparse path moves $4.16$\,GB to perform
+Table~\ref{tab:roofline} and Figure~\ref{fig:roofline} give the result. The
+gathered path adds two stages that move substantial memory for no arithmetic
+--- the top-$k$ selection and the gather --- so its intensity is pinned near
+$0.66$ and does not improve with $N$. Dense intensity, by contrast, rises
+towards $(4d{+}5)/16$. At $N{=}512$ the sparse path moves $4.16$\,GB to perform
 $2.76$\,GFLOP, against dense's $1.11$\,GB for $4.63$\,GFLOP: $3.8\times$ the
-traffic for $0.6\times$ the arithmetic. Removing multiply--accumulates from a
-memory-bound kernel does not make it faster, and adding traffic to one makes it
-slower.
+traffic for $0.6\times$ the arithmetic.
 
-This also predicts that the result should be architecture-independent, since it
-follows from the ratio of the two paths' intensities rather than from any
-device constant. Section~\ref{sec:measurement} confirms it on a CPU whose
-machine balance differs from the GPU's by more than an order of magnitude.
+Where the model's assumptions hold it predicts well. At $N \in \{192, 512\}$,
+where the working set exceeds L2 and traffic is real, both paths attain
+$38$--$55\%$ of achievable bandwidth and the ratio of analytic bytes predicts
+the ratio of measured latencies to within $6\%$. At $N \le 48$ it does not
+apply, and Section~\ref{sec:threecurves} shows those cells are governed by
+kernel launch count instead.
+
+The quantity this analysis bounds is a ratio of intensities --- roughly $0.16$
+at large $N$ --- which is a property of the two algorithms rather than of any
+device constant, so the qualitative disadvantage should be expected to persist
+wherever the gathered path stays below the relevant machine balance. That is
+not by itself evidence that it does: an argument constructed to be
+device-independent cannot demonstrate device-independence.
+Section~\ref{sec:cpu} supplies measurements on a second architecture, and
+Section~\ref{sec:limitations} states what they establish.

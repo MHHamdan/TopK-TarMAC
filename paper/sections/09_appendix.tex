@@ -2,17 +2,18 @@
 \label{app:dispersion}
 
 Table~\ref{tab:headline} reports $\min$ over interleaved samples, on the
-grounds that contention can only add time. That statistic is only trustworthy
+grounds that contention can only add time. That statistic is trustworthy only
 if the underlying sample was not wildly dispersed, so we report the median, the
-interquartile range and the spread of per-run medians for the same cells. A
-median close to the minimum indicates a quiet measurement; a large gap
-indicates the minimum is doing real work.
+interquartile range and the spread of per-run medians for the same cells, and
+then state in Table~\ref{tab:dispersion} how much the headline ratios depend on
+the choice.
 
 \begin{table}[h]
 \centering
 \small
-\caption{Forward-pass dispersion, \texttt{fp32}, batch $256$, idle device.
-Spread is the range of per-run medians across seven repeated timed blocks.}
+\caption{Forward-pass dispersion, \texttt{fp32}, batch $256$, $d{=}16$, idle
+device, for the two smallest $N$ in the sweep. Spread is the range of per-run
+medians across seven repeated timed blocks.}
 \label{tab:dispersion}
 \begin{tabular}{rlrrrrr}
 \toprule
@@ -20,36 +21,46 @@ $N$ & arm & min (ms) & median (ms) & IQR (ms) & median/min & spread \\
 \midrule
 \multirow{5}{*}{6}
  & fused dense & 0.1174 & 0.1248 & 0.0095 & 1.06 & 9.3\% \\
- & dense       & 0.1241 & 0.1303 & 0.0075 & 1.05 & 7.0\% \\
+ & unfused dense & 0.1241 & 0.1303 & 0.0075 & 1.05 & 7.0\% \\
  & \Mask     & 0.1735 & 0.1813 & 0.0112 & 1.05 & 7.5\% \\
  & \Gath   & 0.1457 & 0.1512 & 0.0061 & 1.04 & 2.2\% \\
  & gate        & 0.3513 & 0.3682 & 0.0297 & 1.05 & 11.0\% \\
 \midrule
 \multirow{5}{*}{12}
  & fused dense & 0.1172 & 0.1213 & 0.0021 & 1.03 & 0.9\% \\
- & dense       & 0.1247 & 0.1284 & 0.0029 & 1.03 & 0.9\% \\
- & \Mask     & 0.1791 & 0.1837 & 0.0032 & 1.03 & 0.6\% \\
+ & unfused dense & 0.1247 & 0.1284 & 0.0029 & 1.03 & 0.9\% \\
+ & \Mask     & 0.1791 & 0.1837 & 0.0041 & 1.03 & 0.6\% \\
  & \Gath   & 0.1507 & 0.1553 & 0.0030 & 1.03 & 0.4\% \\
- & gate        & 0.3613 & 0.3697 & 0.0075 & 1.02 & 1.1\% \\
+ & gate        & 0.3613 & 0.3697 & 0.0101 & 1.02 & 1.1\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Across the full sweep the median-to-minimum ratio stays within
-$1.02$--$1.06\times$, so no headline number depends on an outlying fast sample.
-The complete table for all $N$ and all arms, together with the raw per-run
-medians, is included in the released artifacts.
+Across the full \texttt{fp32}, batch-$256$ sweep the median-to-minimum ratio
+runs from $1.00\times$ to $1.23\times$. The $1.23\times$ is a single outlier:
+unfused dense at $N{=}96$, whose inter-run spread of $21.6\%$ is the largest in
+the campaign. Because that cell is the denominator of the $N{=}96$ headline
+ratio, we state its sensitivity explicitly. Recomputing every headline ratio
+from medians rather than minima gives $1.16$, $1.21$, $1.22$, $1.21$, $1.51$,
+$3.56$, $2.72$, $3.54$ for $N = 6 \ldots 512$, against $1.17$, $1.21$, $1.22$,
+$1.23$, $1.81$, $3.75$, $2.74$, $3.53$ from minima: the $N{=}96$ cell moves by
+$16\%$ and every other $N$ by less than $5.1\%$, and all eight remain above
+$1$. No conclusion in the paper depends on the choice of statistic; the
+$N{=}96$ magnitude does. The complete table for all $N$ and all arms, with the
+raw per-run medians, is in the released artifacts.
 
 \subsection{Crossover surface, tabulated}
 \label{app:surface}
 
-The numbers behind Figure~\ref{fig:crossover}.
+Table~\ref{tab:surface} gives the numbers behind Figure~\ref{fig:crossover}.
 
 \begin{table}[t]
 \centering
 \small
-\caption{Best-$k$ gathered latency divided by unfused dense. Values $<1$ would
-indicate sparsity winning; none do. ``skip'' marks cells whose activation
+\caption{Best-$k$ gathered latency divided by \emph{unfused} dense, GPU,
+\texttt{fp32}, eager. Values $<1$ would indicate the gathered path winning;
+none do. Against the fused baseline one cell falls below $1$ ($d{=}128$,
+$B{=}4096$, $N{=}12$, ratio $0.859$). ``skip'' marks cells whose activation
 memory exceeded the budget (at $d{=}256$, $B{=}4096$, $N{=}512$ the gathered
 value tensor alone is $\approx$273\,GiB) and which are recorded as skipped
 rather than dropped.}
@@ -74,21 +85,26 @@ $d$ & batch & $N{=}12$ & $N{=}48$ & $N{=}192$ & $N{=}512$ \\
 \end{tabular}
 \end{table}
 
+Reading down the $d$ axis at $N{=}512$ shows the trend discussed in
+Section~\ref{sec:surface}: $2.29 \to 2.35 \to 1.87 \to 1.47$ at $B{=}32$ and
+$2.43 \to 2.46 \to 2.12 \to 1.71$ at $B{=}256$. The two cells that would
+continue the trend at $B{=}4096$ are the ones that exceeded memory.
+
 \subsection{Verification of the corrected implementation}
 \label{app:verification}
 
-The claim that \Gath{} and \Mask{} compute the same function while
-executing different work is load-bearing, so it is pinned by regression tests
-rather than asserted:
+The claim that \Gath{} and \Mask{} compute the same function while executing
+different work is load-bearing, so it is pinned by regression tests rather than
+asserted:
 
 \begin{itemize}
   \item \textbf{Functional equivalence.} Maximum absolute deviation between the
     two paths is $<10^{-10}$ in \texttt{float64} for
     $N \in \{6,12,24\}$ and $k \in \{1,2,3,N-1\}$.
   \item \textbf{Distinct executed work.} With
-    $N{=}48, k{=}4, B{=}8, d{=}16$, a FLOP counter reports $2{,}555{,}904$ for
-    dense and \Mask{} (identical), against $2{,}015{,}232$ for \Gath{}.
-    The difference is exactly the aggregation term,
+    $N{=}48, k{=}4, B{=}8, d{=}16$ and input width $32$, a FLOP counter reports
+    $2{,}555{,}904$ for dense and \Mask{} (identical), against $2{,}015{,}232$
+    for \Gath{}. The difference, $540{,}672$, is exactly the aggregation term
     $2BNd(N-k)$.
   \item \textbf{No dense aggregation in the sparse path.} Tracing every
     \texttt{torch.matmul} confirms \Gath{} issues no
@@ -101,15 +117,60 @@ rather than asserted:
     $N \in \{6,\dots,512\}$ the ratio $C_\text{dense}/C_{\text{top-}k}$ is
     verified $<2$, and the structural variant of
     Proposition~\ref{prop:escape} is verified to track $N/k$.
+  \item \textbf{Selection order is irrelevant.} \texttt{topk} with
+    \texttt{sorted=False} agrees with the sorted call to
+    $5.4\times10^{-7}$ in \texttt{fp32} at every $(N,k)$ tested, confirming that
+    the softmax and gather are permuted consistently.
 \end{itemize}
 
-\subsection{Reproduction}
+\subsection{The partially observable environment}
+\label{app:env}
+
+The variant used in Section~\ref{sec:training} modifies \texttt{simple\_spread}
+in one respect: for each agent $i$ and peer $j$, the relative-position entry
+$\text{peer\_rel}[i,j]$ is zeroed when
+$\lVert \text{peer\_rel}[i,j] \rVert_2 > R$. Reward, action space, landmark
+observations, episode length and observation dimension are unchanged, and
+$R{=}1.0$ throughout.
+
+Two properties of the variant should be stated because they bound what it can
+support. First, the mask is a zeroing rather than an explicit visibility flag,
+so a peer at relative position exactly $(0,0)$ is not distinguishable from an
+absent one; measured under a uniform random policy, $0.06\%$ of visible peers
+at $N{=}6$ and $0.15\%$ at $N{=}12$ lie within $0.05$ of the observer, which
+bounds how often the ambiguity can arise. Second, the visible \emph{fraction}
+falls with $N$ while the absolute number visible rises, because the world size
+is fixed; the two series are given in Section~\ref{sec:training}, and the
+consequence is a difficulty confound that rules out across-$N$ return
+comparisons in this environment.
+
+The communicating arms carry between $7.2\%$ ($N{=}12$) and $19.0\%$
+(\texttt{simple\_reference}) more trainable parameters than the
+communication-free MAPPO baseline, since the attention module adds parameters
+that the baseline has no analogue for. The positive controls therefore
+establish that the communicating architecture outperforms the baseline, not
+that the channel alone accounts for the difference. Within the pre-registered
+family the arms share an architecture and the comparison is tighter; C1 in
+particular holds $k$, executed FLOPs and every hyperparameter fixed.
+
+\subsection{Reproduction and provenance}
 \label{app:repro}
 
 The measurement campaign is training-free and completes in minutes. The
-released harness regenerates every table in this paper from the raw JSON
+released harness regenerates the tables in this paper from the raw JSON
 artifacts, and the training arms are driven by generated configuration files
-with the tier ordering enforced. The pre-registration document is committed
-with a timestamp preceding the unblinding of tiers 2--4, and its deviations log
-is empty apart from one recorded note concerning the bootstrap/permutation
-tension discussed in Section~\ref{sec:training}.
+with the tier ordering enforced by the runner.
+
+The pre-registration document has two commits: the plan itself, and a later
+append to its deviations log. The diff between them touches only the deviations
+section; the endpoint, contrasts, test, effect sizes, interval and correction
+are byte-identical to the pre-unblinding version. The log records one item, the
+bootstrap/permutation tension discussed in Section~\ref{sec:training}.
+
+Two provenance caveats. The aggregate provenance record covers the earlier
+microbenchmark phases of this project, which ran on different hardware that is
+no longer available; run-level provenance for the training arms is in the
+per-run configuration files rather than in that record. And the CPU numbers in
+Section~\ref{sec:cpu} were taken with the glibc heap pinned, which the archived
+campaign did not do; the archived CPU series is superseded for that reason and
+is retained in the artifacts with a note.

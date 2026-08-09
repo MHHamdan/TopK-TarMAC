@@ -32,7 +32,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Patch, Rectangle
 
 ROOT = Path(__file__).resolve().parent.parent
 R = ROOT / "results"
@@ -275,9 +275,13 @@ def fig_crossover() -> None:
         for j in range(grid.shape[1]):
             v = grid[i, j]
             if np.isnan(v):
+                # Hatch takes the edge colour, so a white edge would draw an
+                # invisible hatch; the white cell gaps come from the minor
+                # grid, which is painted over the patch.
                 ax.add_patch(Rectangle((j - .5, i - .5), 1, 1,
-                                       facecolor="#f4f4f4", edgecolor="white",
-                                       lw=1.2, hatch="///", zorder=2))
+                                       facecolor="#f6f6f6",
+                                       edgecolor="#bdbdbd",
+                                       lw=0.6, hatch="///", zorder=2))
                 ax.text(j, i, "n/a", ha="center", va="center", fontsize=6.6,
                         color=MUTED, zorder=3)
             else:
@@ -291,12 +295,29 @@ def fig_crossover() -> None:
     ax.tick_params(which="minor", length=0)
 
     cb = fig.colorbar(im, ax=ax, fraction=0.035, pad=0.02)
-    cb.set_label("gathered top-$k$ latency $\\div$ dense", fontsize=8)
+    # The denominator is named in full: the ratio is against *unfused* dense,
+    # not against the fused SDPA baseline, and the two are not interchangeable.
+    cb.set_label("latency ratio: best-$k$ gathered $\\div$ unfused dense",
+                 fontsize=7.6)
     cb.outline.set_visible(False)
     cb.ax.tick_params(length=2, labelsize=7.5)
 
-    ax.set_title("Sparsity never wins: every cell is $>1$",
-                 fontsize=9.5, fontweight="bold", pad=8, loc="left", x=-0.16)
+    # Neutral and self-describing: the title names the quantity plotted, and
+    # the claim about how the surface compares to any baseline is left to the
+    # caption, which can qualify it.
+    ax.set_title("Best-$k$ gathered latency $\\div$ unfused dense, by "
+                 "$(d, B, N)$",
+                 fontsize=9.2, fontweight="bold", pad=8, loc="left", x=-0.16)
+
+    budget = pay.get("mem_budget_mib")
+    note = "not measured" if budget is None else (
+        f"not measured — exceeds the {budget / 1024:.0f} GiB "
+        "activation budget")
+    ax.legend(handles=[Patch(facecolor="#f6f6f6", edgecolor="#bdbdbd", lw=0.6,
+                             hatch="///", label=note)],
+              loc="upper left", bbox_to_anchor=(-0.16, -0.115), frameon=False,
+              fontsize=7.0, handlelength=1.6, handletextpad=0.6,
+              borderpad=0.0)
     fig.savefig(FIG / "fig2_crossover.pdf")
     plt.close(fig)
     print("wrote fig2_crossover.pdf")
@@ -320,27 +341,54 @@ def fig_decomposition() -> None:
     ns = [r["n_agents"] for r in rows]
     x = np.arange(len(ns))
 
-    topk = np.array([r["stages"]["topk_select"]["min_ms"] for r in rows])
-    gath = np.array([r["stages"]["gather_v"]["min_ms"] for r in rows])
-    smk = np.array([r["stages"]["softmax_k"]["min_ms"] for r in rows])
-    aggs = np.array([r["stages"]["agg_sparse"]["min_ms"] for r in rows])
-    aggd = np.array([r["stages"]["agg_dense"]["min_ms"] for r in rows])
-    total = topk + gath + smk + aggs
+    def stage(name: str) -> np.ndarray:
+        return np.array([r["stages"][name]["min_ms"] for r in rows])
+
+    # The gathered forward pass is these SEVEN stages and no others. Leaving
+    # out qkv/scores/proj shrinks the denominator by ~20-50% and inflates every
+    # share; softmax_N and agg_dense belong to the *dense* path and must stay
+    # out of this total. min_ms throughout, matching the paper's protocol.
+    SPARSE_STAGES = ["topk_select", "gather_v", "softmax_k", "agg_sparse",
+                     "scores", "qkv", "proj"]
+    vals = {s: stage(s) for s in SPARSE_STAGES}
+    aggs = vals["agg_sparse"]
+    aggd = stage("agg_dense")
+    total = np.sum([vals[s] for s in SPARSE_STAGES], axis=0)
+
+    print("  fig3 left panel, gathered forward pass over all 7 stages "
+          "(min_ms):")
+    print("     N    total_ms   topk%   topk+gather+softmax_k%")
+    for i, n in enumerate(ns):
+        share_topk = 100 * vals["topk_select"][i] / total[i]
+        share_sel = 100 * (vals["topk_select"][i] + vals["gather_v"][i]
+                           + vals["softmax_k"][i]) / total[i]
+        print(f"   {n:>4}   {total[i]:8.3f}  {share_topk:6.1f}  "
+              f"{share_sel:16.1f}")
 
     fig, axes = plt.subplots(1, 2, figsize=(TEXTWIDTH, 2.95),
                              gridspec_kw={"width_ratios": [1.15, 1]})
 
     # --- left: share of the sparse path's time, by stage -----------------
     ax = axes[0]
-    parts = [(topk, "#123a63", "top-$k$ select"),
-             (gath, "#3b7bb5", "gather $v$"),
-             (smk, "#a8c8e4", "softmax over $k$"),
-             (aggs, C_GATH, "sparse aggregate")]
+    # Bottom four are the stages the top-k path adds or replaces; the top three
+    # (grey) are the stages it shares with dense attention. Grouping them by
+    # colour family keeps the headline -- selection's growing share -- readable
+    # against a stack that is now seven deep.
+    parts = [("topk_select", "#123a63", "top-$k$ select"),
+             ("gather_v", "#3b7bb5", "gather $v$"),
+             ("softmax_k", "#a8c8e4", "softmax over $k$"),
+             ("agg_sparse", C_GATH, "sparse aggregate"),
+             # A grey ramp that runs light->dark going up the stack: the
+             # segment next to the green must not share its luminance, or the
+             # two merge under greyscale printing.
+             ("scores", "#dcdcdc", "scores $QK^{\\top}$"),
+             ("qkv", "#a4a4a4", "$QKV$ projection"),
+             ("proj", "#5f5f5f", "output projection")]
     bottom = np.zeros(len(ns))
-    for vals, col, lab in parts:
-        share = 100 * vals / total
+    for key, col, lab in parts:
+        share = 100 * vals[key] / total
         ax.bar(x, share, 0.66, bottom=bottom, color=col, label=lab,
-               edgecolor="white", linewidth=1.1, zorder=3)
+               edgecolor="white", linewidth=0.7, zorder=3)
         bottom += share
 
     # Unit goes in the header, not on every label: repeating " ms" six times
@@ -350,21 +398,22 @@ def fig_decomposition() -> None:
                 fontsize=6.7, color=MUTED)
     # Sits between the value row (~1.02) and the title (pad 26pt); at 1.155
     # it collided with the title's descenders.
-    ax.text(0.5, 1.072, "total sparse-path latency (ms)", transform=ax.transAxes,
+    ax.text(0.5, 1.072, "total gathered forward pass (ms)",
+            transform=ax.transAxes,
             ha="center", va="bottom", fontsize=6.7, color=MUTED)
     ax.set_ylim(0, 100)
     ax.set_yticks([0, 25, 50, 75, 100], ["0", "25", "50", "75", "100%"])
     ax.set_xticks(x, [str(n) for n in ns])
     ax.set_xlim(-0.75, len(ns) - 0.25)
     ax.set_xlabel("agents $N$")
-    ax.set_ylabel("share of sparse-path time")
-    ax.set_title("Selection dominates the sparse path",
+    ax.set_ylabel("share of gathered forward pass")
+    ax.set_title("Selection grows to dominate the gathered path",
                  fontsize=8.8, fontweight="bold", loc="left", pad=26)
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(False)
-    ax.legend(frameon=False, fontsize=6.8, ncol=4, loc="upper center",
+    ax.legend(frameon=False, fontsize=6.6, ncol=4, loc="upper center",
               bbox_to_anchor=(0.52, -0.20), handlelength=1.1,
-              columnspacing=1.0, handletextpad=0.45)
+              columnspacing=1.0, handletextpad=0.45, labelspacing=0.5)
 
     # --- right: the aggregation sparsity was supposed to shrink ----------
     ax = axes[1]
@@ -410,74 +459,114 @@ def fig_roofline() -> None:
     would be wrong, and would also throw away the more interesting fact.
     """
     pay = load("roofline.json")
-    fig, axes = plt.subplots(1, 2, figsize=(TEXTWIDTH, 2.75))
+    fig, axes = plt.subplots(1, 2, figsize=(TEXTWIDTH, 2.9))
+
+    ns = [r["n_agents"] for r in pay["rows"]]
+    dx = np.array([r["dense"]["ai"] for r in pay["rows"]])
+    gx_all = np.array([r["gather"]["ai"] for r in pay["rows"]])
 
     for ax, (dev, m) in zip(axes, pay["machines"].items()):
         peak = m["achievable_gflops"] / 1e3          # TFLOP/s
         bw = m["achievable_gbytes_per_s"] / 1e3      # TB/s
         ridge = m["machine_balance_flops_per_byte"]
+        gpu = dev.startswith("cuda")
 
-        ai = np.logspace(-1.1, 3, 500)
+        # Panel-specific x window. The CPU ridge sits at 3.7, in among the
+        # dense intensities themselves, so a three-decade window would put the
+        # two rightmost dense points a pixel from the ridge line and the
+        # crossing -- the whole point of the panel -- would be invisible.
+        xlo, xhi = (0.40, 400.0) if gpu else (0.40, 40.0)
+        ai = np.logspace(np.log10(xlo), np.log10(xhi), 600)
         roof = np.minimum(peak, bw * ai)
-        ax.fill_between(ai, peak * 1e-4, roof, color="#f2f2f2", zorder=0)
+        # Tight enough that the data fills the axes: the floor is just under
+        # the roof's left end rather than four empty decades below it.
+        ylo, yhi = bw * xlo * 0.50, peak * 2.7
+
+        ax.fill_between(ai, ylo * 0.5, roof, color="#f2f2f2", zorder=0)
         ax.plot(ai, roof, color=INK, lw=1.5, zorder=4)
         ax.axvline(ridge, color=MUTED, lw=0.8, ls=(0, (3, 2)), zorder=2)
 
-        ax.text(ridge * 0.8, peak * 4.2e-4, "memory-bound", fontsize=6.8,
+        # Regime labels along the floor; the ridge value goes above the roof's
+        # flat top, so neither can reach the y tick labels.
+        ax.text(ridge / 1.12, ylo * 1.45, "memory-bound", fontsize=6.8,
                 color=MUTED, ha="right", va="bottom")
-        ax.text(ridge * 1.25, peak * 4.2e-4, "compute-bound", fontsize=6.8,
+        ax.text(ridge * 1.12, ylo * 1.45, "compute-bound", fontsize=6.8,
                 color=MUTED, ha="left", va="bottom")
-        ax.text(ridge * 0.88, peak * 1.6, f"ridge {ridge:.1f}", fontsize=6.6,
-                color=MUTED, ha="right", va="bottom")
+        rtxt = f"{ridge:.1f}" if ridge >= 10 else f"{ridge:.2f}"
+        ax.text(ridge, peak * 1.45, f"ridge {rtxt}", fontsize=6.6,
+                color=MUTED, ha="center", va="bottom",
+                bbox=dict(facecolor="white", edgecolor="none", pad=1.0),
+                zorder=6)
 
-        for key, col, mk, lab in (("dense", C_DENSE, "o", "dense"),
-                                  ("gathered", C_GATH, "s", "gathered")):
-            k = "gather" if key == "gathered" else key
-            xs = np.array([r[k]["ai"] for r in pay["rows"]])
+        # Colour is not the only channel: solid vs dashed keeps the two paths
+        # apart in greyscale, as the module docstring promises.
+        for key, col, mk, ls, lab in (
+                ("dense", C_DENSE, "o", "-", "dense"),
+                ("gather", C_GATH, "s", (0, (4, 2)), "gathered")):
+            xs = np.array([r[key]["ai"] for r in pay["rows"]])
             ys = np.minimum(peak, bw * xs)
-            ax.plot(xs, ys, marker=mk, ms=5, lw=1.6, color=col, ls="-",
+            ax.plot(xs, ys, marker=mk, ms=4.6, lw=1.5, color=col, ls=ls,
                     label=lab, markeredgecolor="white", markeredgewidth=0.8,
                     zorder=5)
 
-        # Label the endpoints only -- never a number on every point.
-        ns = [r["n_agents"] for r in pay["rows"]]
-        dx = np.array([r["dense"]["ai"] for r in pay["rows"]])
+        # Label the endpoints only, each on a leader line so it cannot be read
+        # as belonging to a neighbouring marker: the dense points at N=192 and
+        # N=512 sit within 5% of each other in intensity.
+        lead = dict(arrowstyle="-", lw=0.55, color=MUTED,
+                    shrinkA=1.0, shrinkB=2.5)
+        # Above the roof, while the gathered label goes below it: the two sit
+        # on opposite sides of the line and cannot be swapped by eye.
         ax.annotate(f"$N$={ns[0]}", xy=(dx[0], min(peak, bw * dx[0])),
-                    xytext=(10, -11), textcoords="offset points",
-                    fontsize=6.6, color=C_DENSE, ha="left")
+                    xytext=(-15, 14), textcoords="offset points",
+                    fontsize=6.6, color=C_DENSE, ha="right", va="center",
+                    arrowprops=lead, zorder=6)
         ax.annotate(f"$N$={ns[-1]}", xy=(dx[-1], min(peak, bw * dx[-1])),
-                    xytext=(7, 4), textcoords="offset points",
-                    fontsize=6.6, color=C_DENSE, ha="left")
-        gx = pay["rows"][-1]["gather"]["ai"]
-        # Centred below the marker: anchored right it ran off the left axis,
-        # since the gathered intensity sits close to the x-limit.
+                    xytext=(10, 20), textcoords="offset points",
+                    fontsize=6.6, color=C_DENSE, ha="left", va="center",
+                    arrowprops=lead, zorder=6)
+        gx = float(np.exp(np.log(gx_all).mean()))
         ax.annotate("all $N$", xy=(gx, min(peak, bw * gx)),
-                    xytext=(0, -14), textcoords="offset points",
-                    fontsize=6.6, color=C_GATH, ha="center")
+                    xytext=(0, -17), textcoords="offset points",
+                    fontsize=6.6, color=C_GATH, ha="center", va="top",
+                    arrowprops=lead, zorder=6)
 
         ax.set_xscale("log")
         ax.set_yscale("log")
-        ax.set_xlim(0.22, 2e3)
-        ax.set_ylim(peak * 2.2e-4, peak * 3.4)
+        ax.set_xlim(xlo, xhi)
+        ax.set_ylim(ylo, yhi)
         ax.set_xlabel("arithmetic intensity (FLOP/byte)")
-        ax.set_ylabel("attainable TFLOP/s")
-        if dev.startswith("cuda"):
+        # Marker height is the *roof* at each path's analytic intensity, not a
+        # measurement; the label has to say so, because a reader who assumes
+        # otherwise reads this figure as a throughput result.
+        ax.set_ylabel("attainable TFLOP/s at analytic intensity")
+        if gpu:
             title = "GPU: both paths far below the ridge"
         else:
-            title = "CPU: dense reaches it, gathered cannot"
+            title = "CPU: dense crosses the ridge, gathered cannot"
         ax.set_title(title, fontsize=8.6, fontweight="bold", loc="left",
                      pad=16)
         ax.grid(color=GRID, lw=0.5)
         ax.set_axisbelow(True)
         for sp in ("top", "right"):
             ax.spines[sp].set_visible(False)
-        # The empty corner differs by panel: on the GPU the roof rises far to
-        # the right so upper-left is clear; on the CPU the ridge sits at 3.7
-        # and the roof crosses that corner, leaving lower-right free.
-        ax.legend(frameon=False, fontsize=7.2, borderpad=0.2, handlelength=1.4,
-                  loc="upper left" if dev.startswith("cuda") else "lower right")
+        if not gpu:
+            past = [(n, a) for n, a in zip(ns, dx) if a > ridge]
+            ax.text(xhi / 1.15, peak * 0.30,
+                    "dense AI " + ", ".join(f"{a:.2f}" for _, a in past)
+                    + f"\nat $N$={', '.join(str(n) for n, _ in past)}"
+                    + f"\nexceed the ridge {ridge:.2f}",
+                    fontsize=6.2, color=C_DENSE, ha="right", va="top",
+                    linespacing=1.35, zorder=6)
+        ax.legend(frameon=False, fontsize=7.2, borderpad=0.2, handlelength=1.6,
+                  loc="upper left")
 
-    fig.tight_layout(w_pad=2.4)
+    fig.tight_layout(w_pad=2.4, rect=(0, 0.055, 1, 1))
+    fig.text(0.005, 0.005,
+             "Markers are the roof evaluated at each path's analytic "
+             "arithmetic intensity, $\\min(\\mathrm{peak},\\ "
+             "\\mathrm{BW}\\times\\mathrm{AI})$ — an upper bound, not "
+             "measured throughput.",
+             fontsize=6.4, color=MUTED, ha="left", va="bottom")
     fig.savefig(FIG / "fig4_roofline.pdf")
     plt.close(fig)
     print("wrote fig4_roofline.pdf")

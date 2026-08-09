@@ -1,60 +1,104 @@
 \paragraph{What the claim covers.} Every cost result here concerns
-\textbf{centralised-inference computational cost}: the wall-clock latency and
-memory of executing the communication module on a single device, where all
-agents' observations are available to one process. It is \emph{not} a claim
-about bandwidth-constrained distributed deployment. In that regime the
-objective is different --- reducing the number of messages physically
-transmitted over a link --- and top-$k$ sparsification may well be the correct
-design even though it does not reduce local compute. Conflating the two would
-misrepresent this result, and the analytic ceiling of
-Proposition~\ref{prop:ceiling} says nothing about transmitted bytes.
+centralised-inference computational cost: the wall-clock latency and memory of
+executing the communication module on a single device, where all agents'
+observations are available to one process. It is not a claim about
+bandwidth-constrained distributed deployment. In that regime the objective is
+to reduce the number of messages physically transmitted, and top-$k$
+sparsification may well be the correct design even though it does not reduce
+local compute. The analytic ceiling of Proposition~\ref{prop:ceiling} says
+nothing about transmitted bytes.
 
 \paragraph{Measurement envelope.} Single-round attention; scaled dot-product
 attention with the fused backends available in PyTorch 2.11 / CUDA 12.8; input
 embedding width $64$; head width $d \in \{16,32,64,128,256\}$; $N \le 512$;
-batch $32$--$4096$; \texttt{fp32} and \texttt{bf16}; eager, \texttt{torch.compile}
-and CUDA-graph execution. Hardware: one GPU architecture (NVIDIA Blackwell,
-sm\_120) and one x86\_64 CPU. We make no claim outside this envelope.
+batch $32$--$4096$; \texttt{fp32} and \texttt{bf16}; eager,
+\texttt{torch.compile} and CUDA-graph execution. Hardware: one GPU architecture
+(NVIDIA Blackwell, sm\_120) and one x86\_64 CPU. We make no claim outside this
+envelope. Within it, the head-width trend is unresolved: at $N{=}512$ the ratio
+decreases monotonically in $d$ and the sweep ends at $d{=}256$, so we do not
+know where, or whether, it reaches $1$ for larger heads.
 
-\paragraph{No cross-generation GPU replication.} The strongest available
-robustness evidence is the CPU result, whose machine balance differs from the
-GPU's by more than an order of magnitude, plus an idle second device of the
-same model. We were unable to replicate on a different GPU generation --- the
-older hardware that produced this project's earlier runs is no longer
-available. ``Structurally'' versus ``on this architecture'' is therefore
-supported by the roofline argument and the CPU agreement rather than by a
-second GPU generation, and a reader who weights that evidence differently
-should discount the generality accordingly.
+\paragraph{Our sparse implementation is not optimal, and we can bound by how
+much.} \Gath{} is a straightforward PyTorch implementation using
+\texttt{gather} and a batched contraction, not a hand-written fused kernel. Two
+specific slacks are known. Our \texttt{torch.topk} call sorts its output
+unnecessarily, which costs the arm $5$--$24\%$
+(Section~\ref{sec:threecurves}); and PyTorch's sort-based top-$k$ itself runs
+at roughly $8\%$ of the achievable bandwidth we measure, so a
+selection-optimal kernel would recover most of the remaining selection term.
+Substituting a bandwidth-optimal select into the $N{=}512$ cell still leaves
+the gathered path near $3.5$\,ms against $1.99$\,ms unfused and $0.43$\,ms
+fused, so the ordering survives both corrections; but a reader should treat our
+ratios as upper bounds on the penalty, and a fully fused
+selection--gather--contraction kernel remains the most informative single
+follow-up to this work. Such a kernel could reduce intermediate traffic,
+launch overhead and the cost of ranking. It could not avoid forming the score
+matrix, which is assumption A2 and is what Proposition~\ref{prop:ceiling}
+rests on. We do not claim that no implementation can ever cross over; we claim
+that none of the ones available to us does, and that the analytic ceiling
+bounds what any of them could win.
+
+\paragraph{Generality across architectures.} The intensity argument of
+Section~\ref{sec:roofline} predicts the same qualitative disadvantage wherever
+the gathered path stays below the relevant machine balance. That argument is
+device-independent by construction and therefore cannot itself be evidence of
+device-independence. Our empirical support is one GPU architecture, an idle
+second device of the same model, and one CPU on which the ordering holds with
+ratios of the same order. We were unable to replicate on a different GPU
+generation --- the older hardware that produced this project's earlier runs is
+no longer available. A reader who weights architectural replication heavily
+should discount the generality accordingly. We also note that the CPU
+comparison against the \emph{fused} baseline is dominated by cache blocking
+rather than by arithmetic intensity, so it is weaker cross-architecture
+evidence for the intensity mechanism than the unfused comparison is.
+
+\paragraph{Two measurement effects that had to be controlled, and one that
+remains.} Our CPU numbers required pinning the glibc heap; without it, page
+faults on recycled $(B,N,N)$ temporaries inflate arms unequally and can invert
+an ordering (Section~\ref{sec:cpu}). Our GPU ridge point reproduces well, but
+the CPU one is measured with buffers smaller than the host's L3 and is
+therefore a cache-bandwidth figure; a DRAM-resident probe gives a ridge near
+$2.2$ instead of $3.68$, and we use the CPU ridge only where the conclusion
+holds under both. What remains uncontrolled is that small-$N$ cells are
+launch-bound, and their measured ratios depend on how many arms share a timing
+group; two of our own sweeps disagree by $5\times$ on one such cell. Ratios at
+$N \le 96$ should be read with that in mind.
+
+\paragraph{Fused baseline.} Our fused arm passes an additive float mask, which
+excludes the FlashAttention backend at every dtype; all fused numbers are
+PyTorch's memory-efficient kernel. A FlashAttention baseline would be faster,
+so our fused comparison understates the gap rather than inflating it.
 
 \paragraph{Unlocked clocks.} We lacked the privilege to lock GPU clocks. We
 compensate with interleaved timing, minimum-over-samples reporting, published
 dispersion (Appendix~\ref{app:dispersion}) and an explicit drift control
-(Section~\ref{sec:drift}), and we report that absolute latency under
-concurrent load can move by tens of percent. Ratios are far more stable, and
-all claims are stated in ratios.
+(Section~\ref{sec:drift}), and we report that absolute latency under concurrent
+load can move by tens of percent. Ratios are far more stable, and all claims
+are stated in ratios.
 
 \paragraph{Statistical power of the training study.} Five seeds per arm gives a
 minimum attainable two-sided permutation $p$ of $0.0079$ against a Holm
-threshold of $0.0083$ for six contrasts. This is enough to detect only perfect
-separation, and it is a consequence of the compute budget, not a property of
-the methods. The six null contrasts of Section~\ref{sec:training} should be
-read as ``this design could not resolve an effect of this size'', and no
-equivalence between sparse and dense is claimed anywhere. A study powered to
-resolve the $d \approx 0.6$ effect suggested by C1 would need roughly $45$
-seeds per arm.
+threshold of $0.0083$ for six contrasts, which detects only perfect separation.
+Resolving the $d \approx 0.6$ effect suggested by C1 would need roughly $45$
+seeds per arm at two-sided $\alpha = 0.05$ and $80\%$ power, and roughly $70$
+at the family-corrected $\alpha = 0.05/6$. We should be direct that this was a
+design choice rather than a hard constraint: the entire $60$-run study consumed
+$31.9$ GPU-hours against a $200$-hour guardrail, and a properly powered C1
+would have cost about $37.8$. We allocated the budget to the measurement
+campaign instead, which we would do again given that the computational result
+is the paper's contribution --- but the six nulls are a consequence of that
+allocation, not of an unaffordable experiment, and a reader is entitled to
+weigh them accordingly.
 
 \paragraph{Environment.} The partially observable \texttt{simple\_spread}
 variant is our own, documented in Section~\ref{sec:training} and released. It
 carries a difficulty confound across $N$ that we measure and publish, and which
-is why no across-$N$ return comparison appears in this paper. Results on MPE
-tasks may not transfer to environments with different observation structure.
-
-\paragraph{Implementation scope.} \Gath{} is a straightforward PyTorch
-implementation using \texttt{gather} and a batched contraction; it is not a
-hand-written fused kernel. A custom kernel that fuses selection, gather and
-contraction would reduce the memory traffic that
-Section~\ref{sec:roofline} identifies as the binding constraint, and could
-plausibly close part of the gap. It could not, however, escape
-Proposition~\ref{prop:ceiling}, nor avoid ranking all $N$ scores. We regard
-such a kernel as the most informative single follow-up to this work, together
-with the structural-sparsity direction of Proposition~\ref{prop:escape}.
+is why no across-$N$ return comparison appears in this paper. Its zeroed
+visibility mask does not distinguish an absent peer from one at the origin,
+which affects $\le 0.15\%$ of visible peers in our runs. At $N{=}12$ neither
+trained arm beats a uniform-random policy, so no contrast at that agent count
+is interpretable (Section~\ref{sec:training}). Results on MPE tasks may not
+transfer to environments with different observation structure, and our positive
+controls establish that the communicating architecture helps rather than
+isolating the channel, since the communicating arms carry $7$--$19\%$ more
+parameters.

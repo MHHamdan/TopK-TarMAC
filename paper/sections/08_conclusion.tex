@@ -1,40 +1,52 @@
-The efficiency case for sparsifying inter-agent attention rests on an operation
-count. We examined that count and then measured what runs.
+We set out to make inter-agent attention cheaper by restricting each agent to
+its top-$k$ peers, and the efficiency case for doing so rested on an operation
+count. Examining that count, and then measuring what runs, produced three
+separate negative results at three levels of abstraction.
 
-The count is smaller than reported: because selecting peers by attention score
-requires every score, only half of attention is sparsifiable and the achievable
-FLOPs reduction is bounded by $2\times$, not by $1 - k/(N-1)$. The count is
-also, in the implementation pattern we found in use, not executed at all ---
-masking the dense attention matrix leaves the dense aggregation matmul in
-place. And when we implemented the sparse gather the claim actually refers to,
-verified it computes the same function, and measured it against a fused dense
-baseline, it was slower in every one of $46$ cells spanning head width, batch,
-agent count and sparsity level, on two architectures, at two precisions, under
-three execution modes. Selection alone costs an order of magnitude more than
-the aggregation it is meant to shrink, the sparse contraction is itself slower
-than the dense one, and both paths are memory-bound --- so removing arithmetic
-was never going to help.
+The count is smaller than it appears: because selecting peers by attention
+score requires every score, only half of attention is sparsifiable and the
+achievable FLOPs reduction is bounded by $2\times$ rather than by
+$1-k/(N-1)$. The count need not be executed: masking the dense attention
+matrix leaves the dense aggregation matmul in place, so an implementation
+written that way performs no saving at all while a FLOP model reports a large
+one. And the executed saving need not be time: a genuinely sparse gather, which
+we verified computes the same function while executing fewer operations, was
+slower than unfused dense in all $46$ cells of our GPU sweep and slower than a
+fused kernel in $45$ of them. Selection and gather move memory for no
+arithmetic, the sparse contraction is slower than the dense one it replaces,
+and at $N{=}512$ the sparse path moves $3.8\times$ the traffic for $0.6\times$
+the arithmetic.
 
-None of this shows that sparse multi-agent communication is a bad idea. It
-shows that the standard argument for it does not survive measurement in the
-centralised-inference regime, and it identifies precisely what a successor
-method must do differently. Proposition~\ref{prop:escape} is the constructive
-half of the result: a method whose sparsity pattern is fixed \emph{before} the
-scores are computed --- by topology, by a spatial prior, by a hash --- is not
-subject to the ceiling and can reach $N/k$. In an environment with spatial
-structure, distance-calibrated routing is the natural instance, and it is where
-we would spend the next unit of effort. A fused kernel that eliminates the
-intermediate traffic between selection, gather and contraction is the other.
+What does not follow is as important as what does. This is not evidence that
+sparse multi-agent communication is a bad idea. The result is confined to
+centralised inference on a single device; in bandwidth-constrained distributed
+settings the objective is the number of messages transmitted, which our
+analysis does not address and our measurements do not touch. Nor have we shown
+that no implementation can cross over. Two of the slacks in ours are known and
+quantified --- an unnecessary sort in the selection call, and a selection kernel
+running at roughly $8\%$ of achievable bandwidth --- and removing both leaves
+the ordering intact but narrows the gap. What survives every correction we
+could make is the requirement to form and rank the full score matrix, which is
+the assumption the ceiling rests on.
 
-The wider lesson is methodological, and it is not specific to MARL. An
-operation count is a model of cost. Like any model it can be wrong in two ways:
-it can mis-estimate the quantity it describes, and the quantity it describes
-can fail to govern the outcome anyone cares about. Both happened here. The
-remedy is cheap --- report executed operation counts beside measured latency,
-so that a divergence between the algorithm claimed and the algorithm executed
-becomes visible immediately. Our audit suggests the surrounding literature has
-largely not been doing this: one of six multi-agent communication papers
-reports any measured temporal quantity for its mechanism, against five of six
-in the efficient-attention work the argument was borrowed from. We release the
-harness, the corrected implementation, the pre-registration and the five
-benchmarking pitfalls that produced spurious results along the way.
+The constructive half of the result is Proposition~\ref{prop:escape}. A method
+whose sparsity pattern is fixed \emph{before} the scores are computed --- by
+topology, by a spatial prior, by a hash --- is not subject to the ceiling and
+can reach $N/k$. This is not a hypothetical class: it is what the structural
+selectors in the multi-agent literature already do, and what makes the
+asymptotic savings in Longformer and BigBird real. In an environment with
+spatial structure, distance-calibrated routing is the natural instance. A fused
+kernel that eliminates the intermediate traffic between selection, gather and
+contraction is the other direction worth pursuing, and would settle how much of
+our measured penalty is implementation and how much is inherent.
+
+The methodological lesson is not specific to multi-agent RL. An operation count
+is a model of cost, and like any model it can fail in two ways: it can
+mis-estimate the quantity it describes, and the quantity it describes can fail
+to govern the outcome anyone cares about. Both happened here, and a third
+failure --- the implementation not executing the counted algorithm --- sat
+between them. The remedy is cheap: report executed operation counts beside
+measured latency, name the baseline, and state the envelope. We release the
+harness, the corrected implementation, the pre-registration, and the seven
+benchmarking pitfalls that produced spurious results along the way
+(Appendix~\ref{app:repro}).

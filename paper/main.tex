@@ -40,7 +40,7 @@ Sparse Attention in Multi-Agent Communication}
 \label{sec:intro}
 \input{sections/01_intro.tex}
 
-\section{Related Work: Who Measures, and Who Counts}
+\section{Related Work and a Reporting Audit}
 \label{sec:related}
 \input{sections/02_related.tex}
 
@@ -56,7 +56,7 @@ Sparse Attention in Multi-Agent Communication}
 \label{sec:training}
 \input{sections/05_training.tex}
 
-\section{Five Pitfalls in Attention Benchmarking}
+\section{Seven Pitfalls in Attention Benchmarking}
 \label{sec:pitfalls}
 \input{sections/06_pitfalls.tex}
 
@@ -72,12 +72,8 @@ Sparse Attention in Multi-Agent Communication}
 This work is a measurement and correction study of a computational-efficiency
 claim. It introduces no new capability and no new data. Its intended effect is
 to reduce wasted compute in the design of multi-agent communication
-architectures by discouraging optimisation against an operation count that
-does not predict runtime. We note that a negative efficiency result of this
-kind is specific to the deployment regime studied
-(Section~\ref{sec:limitations}) and should not be read as an argument against
-sparse communication in bandwidth-constrained settings, where the objective is
-different.
+architectures by discouraging optimisation against an operation count that does
+not predict runtime.
 
 \bibliographystyle{tmlr}
 \bibliography{references}
