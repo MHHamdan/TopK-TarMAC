@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
 import statistics
 import subprocess
@@ -232,6 +233,46 @@ def try_lock_clocks(device: str) -> dict[str, Any]:
     }
 
 
+def host_report() -> dict[str, Any]:
+    """Everything about the host that changes a CPU timing.
+
+    The CPU numbers in this campaign turned on the glibc allocator returning
+    multi-MiB temporaries to the kernel between forwards (see the page-fault
+    diagnosis in the paper), so the allocator tuning, the thread count and the
+    affinity mask are part of the measurement and are recorded with it rather
+    than described in prose.
+    """
+    alloc_vars = ("MALLOC_TOP_PAD_", "MALLOC_TRIM_THRESHOLD_",
+                  "MALLOC_MMAP_THRESHOLD_", "MALLOC_MMAP_MAX_",
+                  "MALLOC_ARENA_MAX", "LD_PRELOAD")
+    thread_vars = ("OMP_NUM_THREADS", "MKL_NUM_THREADS",
+                   "OPENBLAS_NUM_THREADS")
+    try:
+        affinity = sorted(os.sched_getaffinity(0))
+    except AttributeError:  # pragma: no cover - non-Linux
+        affinity = []
+    return {
+        "platform": platform.platform(),
+        "libc": "-".join(platform.libc_ver()),
+        "allocator_env": {v: os.environ.get(v) for v in alloc_vars},
+        "thread_env": {v: os.environ.get(v) for v in thread_vars},
+        "torch_num_threads": torch.get_num_threads(),
+        "torch_num_interop_threads": torch.get_num_interop_threads(),
+        "cpu_affinity": affinity,
+        "cpu_affinity_count": len(affinity),
+        "minor_faults_at_start": _minor_faults(),
+    }
+
+
+def _minor_faults() -> int | None:
+    """Cumulative minor page faults of this process, or None off Linux."""
+    try:
+        import resource
+        return resource.getrusage(resource.RUSAGE_SELF).ru_minflt
+    except Exception:  # pragma: no cover - diagnostic only
+        return None
+
+
 def sdpa_backend_report(device: str, n: int, d: int,
                         dtype: torch.dtype = torch.float32) -> dict[str, Any]:
     """Which SDPA backend actually serves the dense_sdpa arm.
@@ -249,18 +290,38 @@ def sdpa_backend_report(device: str, n: int, d: int,
     from torch.nn.attention import SDPBackend, sdpa_kernel
 
     q = torch.randn(4, 1, n, d, device=device, dtype=dtype)
-    ok = []
-    for name, backend in (("flash", SDPBackend.FLASH_ATTENTION),
-                          ("mem_efficient", SDPBackend.EFFICIENT_ATTENTION),
-                          ("cudnn", SDPBackend.CUDNN_ATTENTION),
-                          ("math", SDPBackend.MATH)):
-        try:
-            with sdpa_kernel([backend]):
-                torch.nn.functional.scaled_dot_product_attention(q, q, q)
-            ok.append(name)
-        except Exception:
-            pass
-    return {"available": ok}
+    eye = torch.eye(n, device=device, dtype=torch.bool)
+    # The three mask forms the fused arm could be reached through. Our arm
+    # passes the additive float mask, which is what the paper's claim about
+    # FlashAttention exclusion refers to, so the probe records all three
+    # rather than only the unmasked shape.
+    masks = {
+        "no_mask": None,
+        "additive_float": torch.zeros(n, n, device=device, dtype=dtype)
+                               .masked_fill(eye, float("-inf")),
+        "boolean": ~eye,
+    }
+    backends = (("flash", SDPBackend.FLASH_ATTENTION),
+                ("mem_efficient", SDPBackend.EFFICIENT_ATTENTION),
+                ("cudnn", SDPBackend.CUDNN_ATTENTION),
+                ("math", SDPBackend.MATH))
+    report: dict[str, Any] = {}
+    for mask_name, mask in masks.items():
+        ok = []
+        for name, backend in backends:
+            try:
+                with sdpa_kernel([backend]):
+                    torch.nn.functional.scaled_dot_product_attention(
+                        q, q, q, attn_mask=mask)
+                ok.append(name)
+            except Exception:
+                pass
+        report[mask_name] = ok
+    # `available` keeps the historical key: the arm as benchmarked.
+    return {"available": report["additive_float"],
+            "by_mask": report,
+            "arm_mask": "additive_float",
+            "n": n, "d": d, "dtype": str(dtype)}
 
 
 def profile_kernels(mod: AttentionComm, x: torch.Tensor,
@@ -586,6 +647,8 @@ def main() -> int:
         "sdpa_backends": sdpa_backend_report(device, max(args.n_list),
                                              args.msg_dim,
                                              DTYPES[args.dtype]),
+        "host": host_report(),
+        "minor_faults_total": _minor_faults(),
         "elapsed_s": round(time.time() - t0, 1),
         "rows": rows,
     }

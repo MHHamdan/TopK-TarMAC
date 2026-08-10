@@ -1,6 +1,6 @@
 {
   "question": "Among the papers this manuscript cites for sparse or efficient attention, which report MEASURED wall-clock latency/throughput alongside their claimed FLOPs or complexity savings?",
-  "method": "Each paper's full text was read via ar5iv (https://ar5iv.labs.arxiv.org/html/<id>) on 2026-08-05 and searched for (a) any computational-efficiency or complexity claim and (b) any reported measurement of time, speed, throughput, or achieved FLOPs. 'Reports latency' requires a measured temporal quantity attributable to the mechanism -- a figure, table, or sentence giving time/speed. Vague statements such as 'training took a few days' do not qualify, and are recorded as such.",
+  "method": "Each paper's full text was read via ar5iv (https://ar5iv.labs.arxiv.org/html/<id>) on 2026-08-05 and searched for (a) any computational-efficiency or complexity claim and (b) any reported measurement of time, speed, throughput, or achieved FLOPs. 'Reports latency' requires a measured temporal quantity attributable to the mechanism -- a figure, table, or sentence giving time/speed. Vague statements such as 'training took a few days' do not qualify, and are recorded as such. Search terms are listed under 'search_terms'; scope of the read is under 'scope'.",
   "verified_on": "2026-08-05",
   "caveat": "This is an audit of what the papers report, not of whether their claims are true. A 'no' means the paper's efficiency argument rests on operation counts or asymptotics alone.",
   "papers": [
@@ -130,15 +130,46 @@
     "marl_communication_and_attention": {
       "n": 6,
       "report_measured_latency": 1,
-      "papers_reporting": ["wen2022mat"],
-      "papers_not_reporting": ["das2019tarmac", "sukhbaatar2016commnet", "singh2018ic3net", "jiang2018atoc", "jiang2018dgn"]
+      "papers_reporting": [
+        "wen2022mat"
+      ],
+      "papers_not_reporting": [
+        "das2019tarmac",
+        "sukhbaatar2016commnet",
+        "singh2018ic3net",
+        "jiang2018atoc",
+        "jiang2018dgn"
+      ]
     },
     "efficient_attention_and_moe_outside_marl": {
       "n": 6,
       "report_measured_latency": 5,
-      "papers_reporting": ["kitaev2020reformer", "beltagy2020longformer", "choromanski2021performers", "fedus2022switch", "shazeer2017moe"],
-      "papers_not_reporting": ["zaheer2020bigbird"]
+      "papers_reporting": [
+        "kitaev2020reformer",
+        "beltagy2020longformer",
+        "choromanski2021performers",
+        "fedus2022switch",
+        "shazeer2017moe"
+      ],
+      "papers_not_reporting": [
+        "zaheer2020bigbird"
+      ]
     },
     "headline": "1 of 6 MARL communication/attention papers reports a measured temporal quantity for its mechanism, against 5 of 6 in the efficient-attention and sparse-MoE literature the MARL work borrows its complexity argument from."
-  }
+  },
+  "search_terms": [
+    "latency",
+    "runtime",
+    "run time",
+    "time",
+    "throughput",
+    "speed",
+    "wall-clock",
+    "wall clock",
+    "FLOP/s",
+    "FLOPS",
+    "seconds",
+    "ms"
+  ],
+  "scope": "Full text including all appendices and, where the venue publishes one, the official supplement. MAT's 'yes' rests on Appendix C Figure 13; it would be 'no' on the main body alone. Each paper's entry records the exact figure, table or sentence that settled the decision, so both the 'yes' and the 'no' verdicts can be re-checked against the same source."
 }

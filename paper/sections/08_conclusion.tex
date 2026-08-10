@@ -4,8 +4,9 @@ count. Examining that count, and then measuring what runs, produced three
 separate negative results at three levels of abstraction.
 
 The count is smaller than it appears: because selecting peers by attention
-score requires every score, only half of attention is sparsifiable and the
-achievable FLOPs reduction is bounded by $2\times$ rather than by
+score requires every score, only the value-aggregation product is sparsifiable
+--- one of the two equal multiply--accumulate terms --- and the achievable
+reduction is bounded by $2\times$ rather than by
 $1-k/(N-1)$. The count need not be executed: masking the dense attention
 matrix leaves the dense aggregation matmul in place, so an implementation
 written that way performs no saving at all while a FLOP model reports a large
@@ -24,15 +25,20 @@ settings the objective is the number of messages transmitted, which our
 analysis does not address and our measurements do not touch. Nor have we shown
 that no implementation can cross over. One slack in ours we removed --- an unnecessary sort in the selection call,
 worth $5$--$24\%$ --- and one remains and is quantified: the selection kernel
-still runs at roughly $9\%$ of achievable bandwidth, and closing that gap
-entirely narrows the margin without reversing it. What survives every correction we
+still runs at roughly $9\%$ copy-equivalent bandwidth efficiency, and replacing
+it with a bandwidth-only counterfactual that no real kernel could attain
+narrows the margin without reversing it. What survives every correction we
 could make is the requirement to form and rank the full score matrix, which is
 the assumption the ceiling rests on.
 
 The constructive half of the result is Proposition~\ref{prop:escape}. A method
 whose sparsity pattern is fixed \emph{before} the scores are computed --- by
-topology, by a spatial prior, by a hash --- is not subject to the ceiling and
-can reach $N/k$. This is not a hypothetical class: it is what the structural
+topology, by a spatial prior, by a hash --- is not subject to the ceiling, and
+reaches $N/k$ when the cost of running its selector is small beside the sparse
+attention it enables. That condition is satisfied outright by a fixed or
+precomputed pattern and has to be checked for anything learned or hashed; it is
+the term a successor method should budget for first. This is not a hypothetical
+class: it is what the structural
 selectors in the multi-agent literature already do, and what makes the
 asymptotic savings in Longformer and BigBird real. In an environment with
 spatial structure, distance-calibrated routing is the natural instance. A fused

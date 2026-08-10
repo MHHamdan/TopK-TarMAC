@@ -3,8 +3,10 @@ that requires care, because on a task where the channel is not needed
 ``sparsification is free'' and ``the channel was never used'' make identical
 predictions. We therefore gate the study on a positive control and
 pre-register the analysis. The study is secondary to the computational result:
-its role is to establish that the channel being sparsified carries information,
-and to report what a five-seed design can and cannot resolve about return.
+its role is to establish that the communicating architecture being sparsified
+is doing something --- so that the sparsification contrasts are not vacuous ---
+and to report what a five-seed design can and cannot resolve about return. It
+does not isolate the learned attention channel, for reasons we give below.
 
 \subsection{Design and pre-registration}
 
@@ -50,9 +52,14 @@ contrasts and their direction, the test (exact two-sided permutation on the
 difference of means over all $\binom{10}{5} = 252$ assignments), the effect
 sizes, the interval (percentile bootstrap, flagged approximate at $n{=}5$), and
 Holm--Bonferroni correction at FWER $0.05$. It also fixes the power expectation
-in advance: the smallest attainable two-sided $p$ is $2/252 = 0.0079$ against a
-strictest Holm threshold of $0.05/6 = 0.0083$, so at most one contrast can
-reach corrected significance and only on perfect separation. Any null is
+in advance: the smallest attainable two-sided $p$ is $2/252 = 0.0079$ against
+the first Holm threshold of $0.05/6 = 0.0083$. The margin between them is
+$5\times10^{-4}$, so any rejection at all requires the smallest raw $p$ to sit
+at the discrete floor, which for an untied difference of means means one arm's
+five seeds lying entirely above the other's. Holm is a step-down procedure and
+its later thresholds are looser, so further rejections remain possible once the
+first is obtained; what the design forecloses is obtaining the first on
+anything short of complete separation. Any null is
 under-powered rather than evidence of absence, and no equivalence claim is
 available because no TOST margin was pre-registered.
 
@@ -88,15 +95,23 @@ C6 & entmax $-$ dense & $-5.56$ & $-5.44$ & $-1.13$ & $0.119$ & $0.595$ \\
 
 Table~\ref{tab:training} reports the outcome.
 
-\paragraph{The channel carries information.} Both positive controls separate:
-$+4.26$ $[+3.15, +5.23]$ on \texttt{simple\_reference} and $+11.59$
+\paragraph{The communicating architecture helps.} Both positive controls
+separate: $+4.26$ $[+3.15, +5.23]$ on \texttt{simple\_reference} and $+11.59$
 $[+7.13, +16.44]$ on the partially observable task. Both attain $p = 2/252$,
-the floor of a $5$ vs $5$ permutation test, reached only when all five seeds of
-one arm lie above all five of the other, as they do here. Measured attention
+the floor of a $5$ vs $5$ permutation test for this statistic on untied data,
+which here is reached because all five seeds of one arm lie above all five of
+the other. Measured attention
 entropy on the $N{=}6$ control is $0.35$ nats against a $\ln 5 = 1.61$ ceiling,
-so attention is peaked rather than uniform. Sparsification is therefore being
-applied to a channel that demonstrably carries information --- the precondition
-that makes the rest interpretable.
+so attention is peaked rather than uniform. What this establishes is that
+sparsification is being applied to an architecture whose communication
+machinery improves return under the evaluated setup --- the precondition that
+makes the rest interpretable. It does not establish that the learned attention
+channel alone accounts for the difference: the communicating arms carry
+$7$--$19\%$ more trainable parameters (Appendix~\ref{app:env}), and
+\texttt{simple\_reference} supplies an environment utterance channel of its
+own, as described above. A
+parameter-matched sham-communication arm would be needed for the
+channel-specific causal claim, and we do not make it.
 
 \paragraph{The six contrasts do not resolve a difference.} All six return
 Holm-adjusted $p \ge 0.38$, the outcome the pre-registered power calculation
@@ -120,11 +135,14 @@ compares a diverged run with a barely learning one, and we draw no conclusion
 from it; the $N{=}12$ configuration needs a longer budget or a calibrated radius
 before it can support any contrast. Second, for C4 and C6 the bootstrap
 interval excludes zero while the permutation test does not. The
-pre-registration named the permutation test, so it governs, and the direction
-of the disagreement is the expected one: a percentile bootstrap of a mean at
-$n{=}5$ resamples from a five-point plug-in distribution --- only $5^5 = 3125$
-distinct resamples exist per arm --- so its intervals are systematically too
-narrow. We keep both on the page so the reader sees the size of the estimated
+pre-registration named the permutation test, so it governs. The disagreement is
+not surprising at this sample size: a percentile bootstrap of a mean at
+$n{=}5$ resamples from a five-point plug-in distribution, and only $5^5 = 3125$
+distinct resamples exist per arm, so the interval is coarse, discrete and of
+uncertain coverage. We treat it as descriptive and let the pre-specified exact
+permutation test govern inference, rather than asserting a systematic direction
+to its miscoverage that our data cannot establish.
+We keep both on the page so the reader sees the size of the estimated
 effect as well as the strength of the evidence for it.
 
 Descriptively, and supporting no claim: the Lagrangian arm meets its budget but

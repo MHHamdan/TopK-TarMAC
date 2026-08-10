@@ -134,6 +134,47 @@ def main() -> int:
         fails.append(f"roofline: gather AI {big_r['gather']['ai']:.2f}, "
                      f"paper says 0.66")
 
+    # The manuscript now scopes the CPU claim per ridge estimate rather than
+    # asserting it under all of them: dense clears the low 1.35 estimate at
+    # every N, and the high 3.68 estimate only from N=192. Both halves are
+    # checked, because the earlier unscoped version of this sentence was
+    # false against the high estimate.
+    lo, hi = 1.35, 3.68
+    dense_ai = {r["n_agents"]: r["dense"]["ai"] for r in rf["rows"]}
+    checks += 2
+    if not all(ai > lo for ai in dense_ai.values()):
+        fails.append(f"roofline: dense AI does not clear the {lo} CPU ridge "
+                     f"at every N: {dense_ai}")
+    above_hi = {n for n, ai in dense_ai.items() if ai > hi}
+    if above_hi != {n for n in dense_ai if n >= 192}:
+        fails.append(f"roofline: dense AI clears the {hi} CPU ridge at "
+                     f"{sorted(above_hi)}, paper says N >= 192 only")
+
+    # ---- SDPA backend probe --------------------------------------------
+    # The paper claims (a) FlashAttention serves no arm under any mask form,
+    # (b) the fused arm runs the CUTLASS memory-efficient kernel, and (c) a
+    # FlashAttention-served baseline would be faster, so the reported fused
+    # gap is a lower bound. All three are checked against the recorded log.
+    probe_p = R / "sdpa_backend_probe.json"
+    if probe_p.exists():
+        pb = json.loads(probe_p.read_text())
+        checks += 3
+        masked = [p for p in pb["probes"] for m, avail in p["by_mask"].items()
+                  if m != "no_mask" and "flash" in avail]
+        if masked:
+            fails.append("sdpa probe: FlashAttention is available under a "
+                         "mask, contradicting the manuscript")
+        disp = pb["dispatched_kernel_with_additive_mask"]
+        if not all("cutlass" in disp[dt].lower() for dt in ("fp32", "bf16")):
+            fails.append(f"sdpa probe: fused arm is not served by CUTLASS: "
+                         f"{disp}")
+        lat = pb["unmasked_bf16_backend_latency"]
+        for n in (192, 512):
+            if lat[f"N{n}_flash_min_ms"] >= lat[f"N{n}_mem_efficient_min_ms"]:
+                fails.append(f"sdpa probe: at N={n} FlashAttention is not "
+                             f"faster than mem_efficient, so the manuscript's "
+                             f"'our fused gap is a lower bound' fails")
+
     # ---- Memory ---------------------------------------------------------
     mem = load("memory_analysis.json")
     tag = next(iter(mem["measured"]))
@@ -164,6 +205,41 @@ def main() -> int:
             if val.replace("-", "$-$").replace("+", "$+$") not in tr and \
                     val.lstrip("+") not in tr:
                 fails.append(f"training {cid}: {val} not found in manuscript")
+
+    # ---- Prose guards ---------------------------------------------------
+    # Four statements were wrong in an earlier version and were corrected
+    # after review. They are cheap to reintroduce while editing, so the
+    # checker refuses them rather than trusting us to remember.
+    prose = {p.name: p.read_text() for p in PAPER.glob("*.tex")}
+    banned = [
+        ("at most one contrast",
+         "Holm is a step-down procedure; it can reject more than one"),
+        ("monotonically in $d$",
+         "the d=32 -> d=64 step rises, so the head-width trend is not "
+         "monotone"),
+        ("falls monotonically in head width",
+         "the d=32 -> d=64 step rises, so the head-width trend is not "
+         "monotone"),
+        ("decreases monotonically as $d$ grows",
+         "the d=32 -> d=64 step rises, so the head-width trend is not "
+         "monotone"),
+        ("channel carries information",
+         "the positive controls establish an architecture effect, not a "
+         "channel-specific one"),
+    ]
+    for phrase, why in banned:
+        checks += 1
+        for name, text in prose.items():
+            if phrase in text:
+                fails.append(f"{name}: reintroduced '{phrase}' -- {why}")
+
+    # The apparent saving the aggregation-only model reports at the headline
+    # cell, which the manuscript quotes as 75%.
+    checks += 1
+    apparent = 1 - 127 / 511
+    if not close(apparent, 0.75, 0.01):
+        fails.append(f"apparent saving at N=512, k=127 is {apparent:.3f}, "
+                     f"paper says 0.75")
 
     print(f"checked {checks} quantities across "
           f"{len(list(PAPER.glob('*.tex')))} manuscript sections")

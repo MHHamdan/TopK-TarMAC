@@ -1,5 +1,5 @@
 Cooperative multi-agent reinforcement learning systems increasingly pass
-learned messages between agents, and attention is the dominant mechanism for
+learned messages between agents, and attention is a widely used mechanism for
 deciding what to listen to \citep{das2019tarmac,jiang2018atoc,jiang2018dgn}.
 Because every agent attends to every other, the channel costs
 $\mathcal{O}(N^2)$ per step, and a natural proposal follows: restrict each
@@ -11,10 +11,13 @@ to compute and hard to argue with.
 
 This paper is a report on why we abandoned that design. We set out to build
 score-based top-$k$ communication for multi-agent RL on exactly the rationale
-above. We are not aware of a published multi-agent communication method that
-selects peers by attention score after computing all scores; the restriction
-mechanisms in that literature are largely structural, and, as we show below,
-structural selection is not subject to the limit we derive. The argument we
+above. Within the set of multi-agent communication papers we read for this work
+and audit in Section~\ref{sec:related}, none selects peers by attention score
+after computing all scores; the restriction
+mechanisms there are largely structural, and, as we show below,
+structural selection is not subject to the limit we derive. We state that as a
+property of an audited set rather than of the literature, since an absence
+claim over a literature would need a search protocol we did not run. The argument we
 examine here is therefore one we made ourselves, and the implementation errors
 we report are our own. We think the result is worth reporting anyway, because
 the reasoning that led us there is standard, the failure has three distinct
@@ -23,15 +26,18 @@ hardware.
 
 \paragraph{The count is smaller than it looks.} Selecting the top-$k$ peers by
 attention score requires computing every score. The score matrix is therefore
-irreducible, and only the value aggregation --- half of attention --- can be
+irreducible, and only the value aggregation --- one of the two equal
+multiply--accumulate terms in an attention operation count --- can be
 sparsified at all. Section~\ref{sec:analysis} states this as a proposition: the
-achievable reduction in attention FLOPs is bounded above by $2\times$, for
+achievable reduction is bounded above by $2\times$, for
 every $k$ and every $N$, approached only as $k/N \to 0$. The familiar
-$1-k/(N-1)$ describes one of two equal terms. The bound has a precise escape
+$1-k/(N-1)$ describes one of those two terms. The bound has a precise escape
 route, which we make explicit because it is the design target for any successor
 method: if the sparsity pattern is structural --- fixed by a topology, a spatial
-prior, or a hash computable in $o(N^2 d)$ --- the score matmul becomes
-sparsifiable too and the ratio reaches $N/k$, unbounded.
+prior, or a hash --- the score matmul becomes sparsifiable too, and the ratio
+is no longer bounded by $2$. It reaches $N/k$ exactly when the selector's own
+cost is negligible against the sparse attention it enables, which for a fixed
+or precomputed pattern it is, and for a hash it is not automatically.
 
 \paragraph{Even the reduced count need not be executed.} A count is a model of
 cost, not a measurement of it, and an implementation can fail to perform the
@@ -39,7 +45,9 @@ saving the count describes. Applying top-$k$ as a \emph{mask} on the dense
 attention matrix materialises the discarded entries as zeros and runs the same
 dense $(B,N,N)\times(B,N,d)$ aggregation matmul; executed multiply--accumulates
 are then identical to dense. This is what our own first implementation did, and
-a FLOP model based on $1-k/(N-1)$ reports a $91\%$ saving for it. We implement
+a FLOP model based on $1-k/(N-1)$ credits it with a saving that grows as $k/N$
+falls: $75\%$ at our headline $N{=}512$, $k{=}127$ cell, and above $90\%$ at
+the small-$k$ settings a learned gate tends towards. We implement
 the genuinely sparse gather instead, verify it computes the same function to
 floating-point tolerance while executing measurably fewer FLOPs, and benchmark
 dense, masked and gathered as three separate curves against a fused dense
@@ -60,10 +68,11 @@ changes the answer.
 
 \paragraph{Contributions.}
 \begin{itemize}
-  \item \textbf{Analytical.} A $2\times$ ceiling on the FLOPs saving achievable
-    by any score-based top-$k$ attention, with its assumptions separated and
-    its structural escape route stated as a constructive proposition
-    (Section~\ref{sec:analysis}).
+  \item \textbf{Analytical.} A $2\times$ ceiling on the operation-count saving
+    achievable by any selection rule that requires the complete score vector,
+    with its assumptions separated and
+    its structural escape route stated as a constructive proposition that
+    charges for the selector (Section~\ref{sec:analysis}).
   \item \textbf{Implementation.} A masked/gathered/fused taxonomy of the same
     function, a corrected sparse implementation, and regression tests pinning
     that the two top-$k$ variants agree numerically while executing different
@@ -74,15 +83,18 @@ changes the answer.
     and two architectures, with a component decomposition and a roofline
     account of the cause, and a drift control quantifying how far the
     measurement travels (Section~\ref{sec:measurement}).
-  \item \textbf{Learning evidence, bounded by its power.} A pre-registered
-    study separating ``the channel does nothing'' from ``sparsifying the
-    channel is free'', with positive controls that pass and six sparsification
-    contrasts reported as the under-powered nulls they are
+  \item \textbf{Learning evidence, bounded by its power.} A study with an
+    analysis plan registered after $8$ of $40$ runs had completed and before
+    any of their outcomes was read, separating ``the communication machinery
+    does nothing'' from ``sparsifying it is free'', with positive controls that
+    pass --- for the architecture, not for the channel in isolation --- and six
+    sparsification contrasts reported as the under-powered nulls they are
     (Section~\ref{sec:training}).
   \item \textbf{Methodological artifacts.} Seven reproducible benchmarking
     pitfalls, each of which produced a spurious result during this study, and
-    a released harness that regenerates every table here from raw artifacts
-    (Section~\ref{sec:pitfalls}).
+    a released harness together with a checker that re-derives every headline
+    quantity in this manuscript from the raw JSON and fails on any
+    disagreement (Section~\ref{sec:pitfalls}).
 \end{itemize}
 
 Every claim concerns centralised-inference computational cost on one device,

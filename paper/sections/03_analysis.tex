@@ -31,9 +31,11 @@ distinction between them is the one this paper turns on.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig1_schematic.pdf}
-\caption{The same top-$k$ attention, computed three ways. All three form the
-full score matrix, because selecting peers by score requires every score. They
-differ in what happens next: the fused kernel never materialises the weights;
+\caption{The same top-$k$ attention, computed three ways. All three evaluate
+every pairwise query--key interaction, because selecting peers by score
+requires every score. They
+differ in what happens next: the fused kernel evaluates them tilewise and never
+materialises the full $N \times N$ weight matrix;
 the masked variant stores the discarded entries as zeros and multiplies them
 anyway, so its executed operation count equals dense; only the gathered variant
 compacts the kept rows and shrinks the product. The efficiency argument
@@ -55,7 +57,11 @@ both dense baselines.
 \subsection{A ceiling on what sparsity can save}
 \label{sec:bound}
 
-Counting multiply--accumulates in the two matrix products that constitute
+Analytic counts here are multiply--accumulates (MACs). Under the convention
+that a multiply--add is two FLOPs every term below doubles and every ratio is
+unchanged, so the ceiling is the same number either way; we say MACs where the
+count is analytic and FLOPs only where a counter attached to the running
+program produced the figure. Counting the two matrix products that constitute
 attention, and excluding the shared input and output projections:
 \begin{equation}
 C_{\text{scores}} = N^2 d, \quad C_{\text{agg}} = N^2 d, \quad
@@ -72,7 +78,7 @@ For any selection rule that requires the complete score vector of each query,
 \qquad \text{for all } k \ge 1,
 \end{equation}
 with supremum $2$ approached only as $k/N \to 0$. No choice of $k$ or $N$
-yields more than a $2\times$ reduction in attention FLOPs.
+yields more than a $2\times$ reduction in attention MACs.
 \end{proposition}
 
 \begin{proof}
@@ -88,10 +94,10 @@ Counting the masked-out diagonal exactly instead would give
 $2(N{-}1)/\bigl((N{-}1)+k\bigr)$, which is strictly smaller than $2N/(N+k)$ for
 every $1 \le k \le N-1$. Proposition~\ref{prop:ceiling} is therefore a valid
 upper bound under either convention, and a slightly loose one under the exact
-count. The figure $1 - k/(N-1)$, which describes the aggregation term alone,
-is at most half of attention; read as \emph{the} saving it overstates the
-achievable reduction by a factor approaching two, before any question of
-whether it is realised in time.
+count. The figure $1 - k/(N-1)$ describes the value-aggregation term alone ---
+one of the two equal MAC terms in this accounting; read as \emph{the} saving it
+overstates the achievable reduction by a factor approaching two, before any
+question of whether it is realised in time.
 
 The assumptions are worth separating, because only one of them is
 load-bearing. \textbf{(A1) Single round}: with $R$ rounds both terms scale by
@@ -110,21 +116,44 @@ ceiling lifts.
 
 \begin{proposition}[Escape]
 \label{prop:escape}
-If the kept set is determined \emph{structurally} --- by information obtainable
-without forming the scores, in $o(N^2 d)$ --- then scores need not be computed
-for discarded pairs, and
-$C_{\mathrm{struct}} = Nkd + Nkd = 2Nkd$, giving
-$C_{\text{dense}}/C_{\mathrm{struct}} = N/k$, which is unbounded in $N/k$.
+Suppose the kept set is determined \emph{structurally} --- by information
+obtainable without forming any score --- at selector cost
+$C_{\mathrm{sel}}(N,k,d)$, and that scores are then evaluated only for the
+$Nk$ retained pairs. Then
+\begin{equation}
+C_{\mathrm{struct}} = 2Nkd + C_{\mathrm{sel}},
+\qquad
+\frac{C_{\text{dense}}}{C_{\mathrm{struct}}}
+  = \frac{2N^2 d}{2Nkd + C_{\mathrm{sel}}}.
+\end{equation}
+\emph{(i)} If $C_{\mathrm{sel}} = o(Nkd)$ --- in particular for a fixed or
+precomputed pattern, where $C_{\mathrm{sel}} \approx 0$ --- the ratio tends to
+$N/k$. \emph{(ii)} If only $C_{\mathrm{sel}} = o(N^2 d)$, the ratio is no
+longer bounded by $2$: with $k/N \to 0$ it diverges, though not in general at
+the rate $N/k$.
 \end{proposition}
 
+\begin{proof}
+Both statements read off the displayed ratio. For (i), $2Nkd + C_{\mathrm{sel}}
+= 2Nkd(1+o(1))$, so the ratio tends to $N/k$. For (ii), if $k/N \to 0$ then
+$2Nkd = o(N^2 d)$, so the whole denominator is $o(N^2 d)$ and the ratio
+diverges.
+\end{proof}
+
 Qualifying rules include a fixed communication topology, a spatial or distance
-prior, a locality-sensitive hash, and a learned \emph{static} graph. This is
-why Longformer and BigBird obtain asymptotic savings where data-dependent
-top-$k$ cannot \citep{beltagy2020longformer,zaheer2020bigbird}: their patterns
-are fixed before any score is formed. It is also the concrete design target for
-a successor method --- to exceed $2\times$, a method must decide where to look
-before looking. In an environment with spatial structure a distance-calibrated
-selector is the obvious candidate.
+prior, a locality-sensitive hash, and a learned \emph{static} graph. The
+selector-cost term is not decoration: a fixed topology or a precomputed spatial
+prior really is free at inference and lands in case~(i), but a hash must be
+evaluated and its buckets assembled, and Reformer's LSH
+\citep{kitaev2020reformer} is the natural example of a structural rule whose
+$C_{\mathrm{sel}}$ has to be counted rather than assumed away. Case~(i) is why
+Longformer and BigBird obtain asymptotic savings where data-dependent top-$k$
+cannot \citep{beltagy2020longformer,zaheer2020bigbird}: their patterns are
+fixed before any score is formed, so nothing is spent deciding. Either case is
+a concrete design target for a successor method --- to exceed $2\times$, a
+method must decide where to look before looking, and spend less doing so than
+it saves. In an environment with spatial structure a distance-calibrated
+selector is the natural candidate.
 
 Proposition~\ref{prop:escape} concerns operation counts only. It says that
 structural selection removes the assumption responsible for the ceiling; it
@@ -152,20 +181,27 @@ and the model does not apply. And our CPU bandwidth probe uses buffers smaller
 than the host's $96$\,MiB L3, so the CPU ridge is a cache-bandwidth figure and
 is not reproducible to better than a factor of a few: repeated measurement of
 the same host gives $1.35$ and $3.68$\,FLOP/byte on different days, and a
-DRAM-resident probe gives lower still. We therefore use the CPU ridge only for
-statements that hold across that whole range, and the dense path's saturating
-intensity of $4.31$ is above all of them.
+DRAM-resident probe gives lower still. We therefore treat the CPU ridge as a
+range and use it only for statements that hold across the whole of it. Two
+such statements carry the CPU argument: the gathered path's intensity of
+$\approx0.66$ is below every estimate, and the dense path's saturating
+intensity of $(4d{+}5)/16 = 4.31$ is above every estimate. Where the two paths
+sit relative to each other and to the ridge is therefore stable even though the
+ridge is not. The finite-$N$ dense intensities in between are not stable in
+that sense, and we do not lean on them.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig4_roofline.pdf}
 \caption{Roofline with measured machine balance. Marker heights are the roof
 evaluated at each path's analytic intensity, not achieved throughput. On the
-GPU (ridge $53.0$) both paths lie deep in the memory-bound region at every $N$.
-On the CPU, whose balance is more than an order of magnitude lower, the dense
-path's intensity saturates at $(4d{+}5)/16 = 4.31$ and crosses the measured
-balance for $N \gtrsim 96$, while the gathered path stays pinned near $0.66$
-and remains memory-bound throughout.}
+GPU (ridge $52.1$) both paths lie deep in the memory-bound region at every $N$.
+On the CPU, whose balance is more than an order of magnitude lower and is
+plotted at the $1.35$\,FLOP/byte end of the range we measure for it, the dense
+path's intensity saturates at $(4d{+}5)/16 = 4.31$ and exceeds that estimate at
+every $N$; against the higher $3.68$ estimate it does so only from $N{=}192$.
+The gathered path stays pinned near $0.66$ and remains memory-bound under every
+estimate.}
 \label{fig:roofline}
 \end{figure}
 
@@ -173,10 +209,14 @@ and remains memory-bound throughout.}
 \centering
 \small
 \caption{Measured machine balance, and analytic arithmetic intensity of the two
-paths at batch $256$, $d{=}16$, $k = 25\%$ of peers. The gathered path is
-memory-bound on both devices at every $N$. The dense path is memory-bound on
-the GPU at every $N$, and exceeds the CPU balance at every $N$ we
-measure, under any of the estimates we obtain for it.}
+paths at batch $256$, $d{=}16$, $k = 25\%$ of peers. The gathered path
+(AI $\approx 0.64$--$0.66$) is below every ridge estimate for either device at
+every $N$, and so is memory-bound throughout. The dense path is memory-bound on
+the GPU at every $N$; on the CPU it exceeds the $1.35$\,FLOP/byte estimate at
+every $N$ we measure, but exceeds the higher $3.68$ estimate only at
+$N \ge 192$. The CPU ridge is quoted at the lower end of the range described in
+the text, since that is the value the probe returns on the run archived with
+these numbers.}
 \label{tab:roofline}
 \begin{tabular}{lrrr}
 \toprule

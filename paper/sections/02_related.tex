@@ -17,11 +17,17 @@ transmitted bytes and local compute, of which only the second is what this
 paper measures.
 
 Two points about this group matter for what follows. First, the restriction
-mechanisms are mostly \emph{structural}: DGN's neighbourhood is spatial and
-ATOC's groups are formed before attention weights are computed, so both fall
-under Proposition~\ref{prop:escape} rather than
-Proposition~\ref{prop:ceiling}. Second, we did not find a method in this
-literature that selects peers by attention \emph{score} after computing all
+mechanisms are mostly \emph{structural}: DGN's neighbourhood is a fixed spatial
+prior, so it falls squarely under Proposition~\ref{prop:escape}. ATOC is the
+more nuanced case --- its groups are formed by a learned attention unit that
+decides \emph{whether} an agent should initiate communication, so it is not a
+fixed pattern, but the grouping is settled before the communication attention
+weights are computed, so its cost enters as the selector term of
+Proposition~\ref{prop:escape} rather than as a full score matrix. Neither
+mechanism is the score-then-select rule that
+Proposition~\ref{prop:ceiling} constrains. Second, we did not find a method in
+the papers we audit
+that selects peers by attention \emph{score} after computing all
 scores, which is the mechanism this paper analyses. We flag that explicitly
 because it determines what our result does and does not bear on: we are
 evaluating a design we proposed and built, and the ceiling of
@@ -35,9 +41,12 @@ sparsity is most developed, and where the structural-versus-data-dependent
 distinction is sharpest. Longformer \citep{beltagy2020longformer} and BigBird
 \citep{zaheer2020bigbird} fix a sparsity pattern in advance --- sliding
 windows, global tokens, random edges --- so the score computation itself
-becomes sparse and the saving is asymptotic. Reformer
+becomes sparse and the saving is asymptotic; their selector is essentially
+free, which is case~(i) of Proposition~\ref{prop:escape}. Reformer
 \citep{kitaev2020reformer} obtains its pattern from a locality-sensitive hash
-computed without forming all pairwise scores; Performer
+computed without forming all pairwise scores, and is the reason
+Proposition~\ref{prop:escape} carries a selector term at all: hashing and
+bucketing are cheaper than the score matrix but they are not free. Performer
 \citep{choromanski2021performers} avoids the score matrix altogether through a
 kernel factorisation. All of these escape the ceiling of
 Proposition~\ref{prop:ceiling} for the same reason: none of them needs the
@@ -45,11 +54,14 @@ complete score matrix in order to decide what to keep.
 
 Sparsemax \citep{martins2016sparsemax} and $\alpha$-entmax
 \citep{peters2019entmax} obtain exact zeros from the normalisation rather than
-a hard cutoff, but do so \emph{after} the scores exist and are therefore
-subject to the ceiling; Gumbel-softmax \citep{jang2017gumbel} provides the
+a hard cutoff. Those papers make no claim about attention cost; the observation
+that their zeros arrive \emph{after} the scores exist, and that they are
+therefore subject to our ceiling, is our inference rather than theirs.
+Gumbel-softmax \citep{jang2017gumbel} provides the
 relaxation used by learned discrete gates. Constrained-RL formulations
-\citep{achiam2017cpo,stooke2020pidlagrangian} supply the machinery for
-enforcing a communication budget rather than trading it against return at a
+\citep{achiam2017cpo,stooke2020pidlagrangian} supply general machinery for
+optimising under a constraint, which we adapt to a communication budget rather
+than trading the budget against return at a
 fixed weight. We implement entmax and a Lagrangian budget as arms in
 Section~\ref{sec:training}.
 
@@ -58,9 +70,10 @@ Section~\ref{sec:training}.
 Score-based top-$k$ selection is used at scale in sparse mixture-of-experts,
 where a router scores every expert and dispatches each token to the best $k$
 \citep{shazeer2017moe,fedus2022switch}. The structure of the argument is the
-same one we examine, and so is the exemption: routing scores are cheap relative
-to the expert FLOPs they gate, so the analogue of our $N^2 d$ score term is
-negligible there, and the saving is real. That contrast is instructive. Whether
+same one we examine, and so is the exemption: these architectures are designed
+so that the router is small relative to the expert computation it gates, so the
+analogue of our $N^2 d$ score term is a minor cost rather than an equal one,
+and the saving is real. That contrast is instructive. Whether
 score-based selection pays depends on the ratio between the cost of scoring all
 candidates and the cost of the work being skipped --- large in MoE, and equal
 to one in single-head attention, which is exactly Proposition~\ref{prop:ceiling}.
@@ -82,30 +95,41 @@ distinction this paper turns on. Longformer reports runtime and memory for
 \emph{three} implementations of the same attention pattern: a loop version, a
 vectorised ``chunks'' version, and a custom CUDA kernel. The authors note that
 the chunked variant consumes roughly twice the optimal memory because it
-computes some zero values --- that is, they measured a masked implementation
-separately from a genuinely sparse one, and reported the difference.
+computes some zero values. In our terms --- their paper does not use the word
+--- that is an over-computing vectorised implementation measured separately
+from a genuinely sparse one, with the difference reported.
 
 \paragraph{A reporting audit.} Motivated by that precedent, we checked whether
 efficiency claims in the papers we drew on are accompanied by a measurement.
-For each paper we read the full text and recorded (i) whether it makes a
-computational-efficiency or complexity claim about its mechanism and (ii)
-whether it reports any measured temporal quantity --- time, speed, throughput,
-or achieved FLOP/s --- attributable to that mechanism. A statement such as
-``training took a few days'' does not qualify. Table~\ref{tab:audit} reports the result.
+For each paper we read the full text, including appendices and the official
+supplement where one exists, searched it for \emph{latency}, \emph{runtime},
+\emph{time}, \emph{throughput}, \emph{speed}, \emph{wall-clock} and
+\emph{FLOP/s}, and recorded (i) whether it makes a
+computational-efficiency or complexity claim about its mechanism, (ii)
+whether it reports any measured temporal quantity attributable to that
+mechanism, and (iii) the figure, table or sentence that settled the decision. A
+statement such as
+``training took a few days'' does not qualify. That sheet is released with the artifacts,
+because a ``no'' is an absence claim and an absence claim is only as good as
+the search behind it. Scope matters for at least one entry: MAT's ``yes'' rests
+on a wall-clock figure in its appendix and would be a ``no'' on the main body
+alone. Table~\ref{tab:audit} reports the result.
 
 \begin{table}[t]
 \centering
 \small
 \caption{Type of evidence offered for efficiency claims, in the twelve
-audited papers ($n{=}6$ per group). ``Reports latency'' requires a measured
-temporal quantity attributable to the mechanism. This is an audit of reporting
+audited papers ($n{=}6$ per group). ``Measured temporal metric'' means any
+measured time, speed, throughput or achieved FLOP/s attributable to the
+mechanism. This is an audit of reporting
 practice in a small, deliberately selected set --- the papers we ourselves
 relied on --- not a sample of either literature, and a ``no'' means the
 argument rests on operation counts or asymptotics, not that it is wrong.}
 \label{tab:audit}
 \begin{tabular}{llcc}
 \toprule
-\textbf{Paper} & \textbf{Efficiency claim} & \textbf{Type} & \textbf{Reports latency} \\
+\textbf{Paper} & \textbf{Efficiency claim} & \textbf{Type} &
+\begin{tabular}[b]{@{}c@{}}\textbf{Measured}\\\textbf{temporal metric?}\end{tabular} \\
 \midrule
 \multicolumn{4}{l}{\emph{Multi-agent communication / attention}} \\
 CommNet \citep{sukhbaatar2016commnet}      & none explicit          & ---          & n/a \\
@@ -132,12 +156,15 @@ efficient-attention and mixture-of-experts papers, five do. We draw no
 conclusion about either field from twelve papers. The asymmetry is worth
 stating only because it describes the evidence base we ourselves worked from
 when we adopted the operation-count argument, and because the argument does not
-transfer cleanly in any case: the efficient-attention results hold at sequence
-lengths of $10^3$--$10^5$, where attention is genuinely the bottleneck, while
-multi-agent communication operates at $N \lesssim 10^2$, where it is not.
+transfer cleanly in any case: the efficient-attention results are obtained at
+sequence lengths of $10^3$--$10^5$, while
+multi-agent communication operates at $N \lesssim 10^2$, so the hardware
+bottleneck the two regimes face need not be the same one --- which is precisely
+what Section~\ref{sec:measurement} measures.
 
 \paragraph{Empirical rigour in MARL.} Our training protocol follows the
-recommendations of \citet{papoudakis2021epymarl} for MARL benchmarking, and we
-report effect sizes and intervals rather than bare means. Our environments come
+recommendations of \citet{papoudakis2021epymarl} for systematic MARL
+benchmarking. Reporting effect sizes and intervals rather than bare means is a
+rule we add on top of those recommendations. Our environments come
 from the PettingZoo/MPE family \citep{terry2020pettingzoo}, and our learner is
 MAPPO \citep{yu2022mappo}.

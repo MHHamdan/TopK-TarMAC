@@ -1,4 +1,5 @@
-Each of the following produced a wrong number during this study before it was
+Each of the following produced a misleading measurement during this study
+before it was
 caught. We report them as reusable guidance for anyone benchmarking attention
 variants, because a benchmarking result is only as trustworthy as the harness
 that produced it. In every case the symptom was a plausible result rather than
@@ -69,6 +70,7 @@ a FLOPs-only comparison unable to see the baseline that matters. In PyTorch
 correctly, and it was our harness that then added an analytic term on top of
 the counter's output for that arm, publishing a figure $1.83\times$ too large.
 The narrower lesson generalises better: instrument the counter, then check the
-counter. A FLOP model based on $1 - k/(N-1)$ will report a $91\%$ saving for
-code whose executed operation count is identical to dense, and only a counter
-attached to the running program will say so.
+counter. A FLOP model based on $1 - k/(N-1)$ will credit code whose executed
+operation count is identical to dense with a saving of $75\%$ at
+$N{=}512, k{=}127$ and more than $90\%$ once $k$ falls towards $1$, and only a
+counter attached to the running program will say otherwise.

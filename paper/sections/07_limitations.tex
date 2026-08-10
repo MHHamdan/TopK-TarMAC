@@ -15,17 +15,20 @@ batch $32$--$4096$; \texttt{fp32} and \texttt{bf16}; eager,
 \texttt{torch.compile} and CUDA-graph execution. Hardware: one GPU architecture
 (NVIDIA Blackwell, sm\_120) and one x86\_64 CPU. We make no claim outside this
 envelope. Within it, the head-width trend is unresolved: at $N{=}512$ the ratio
-decreases monotonically in $d$ and the sweep ends at $d{=}256$, so we do not
-know where, or whether, it reaches $1$ for larger heads.
+trends downward in $d$ without being strictly monotone, and the sweep ends at
+$d{=}256$, so we do not know where, or whether, it reaches $1$ for larger
+heads.
 
 \paragraph{Our sparse implementation is not optimal, and we can bound by how
 much.} \Gath{} is a straightforward PyTorch implementation using
 \texttt{gather} and a batched contraction, not a hand-written fused kernel. We
 removed one avoidable cost --- \texttt{torch.topk} sorts its output by default,
 which is unnecessary here and was worth $5$--$24\%$ of the arm --- and one
-remains: PyTorch's top-$k$ still runs at roughly $9\%$ of the achievable
-bandwidth we measure, so a selection-optimal kernel would recover most of the
-remaining selection term. Substituting a bandwidth-optimal select into the
+remains: PyTorch's top-$k$ still runs at roughly $9\%$ copy-equivalent
+bandwidth efficiency against the rate we measure, so a selection-optimal kernel
+would recover a substantial part of the remaining selection term. Substituting
+even a copy-equivalent select --- an optimistic counterfactual, since a real
+selection kernel must also compare and rank --- into the
 $N{=}512$ cell still leaves the gathered path near $3.4$\,ms against
 $1.99$\,ms unfused and $0.43$\,ms fused, so the ordering survives; but a reader
 should treat our ratios as upper bounds on the penalty, and a fully fused
@@ -64,10 +67,13 @@ launch-bound, and their measured ratios depend on how many arms share a timing
 group; two of our own sweeps disagree by $5\times$ on one such cell. Ratios at
 $N \le 96$ should be read with that in mind.
 
-\paragraph{Fused baseline.} Our fused arm passes an additive float mask, which
-excludes the FlashAttention backend at every dtype; all fused numbers are
-PyTorch's memory-efficient kernel. A FlashAttention baseline would be faster,
-so our fused comparison understates the gap rather than inflating it.
+\paragraph{Fused baseline.} Our fused arm passes a self-attention mask, and on
+this build FlashAttention accepts no \texttt{attn\_mask} in any form, so all
+fused numbers are PyTorch's memory-efficient CUTLASS kernel --- confirmed by
+reading the dispatched kernel from the profiler, not inferred. Forcing
+FlashAttention on the same unmasked shape is $1.5$--$2.5\times$ faster than
+that kernel, so a baseline able to reach it would widen the gap we report
+rather than narrow it.
 
 \paragraph{Unlocked clocks.} We lacked the privilege to lock GPU clocks. We
 compensate with interleaved timing, minimum-over-samples reporting, published
@@ -76,15 +82,25 @@ dispersion (Appendix~\ref{app:dispersion}) and an explicit drift control
 load can move by more than $100\%$. Our drift control is a same-device repeat;
 it establishes stability across runs and hours, not independence from one
 physical card, because a second card free of other tenants was not available
-when these measurements were taken. Ratios are far more stable, and all claims
-are stated in ratios.
+when these measurements were taken. Median ratio drift is roughly half the
+median absolute-latency drift, though the worst loaded ratio cell moves as far
+as the worst latency cell; all claims are stated in ratios, which buys
+stability in the typical case rather than in the tail.
 
 \paragraph{Statistical power of the training study.} Five seeds per arm gives a
-minimum attainable two-sided permutation $p$ of $0.0079$ against a Holm
-threshold of $0.0083$ for six contrasts, which detects only perfect separation.
+minimum attainable two-sided permutation $p$ of $0.0079$ against a first Holm
+threshold of $0.05/6 = 0.0083$ for six contrasts. The two are close enough that
+a first rejection requires the smallest raw $p$ to sit at the discrete floor,
+which for these untied data means one arm's five seeds lying entirely above the
+other's; the family is not limited to one rejection --- Holm's later thresholds
+are looser --- but no rejection at all is available on weaker evidence.
 Resolving the $d \approx 0.6$ effect suggested by C1 would need roughly $45$
 seeds per arm at two-sided $\alpha = 0.05$ and $80\%$ power, and roughly $70$
-at the family-corrected $\alpha = 0.05/6$. We should be direct that this was a
+at the family-corrected $\alpha = 0.05/6$; both figures come from the standard
+two-sample normal-approximation formula
+$n = 2\bigl(z_{1-\alpha/2}+z_{1-\beta}\bigr)^2/d^2$, which is a guide to order
+of magnitude rather than a power calculation for the exact permutation test we
+actually run. We should be direct that this was a
 design choice rather than a hard constraint: the entire $60$-run study consumed
 $31.9$ GPU-hours against a $200$-hour guardrail, and a properly powered C1
 would have cost about $37.8$. We allocated the budget to the measurement

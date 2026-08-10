@@ -5,16 +5,20 @@ made by counting operations rather than by measuring time. We set out to build
 such a mechanism and report why we abandoned it, at three levels.
 
 First, an analytic ceiling. Because selecting the top-$k$ peers \emph{by
-attention score} requires computing all $N$ scores, only the value aggregation
-is sparsifiable, and the reduction in attention FLOPs is bounded above by
-$2\times$ for any $k$ and any $N$ --- not the $1-k/(N-1)$ that the aggregation
+attention score} requires computing all $N$ scores, only the value-aggregation
+matrix product is sparsifiable --- one of the two equal terms in an attention
+multiply--accumulate count --- and the reduction is bounded above by
+$2\times$ for any $k$ and any $N$, not the $1-k/(N-1)$ that the aggregation
 term alone suggests. Sparsity whose pattern is fixed before any score is
-computed escapes this bound and reaches $N/k$; data-dependent top-$k$ cannot.
+computed escapes this bound, and reaches $N/k$ when its selector is cheap
+relative to the sparse attention it enables; data-dependent top-$k$ cannot
+escape it at all.
 
 Second, what executes. Applying top-$k$ as a \emph{mask} on the dense attention
 matrix, as our own first implementation did, leaves the dense aggregation
 matmul in place, so the executed operation count is identical to dense while a
-FLOP model based on $1-k/(N-1)$ reports a $91\%$ saving. We implement the
+FLOP model based on $1-k/(N-1)$ reports a saving of $75\%$ at our headline
+$N{=}512$, $k{=}127$ configuration and more as $k/N$ falls. We implement the
 genuinely sparse gather, verify it computes the same function while executing
 fewer operations, and benchmark dense, masked and gathered against a fused
 baseline.
@@ -30,11 +34,15 @@ and at $N{=}512$ the sparse path moves $3.8\times$ the traffic for $0.6\times$
 the arithmetic. Removing arithmetic from a memory-bound kernel does not save
 time. We tune the sparse path where it is cheap to do so, and report what remains
 on the table: its selection kernel still runs at under a tenth of the
-bandwidth the same device achieves elsewhere, and closing that gap entirely
-would not reverse the ordering.
+copy-equivalent bandwidth the same device achieves elsewhere, and substituting
+even a bandwidth-only counterfactual for it would not reverse the ordering.
 
-A pre-registered training study confirms the channel carries information, while
-six pre-registered sparsification contrasts are under-powered nulls at five
+A training study, whose analysis plan was registered after $8$ of $40$ runs had
+completed and before any of their outcomes was read, establishes that the
+communicating architecture improves return, so the sparsification contrasts are
+not vacuous; it does not isolate the learned channel. Its six pre-registered
+sparsification contrasts are under-powered nulls at five
 seeds and are reported as such. We release the harness, the corrected
-implementation, and seven reproducible benchmarking pitfalls that produced
+implementation, a checker that re-derives every headline number here from the
+raw artifacts, and seven reproducible benchmarking pitfalls that produced
 spurious results during this study.

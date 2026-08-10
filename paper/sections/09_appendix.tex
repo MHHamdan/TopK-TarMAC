@@ -8,7 +8,7 @@ interquartile range and the spread of per-run medians for the same cells, and
 then state in Table~\ref{tab:dispersion} how much the headline ratios depend on
 the choice.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \small
 \caption{Forward-pass dispersion, \texttt{fp32}, batch $256$, $d{=}16$, idle
@@ -44,7 +44,11 @@ headline ratio from medians rather than minima gives $1.15$, $1.15$, $1.16$,
 $1.14$, $1.59$, $2.79$, $2.45$, $3.28$ for $N = 6 \ldots 512$, against $1.15$,
 $1.16$, $1.17$, $1.15$, $1.61$, $2.90$, $2.46$, $3.28$ from minima: every cell
 moves by less than $3.6\%$ and all eight remain above $1$. No conclusion in the
-paper depends on the choice of statistic. The complete table for all $N$ and
+paper depends on the choice of statistic. The two statistics do have different
+minima, and the main text's ``smallest ratio observed is $1.15\times$'' refers
+throughout to the minimum-over-samples definition; the median-based series dips
+to $1.14$ at $N{=}48$, stated here so the two definitions are not read as one
+number. The complete table for all $N$ and
 all arms, with the raw per-run medians, is in the released artifacts.
 
 \subsection{Crossover surface, tabulated}
@@ -103,7 +107,9 @@ asserted:
     $N{=}48, k{=}4, B{=}8, d{=}16$ and input width $32$, a FLOP counter reports
     $2{,}555{,}904$ for dense and \Mask{} (identical), against $2{,}015{,}232$
     for \Gath{}. The difference, $540{,}672$, is exactly the aggregation term
-    $2BNd(N-k)$.
+    $2BNd(N-k)$ --- two FLOPs per multiply--add, which is the counter's
+    convention rather than the MAC convention of
+    Section~\ref{sec:bound}, and the factor cancels in every ratio.
   \item \textbf{No dense aggregation in the sparse path.} Tracing every
     \texttt{torch.matmul} confirms \Gath{} issues no
     $(B,N,N)\times(B,N,d)$ product and does issue
@@ -114,11 +120,21 @@ asserted:
   \item \textbf{The ceiling holds numerically.} For
     $N \in \{6,\dots,512\}$ the ratio $C_\text{dense}/C_{\text{top-}k}$ is
     verified $<2$, and the structural variant of
-    Proposition~\ref{prop:escape} is verified to track $N/k$.
+    Proposition~\ref{prop:escape} is verified to track $N/k$ in the
+    zero-selector-cost case, $C_{\mathrm{sel}} = 0$, which is the only case a
+    pure operation count can pin: a nonzero $C_{\mathrm{sel}}$ moves the ratio
+    below $N/k$ by exactly the displayed formula.
   \item \textbf{Selection order is irrelevant.} \texttt{topk} with
     \texttt{sorted=False}, which the gathered path uses, agrees with the
     sorted call to $5.4\times10^{-7}$ in \texttt{fp32} at every $(N,k)$ tested,
     confirming that the softmax and gather are permuted consistently.
+  \item \textbf{Which backend serves the fused arm.} A probe forces each SDPA
+    backend in turn, at both dtypes and at $N \in \{12,192,512\}$, under no
+    mask, an additive float mask and a Boolean mask, and the profiler records
+    the kernel the default dispatcher actually launches. FlashAttention is
+    rejected under any non-null mask, and in \texttt{fp32} under any input;
+    the fused arm runs \texttt{fmha\_cutlassF} at both dtypes. The log is
+    released.
 \end{itemize}
 
 \subsection{The partially observable environment}
