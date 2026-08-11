@@ -1,12 +1,12 @@
-Sparsification could still be worthwhile if it cost nothing in return. Testing
-that requires care, because on a task where the channel is not needed
+Sparsification could still be worthwhile if it cost nothing in return, and
+testing that requires care: on a task where the channel is not needed,
 ``sparsification is free'' and ``the channel was never used'' make identical
-predictions. We therefore gate the study on a positive control and
-pre-register the analysis. The study is secondary to the computational result:
-its role is to establish that the communicating architecture being sparsified
-is doing something --- so that the sparsification contrasts are not vacuous ---
-and to report what a five-seed design can and cannot resolve about return. It
-does not isolate the learned attention channel, for reasons we give below.
+predictions. We therefore gate the study on a positive control and pre-register
+the analysis. The study is secondary to the computational result. Its role is
+to establish that the architecture being sparsified is doing something, so that
+the sparsification contrasts are not vacuous, and to report what a five-seed
+design can and cannot resolve about return; it does not isolate the learned
+attention channel, for reasons given below.
 
 \subsection{Design and pre-registration}
 
@@ -16,7 +16,8 @@ of Section~\ref{sec:measurement}, because end-to-end wall-clock in this
 pipeline is environment-bound and cannot attribute a latency difference to the
 module.
 
-We use two communication-critical controls. In \texttt{simple\_reference} each
+We use two communication-relevant positive controls. In
+\texttt{simple\_reference} each
 agent observes only its partner's goal, so the task requires information to
 pass between agents; the environment provides its own discrete utterance
 channel, and our control ablates the \emph{learned attention channel} on top of
@@ -37,16 +38,16 @@ advantage for the communicating arms, which means the positive controls
 establish that the communicating architecture helps rather than isolating the
 channel.
 
-The analysis plan was written and committed when $8$ of the $40$ tier-2--4 runs
-had produced a final evaluation --- all five seeds of \texttt{gathered-}$k{=}2$
-and three of five of \texttt{random-}$k{=}2$ --- and before any tier-2--4 return
-was read. The tier-1 arms were complete and had been inspected, which is why
-the tier-1 gate is excluded from the inferential family. Commit history
-establishes the ordering (tier-1 artifacts 12:18, plan 12:56, tier-2--4
-artifacts 19:11 the same day) and the plan was amended only by appending to its
-deviations log. Timestamps establish ordering; they cannot establish that a
-file on disk was unread, and we state the plan's independence as a claim about
-our conduct rather than as something the artifact proves. The plan fixes the
+The analysis plan was committed after $8$ of the $40$ tier-2--4 runs had
+completed and before any of their outcomes was inspected: prospectively
+registered before the tier-2--4 outcomes were unblinded, with data generation
+already under way, which we do not obscure. The tier-1 arms were complete and
+had been inspected, which is why the tier-1 gate is excluded from the
+inferential family. Commit history establishes the ordering; timestamps cannot
+establish that a file on disk was never opened, so the plan's independence is a
+claim about our conduct rather than something the artifact proves.
+Appendix~\ref{app:prereg} gives the chronology and the single amendment. The
+plan fixes the
 endpoint (final greedy evaluation return, one number per seed), the six
 contrasts and their direction, the test (exact two-sided permutation on the
 difference of means over all $\binom{10}{5} = 252$ assignments), the effect
@@ -123,32 +124,11 @@ hyperparameter, differing only in whether peers are chosen by attention score
 or uniformly at random. Its point estimate favours attention ($+4.03$, HL
 $+4.57$, $d = +0.60$) but does not approach significance. The design lacked
 power to detect a selection effect of that size; nothing follows about whether
-attention selects informatively.
+attention selects informatively. No conclusion in this paper rests on any of
+the six: they are secondary, pre-registered exploratory contrasts, and the
+computational result of Sections~\ref{sec:analysis} and \ref{sec:measurement}
+stands or falls without them.
 
-\paragraph{Two results we report but do not interpret.} C4 has the one sign
-opposite to its pre-registered direction, and it should be set aside for a
-reason independent of its $p$-value: neither $N{=}12$ arm learned the task. A
-uniform-random policy scores $-758.9$ under the same evaluation protocol,
-against $-864.9$ for the dense arm --- worse than random, with two of five seeds
-below $-975$ --- and $-717.9$ for the gathered arm. The $+147$ point estimate
-compares a diverged run with a barely learning one, and we draw no conclusion
-from it; the $N{=}12$ configuration needs a longer budget or a calibrated radius
-before it can support any contrast. Second, for C4 and C6 the bootstrap
-interval excludes zero while the permutation test does not. The
-pre-registration named the permutation test, so it governs. The disagreement is
-not surprising at this sample size: a percentile bootstrap of a mean at
-$n{=}5$ resamples from a five-point plug-in distribution, and only $5^5 = 3125$
-distinct resamples exist per arm, so the interval is coarse, discrete and of
-uncertain coverage. We treat it as descriptive and let the pre-specified exact
-permutation test govern inference, rather than asserting a systematic direction
-to its miscoverage that our data cannot establish.
-We keep both on the page so the reader sees the size of the estimated
-effect as well as the strength of the evidence for it.
-
-Descriptively, and supporting no claim: the Lagrangian arm meets its budget but
-not by the intended route, its gate collapsing to expected $k \approx 1.01$
-within the first $8\%$ of training while the dual multiplier decays to zero and
-stays there; entmax settles at a support of $1.64$ of $5$ peers; and attention
-entropy falls from $0.35$ nats over $5$ peers to $0.12$ over $2$, with $k{=}1$
-forced to $0$ by construction, three numbers that sit on different supports and
-are reported only as an instrumentation check.
+Two secondary observations --- the uninterpretable $N{=}12$ contrast, the
+bootstrap/permutation disagreement at C4 and C6, and descriptive gate and
+entropy statistics --- are reported in Appendix~\ref{app:training}.

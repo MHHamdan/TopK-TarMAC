@@ -10,10 +10,12 @@ easy to accept, because it is an operation count and operation counts are cheap
 to compute and hard to argue with.
 
 This paper is a report on why we abandoned that design. We set out to build
-score-based top-$k$ communication for multi-agent RL on exactly the rationale
+\emph{score-then-select} top-$k$ communication for multi-agent RL --- forming
+the complete score vector for each agent, then keeping its $k$ largest entries
+--- on exactly the rationale
 above. Within the set of multi-agent communication papers we read for this work
-and audit in Section~\ref{sec:related}, none selects peers by attention score
-after computing all scores; the restriction
+and audit in Section~\ref{sec:related}, none uses a score-then-select rule ---
+selecting peers by attention score after computing all of them; the restriction
 mechanisms there are largely structural, and, as we show below,
 structural selection is not subject to the limit we derive. We state that as a
 property of an audited set rather than of the literature, since an absence
@@ -24,30 +26,37 @@ the reasoning that led us there is standard, the failure has three distinct
 causes at three levels of abstraction, and only the third is specific to our
 hardware.
 
-\paragraph{The count is smaller than it looks.} Selecting the top-$k$ peers by
-attention score requires computing every score. The score matrix is therefore
+\paragraph{The count is smaller than it looks.} In the score-then-select
+setting studied here, selecting the top-$k$ peers requires first forming the
+complete score vector. The score matrix is therefore
 irreducible, and only the value aggregation --- one of the two equal
 multiply--accumulate terms in an attention operation count --- can be
 sparsified at all. Section~\ref{sec:analysis} states this as a proposition: the
 achievable reduction is bounded above by $2\times$, for
 every $k$ and every $N$, approached only as $k/N \to 0$. The familiar
-$1-k/(N-1)$ describes one of those two terms. The bound has a precise escape
-route, which we make explicit because it is the design target for any successor
-method: if the sparsity pattern is structural --- fixed by a topology, a spatial
-prior, or a hash --- the score matmul becomes sparsifiable too, and the ratio
-is no longer bounded by $2$. It reaches $N/k$ exactly when the selector's own
-cost is negligible against the sparse attention it enables, which for a fixed
-or precomputed pattern it is, and for a hash it is not automatically.
+$1-k/(N-1)$ describes one of those two terms. This is a bound on a class of
+rules, not on sparsity in general, and we are careful about which:
+content-dependent mechanisms that identify candidates \emph{without}
+materialising the full pairwise score matrix --- nearest-neighbour retrieval,
+clustering and routing, indexing, hashing --- fall outside it. The escape route
+is therefore precise, and we make it explicit because it is the design target
+for any successor method: if the retained set is fixed before the scores exist,
+the score matmul becomes sparsifiable too and the ratio is no longer bounded by
+$2$. Charging $C_{\mathrm{sel}}$ for the selector, the count ratio is
+asymptotic to $N/k$ when $C_{\mathrm{sel}} = o(Nkd)$, and equals $N/k$ only
+when the selector is free --- which a fixed or precomputed pattern is, and a
+hash or a router is not automatically.
 
 \paragraph{Even the reduced count need not be executed.} A count is a model of
 cost, not a measurement of it, and an implementation can fail to perform the
 saving the count describes. Applying top-$k$ as a \emph{mask} on the dense
 attention matrix materialises the discarded entries as zeros and runs the same
-dense $(B,N,N)\times(B,N,d)$ aggregation matmul; executed multiply--accumulates
-are then identical to dense. This is what our own first implementation did, and
-a FLOP model based on $1-k/(N-1)$ credits it with a saving that grows as $k/N$
-falls: $75\%$ at our headline $N{=}512$, $k{=}127$ cell, and above $90\%$ at
-the small-$k$ settings a learned gate tends towards. We implement
+dense $(B,N,N)\times(B,N,d)$ aggregation matmul, so the executed dense
+aggregation MAC count is unchanged and selection and masking are added on top.
+This is what our own first implementation did, and
+a FLOP model based on $1-k/(N-1)$ credits it with a saving that grows
+analytically as $k/(N-1)$ falls: $75\%$ at our headline $N{=}512$, $k{=}127$
+cell. We implement
 the genuinely sparse gather instead, verify it computes the same function to
 floating-point tolerance while executing measurably fewer FLOPs, and benchmark
 dense, masked and gathered as three separate curves against a fused dense
@@ -69,10 +78,11 @@ changes the answer.
 \paragraph{Contributions.}
 \begin{itemize}
   \item \textbf{Analytical.} A $2\times$ ceiling on the operation-count saving
-    achievable by any selection rule that requires the complete score vector,
-    with its assumptions separated and
-    its structural escape route stated as a constructive proposition that
-    charges for the selector (Section~\ref{sec:analysis}).
+    achievable by any \emph{score-then-select} rule --- one that fixes the
+    retained set only after the complete score vector exists --- with its
+    assumptions separated, its domain bounded away from retrieval- and
+    routing-style selection, and its escape route stated as a constructive
+    proposition that charges for the selector (Section~\ref{sec:analysis}).
   \item \textbf{Implementation.} A masked/gathered/fused taxonomy of the same
     function, a corrected sparse implementation, and regression tests pinning
     that the two top-$k$ variants agree numerically while executing different
@@ -80,21 +90,19 @@ changes the answer.
     Appendix~\ref{app:verification}).
   \item \textbf{Systems evidence.} A benchmark campaign over $N \le 512$, head
     width $16$--$256$, batch $32$--$4096$, two dtypes, three execution modes
-    and two architectures, with a component decomposition and a roofline
-    account of the cause, and a drift control quantifying how far the
-    measurement travels (Section~\ref{sec:measurement}).
-  \item \textbf{Learning evidence, bounded by its power.} A study with an
-    analysis plan registered after $8$ of $40$ runs had completed and before
-    any of their outcomes was read, separating ``the communication machinery
-    does nothing'' from ``sparsifying it is free'', with positive controls that
-    pass --- for the architecture, not for the channel in isolation --- and six
-    sparsification contrasts reported as the under-powered nulls they are
-    (Section~\ref{sec:training}).
+    and two architectures, with a component decomposition, a roofline account
+    of the cause, and a drift control (Section~\ref{sec:measurement}).
+  \item \textbf{Learning evidence, bounded by its power.} A study whose
+    analysis plan was registered after $8$ of $40$ runs had completed and
+    before their outcomes were inspected, separating ``the communication
+    machinery does nothing'' from ``sparsifying it is free'', with positive
+    controls that pass --- for the architecture, not the channel in isolation
+    --- and six sparsification contrasts reported as the under-powered nulls
+    they are (Section~\ref{sec:training}).
   \item \textbf{Methodological artifacts.} Seven reproducible benchmarking
-    pitfalls, each of which produced a spurious result during this study, and
-    a released harness together with a checker that re-derives every headline
-    quantity in this manuscript from the raw JSON and fails on any
-    disagreement (Section~\ref{sec:pitfalls}).
+    pitfalls, each of which produced a spurious result here, and a released
+    harness with a checker that re-derives every headline quantity from the raw
+    JSON and fails on any disagreement (Section~\ref{sec:pitfalls}).
 \end{itemize}
 
 Every claim concerns centralised-inference computational cost on one device,

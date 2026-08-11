@@ -3,14 +3,15 @@ its top-$k$ peers, and the efficiency case for doing so rested on an operation
 count. Examining that count, and then measuring what runs, produced three
 separate negative results at three levels of abstraction.
 
-The count is smaller than it appears: because selecting peers by attention
-score requires every score, only the value-aggregation product is sparsifiable
---- one of the two equal multiply--accumulate terms --- and the achievable
-reduction is bounded by $2\times$ rather than by
+The count is smaller than it appears: because a score-then-select rule must
+form every score before it can rank them, only the value-aggregation product is
+sparsifiable --- one of the two equal multiply--accumulate terms --- and the
+achievable reduction is bounded by $2\times$ rather than by
 $1-k/(N-1)$. The count need not be executed: masking the dense attention
 matrix leaves the dense aggregation matmul in place, so an implementation
-written that way performs no saving at all while a FLOP model reports a large
-one. And the executed saving need not be time: a genuinely sparse gather, which
+written that way executes the same dense aggregation MACs as dense attention,
+plus selection and masking overhead, while a FLOP model reports a large saving.
+And the executed saving need not be time: a genuinely sparse gather, which
 we verified computes the same function while executing fewer operations, was
 slower than unfused dense in all $46$ cells of our GPU sweep and slower than a
 fused kernel in $45$ of them. Selection and gather move memory for no
@@ -21,24 +22,24 @@ the arithmetic.
 What does not follow is as important as what does. This is not evidence that
 sparse multi-agent communication is a bad idea. The result is confined to
 centralised inference on a single device; in bandwidth-constrained distributed
-settings the objective is the number of messages transmitted, which our
-analysis does not address and our measurements do not touch. Nor have we shown
-that no implementation can cross over. One slack in ours we removed --- an unnecessary sort in the selection call,
-worth $5$--$24\%$ --- and one remains and is quantified: the selection kernel
-still runs at roughly $9\%$ copy-equivalent bandwidth efficiency, and replacing
-it with a bandwidth-only counterfactual that no real kernel could attain
+settings the objective is the number of messages transmitted, which we neither
+analyse nor measure. Nor have we shown that no implementation can cross over:
+we removed one slack in ours --- an unnecessary sort, worth $5$--$24\%$ --- and
+quantified the one that remains, a selection kernel running at roughly $9\%$
+copy-equivalent bandwidth efficiency whose bandwidth-only counterfactual
 narrows the margin without reversing it. What survives every correction we
 could make is the requirement to form and rank the full score matrix, which is
 the assumption the ceiling rests on.
 
 The constructive half of the result is Proposition~\ref{prop:escape}. A method
-whose sparsity pattern is fixed \emph{before} the scores are computed --- by
-topology, by a spatial prior, by a hash --- is not subject to the ceiling, and
-reaches $N/k$ when the cost of running its selector is small beside the sparse
-attention it enables. That condition is satisfied outright by a fixed or
-precomputed pattern and has to be checked for anything learned or hashed; it is
-the term a successor method should budget for first. This is not a hypothetical
-class: it is what the structural
+that fixes what it will attend to \emph{without} forming the complete score
+vector --- by topology, by a spatial prior, by a hash, by clustering or
+retrieval --- is not subject to the ceiling, and its count ratio is asymptotic
+to $N/k$ when the cost of running its selector is $o(Nkd)$; exact $N/k$ is
+recovered only when that selector is free. That condition is satisfied outright
+by a fixed or precomputed pattern and has to be checked for anything learned,
+hashed or routed; it is the term a successor method should budget for first.
+This is not a hypothetical class: it is what the structural
 selectors in the multi-agent literature already do, and what makes the
 asymptotic savings in Longformer and BigBird real. In an environment with
 spatial structure, distance-calibrated routing is the natural instance. A fused
@@ -48,11 +49,10 @@ our measured penalty is implementation and how much is inherent.
 
 The methodological lesson is not specific to multi-agent RL. An operation count
 is a model of cost, and like any model it can fail in two ways: it can
-mis-estimate the quantity it describes, and the quantity it describes can fail
-to govern the outcome anyone cares about. Both happened here, and a third
-failure --- the implementation not executing the counted algorithm --- sat
-between them. The remedy is cheap: report executed operation counts beside
-measured latency, name the baseline, and state the envelope. We release the
-harness, the corrected implementation, the pre-registration, and the seven
-benchmarking pitfalls that produced spurious results along the way
+mis-estimate the quantity it describes, and that quantity can fail to govern
+the outcome anyone cares about. Both happened here, with a third failure --- the
+implementation not executing the counted algorithm --- between them. The remedy
+is cheap: report executed operation counts beside measured latency, name the
+baseline, and state the envelope. We release the harness, the corrected
+implementation, the pre-registration and the seven benchmarking pitfalls
 (Appendix~\ref{app:repro}).

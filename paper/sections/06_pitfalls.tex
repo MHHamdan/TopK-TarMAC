@@ -30,8 +30,8 @@ $\approx0.4\,\mu$s --- a spectacular speedup &
 Pin the device and pass it to every synchronisation \\
 \addlinespace
 P4. Benchmarking a masked implementation as sparse &
-The ``sparse'' arm uniformly slower than dense --- true of that code, but
-silent about the method &
+Its aggregation MAC count is unchanged from dense, so the advertised saving is
+never executed and the ``sparse'' arm is uniformly slower &
 Assert executed FLOPs differ, and that the sparse path issues no
 $(B,N,N)\times(B,N,d)$ product \\
 \addlinespace
@@ -57,20 +57,21 @@ measurement and they leave traces --- an impossible latency, a non-monotone
 curve, an unstable repeat. P2 is a design error that lets a shared environment
 leak into a comparison. P4 and P5 are specification errors about \emph{what is
 being compared to what}, and they are the dangerous ones, because the resulting
-numbers are internally consistent, reproducible, and stable under every check
-the other five would fail. They are answers to a different question than the
-one being asked. The defence is to state the operation count each arm executes
-alongside its latency, which makes a mismatch between the claimed and the
-executed algorithm visible immediately.
+numbers are internally consistent, reproducible and stable under every check
+the other five would fail: they answer a different question from the one being
+asked. The defence is to state the operation count each arm executes alongside
+its latency, which makes a mismatch between the claimed and the executed
+algorithm visible immediately.
 
 One belief of our own is worth correcting. We assumed that standard counters
-are blind to fused attention kernels and report zero for them, which would make
-a FLOPs-only comparison unable to see the baseline that matters. In PyTorch
-2.11 that is not so: \texttt{torch.utils.flop\_counter} reports the fused path
-correctly, and it was our harness that then added an analytic term on top of
-the counter's output for that arm, publishing a figure $1.83\times$ too large.
-The narrower lesson generalises better: instrument the counter, then check the
+are blind to fused attention kernels, which would make a FLOPs-only comparison
+unable to see the baseline that matters. In PyTorch 2.11 that is not so:
+\texttt{torch.utils.flop\_counter} reports the fused path correctly, and it was
+our harness that added an analytic term on top of the counter's output for that
+arm, publishing a figure $1.83\times$ too large. The narrower lesson
+generalises better: instrument the counter, then check the
 counter. A FLOP model based on $1 - k/(N-1)$ will credit code whose executed
-operation count is identical to dense with a saving of $75\%$ at
-$N{=}512, k{=}127$ and more than $90\%$ once $k$ falls towards $1$, and only a
+dense aggregation MAC count is unchanged from dense with a saving of $75\%$ at
+$N{=}512, k{=}127$, and --- as an analytic property of that formula rather than
+a measured run --- with more than $90\%$ wherever $k/(N-1) < 0.1$. Only a
 counter attached to the running program will say otherwise.

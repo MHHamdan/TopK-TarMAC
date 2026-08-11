@@ -2,24 +2,21 @@
 \label{sec:protocol}
 
 We time the communication module in isolation, with the training loop removed.
-The protocol is stated in full because several of its provisions were forced by
-defects that produced spurious results first (Section~\ref{sec:pitfalls}).
-
-Timing uses on-device CUDA events with an explicit synchronisation on the
-correct device. Any diagnostic that calls \texttt{.item()} is disabled, because
-such a call synchronises the device \emph{inside} the timed forward pass. Arms
-are timed interleaved repetition by repetition rather than in sequential
-per-arm blocks, so that interference from other tenants lands on all arms at
-once and the ratios between them remain paired; on this shared host the
-sequential design produced swings above $100\%$ between identical
-configurations, which interleaving reduced to typically under $2\%$. We report
-$\min$ over samples as the primary statistic, on the modelling assumption that
-interference adds time rather than removing it, and give median, IQR and
-inter-run spread in
-Appendix~\ref{app:dispersion} together with the sensitivity of every headline
-ratio to that choice. GPU clocks could not be locked --- the account lacks the
-privilege. Executed FLOPs are counted with \texttt{torch.utils.flop\_counter}
-so that latency is always reported beside the arithmetic actually performed.
+Several provisions below were forced by defects that produced spurious results
+first (Section~\ref{sec:pitfalls}). Timing uses on-device CUDA events with an
+explicit synchronisation on the correct device, and any diagnostic calling
+\texttt{.item()} is disabled, because such a call synchronises the device
+\emph{inside} the timed forward pass. Arms are timed interleaved repetition by
+repetition rather than in sequential per-arm blocks, so that interference lands
+on all arms at once and their ratios remain paired; the sequential design
+produced swings above $100\%$ between identical configurations on this shared
+host, which interleaving reduced to typically under $2\%$. We report $\min$ over
+samples as the primary statistic, on the modelling assumption that interference
+adds time rather than removing it; Appendix~\ref{app:dispersion} gives median,
+IQR, inter-run spread and the sensitivity of every headline ratio to that
+choice. GPU clocks could not be locked --- the account lacks the privilege.
+Executed FLOPs are counted with \texttt{torch.utils.flop\_counter}, so latency
+is always reported beside the arithmetic actually performed.
 
 Unless stated otherwise: PyTorch 2.11 / CUDA 12.8, \texttt{fp32}, input
 embedding width $64$, head width $d{=}16$, batch $256$, $k = 25\%$ of peers,
@@ -72,59 +69,53 @@ Section~\ref{sec:roofline} --- the gather's traffic grows faster than the
 masked path's wasted arithmetic --- and it is an inference from the byte
 accounting in Table~\ref{tab:roofline}, not a separate controlled experiment.
 
-The two ends of this table are governed by different mechanisms, and the
-distinction matters for how far the numbers generalise. For $N \le 96$ the
-unfused dense arm is nearly flat at $0.12$--$0.13$\,ms while its work grows
-$256$-fold: these cells are bound by kernel launch count, not by bandwidth or
-arithmetic, and the $1.15$--$1.17\times$ ratios there reflect how many kernels
-each arm issues. Ratios in this regime are sensitive to how many arms share a
-timing group, and we measure a $5\times$ disagreement between two of our own
-sweeps on the same nominal cell for this reason
-(Section~\ref{sec:pitfalls}, P7). From $N{=}192$ upward the working set exceeds
-L2, traffic is real, and the roofline account of Section~\ref{sec:roofline}
-applies.
+The two ends of this table are governed by different mechanisms, which bounds
+how far the numbers generalise. For $N \le 96$ the unfused dense arm is nearly
+flat at $0.12$--$0.13$\,ms while its work grows $256$-fold: those cells are
+bound by kernel launch count rather than bandwidth or arithmetic, and the
+$1.15$--$1.17\times$ ratios there reflect how many kernels each arm issues,
+which makes them sensitive to how many arms share a timing group --- two of our
+own sweeps disagree by $5\times$ on one such cell (Section~\ref{sec:pitfalls},
+P7). From $N{=}192$ upward the working set exceeds L2, traffic is real, and the
+roofline account of Section~\ref{sec:roofline} applies.
 
 \paragraph{Robustness.} The ordering is unchanged under \texttt{torch.compile}
 and CUDA-graph capture: at $N{=}512$ the ratio against unfused dense is
 $3.29$, $3.30$ and $3.31$ for eager, compiled and graph-captured execution
 respectively. It is also unchanged at batch $4096$, where the largest cells
 become FLOP-bound. In \texttt{bf16} the gap is wider, reaching $19.7\times$ the
-fused kernel at $N{=}512$. FlashAttention served no arm, and we record which
-backend did rather than asserting it: our fused baseline passes a
-self-attention mask, this build rejects a non-null \texttt{attn\_mask} for
-FlashAttention in both the additive-float and the Boolean form, and
-\texttt{fp32} excludes it again on dtype. Reading the dispatched kernel from
-the profiler confirms what is left --- \texttt{fmha\_cutlassF}, PyTorch's
-memory-efficient CUTLASS kernel, at both dtypes. The substitution runs against
-us: on the same unmasked \texttt{bf16} shape, forcing FlashAttention rather
-than the memory-efficient backend gives $0.0149$ against $0.0223$\,ms at
-$N{=}192$ and $0.0388$ against $0.0989$\,ms at $N{=}512$, so a baseline able to
-reach it would widen the gap we report. The probe log is released.
+fused kernel at $N{=}512$. FlashAttention serves no arm here --- our fused
+baseline passes a self-attention mask, which this build rejects for
+FlashAttention in every mask form, and \texttt{fp32} excludes it again on dtype
+--- so the fused arm runs PyTorch's memory-efficient CUTLASS kernel, read from
+the profiler rather than asserted. The substitution runs against us: forcing
+FlashAttention on the same unmasked \texttt{bf16} shape is $1.5$--$2.5\times$
+faster than the kernel we do get, so a baseline able to reach it would widen
+the gap we report. Appendix~\ref{app:verification} gives the probe and its
+numbers.
 
 \paragraph{Selection is tuned, and it matters how much.} The gathered path
 calls \texttt{torch.topk} with \texttt{sorted=False}. The ordering of the $k$
-retained entries is irrelevant here, since the softmax and the gather are
-permuted consistently by the same indices, so the sorted and unsorted calls
-compute the identical function --- we verify agreement to
-$5.4\times10^{-7}$ --- while the unsorted one was cheaper in every shape we
-tested under PyTorch 2.11. The
-difference is not small on the stage that dominates this path: with the default
-\texttt{sorted=True} the selection stage costs up to $35\%$ more and the whole
-gathered arm $5$--$24\%$ more, which at $N{=}192$ is the difference between a
-ratio of $2.90$ and one near $3.8$. We report the tuned configuration
-throughout, because the question is whether a tuned sparse implementation
-wins, not whether a careless one loses. The size of that gap is itself part of
-the finding: a sparse path has more sites of avoidable implementation overhead
-than a dense one, and an operation count sees none of them.
+retained entries is irrelevant here --- the softmax and the gather are permuted
+consistently by the same indices, and we verify the two calls agree to
+$5.4\times10^{-7}$ --- while the unsorted call was cheaper in every shape we
+tested under PyTorch 2.11. The difference is not small on the stage that
+dominates this path: with the default \texttt{sorted=True} the selection stage
+costs up to $35\%$ more and the whole gathered arm $5$--$24\%$ more, which at
+$N{=}192$ is the difference between a ratio of $2.90$ and one near $3.8$. We
+report the tuned configuration throughout, because the question is whether a
+tuned sparse implementation wins, not whether a careless one loses. The size of
+that gap is itself part of the finding: a sparse path has more sites of
+avoidable implementation overhead than a dense one, and an operation count sees
+none of them.
 
 \subsection{\texorpdfstring{Is there any $(d, B, N, k)$ where sparsity wins?}{Is there any (d, B, N, k) where sparsity wins?}}
 \label{sec:surface}
 
 Reporting isolated favourable cells as anomalies is not a characterisation. We
-swept head width $d \in \{32,64,128,256\}$ against batch $\in
-\{32,256,4096\}$ and $N \in \{12,48,192,512\}$, and for each cell took the
-\emph{best} $k$ for the gather path, which is the most favourable operating
-point available to it.
+swept head width $d \in \{32,64,128,256\}$ against batch $\in \{32,256,4096\}$
+and $N \in \{12,48,192,512\}$, taking for each cell the \emph{best} $k$ for the
+gather path --- the most favourable operating point available to it.
 
 \begin{figure}[t]
 \centering
@@ -151,17 +142,13 @@ pool them into this count.
 Across the surface the ratio stays within $1.17$--$2.44\times$. It is flat in
 batch across a $128$-fold range, which suggests the outcome is not an artifact
 of one operating point. It is \emph{not} flat in head width: at $N{=}512$ it
-trends downward as $d$ grows ($2.19 \to 2.29 \to 1.81 \to 1.44$ at
-$B{=}32$), though not strictly --- $d{=}64$ is slightly worse than $d{=}32$ at
-both batch sizes we can read the trend from --- and the sweep stops at
-$d{=}256$ with the
-two most favourable remaining cells ($d \in \{128,256\}$ at $B{=}4096$,
-$N{=}512$) skipped for memory. We therefore make no claim for $d > 256$, and we
-regard the head-width trend as unresolved rather than as evidence either way.
-Head widths above $256$ are also outside the range used in the multi-agent
-communication systems we survey in Section~\ref{sec:related}, which is why the
-sweep was designed as it was; a reader interested in the large-$d$ limit should
-treat this as an open question.
+trends downward as $d$ grows ($2.19 \to 2.29 \to 1.81 \to 1.44$ at $B{=}32$),
+though not strictly --- $d{=}64$ is slightly worse than $d{=}32$ at both batch
+sizes we can read the trend from --- and the sweep stops at $d{=}256$ with the
+two most favourable remaining cells skipped for memory. We therefore make no
+claim for $d > 256$ and regard the head-width trend as unresolved. Head widths
+above $256$ are outside the range used in the multi-agent communication systems
+of Section~\ref{sec:related}, which is why the sweep was designed as it was.
 
 \subsection{Where the time goes}
 \label{sec:decomp}
@@ -186,30 +173,6 @@ $N{=}512$ while performing roughly four times fewer multiply--accumulates.}
 \label{fig:decomp}
 \end{figure}
 
-\begin{table}[t]
-\centering
-\small
-\caption{Per-stage latency (ms, $\min$ over interleaved samples), batch $256$,
-$d{=}16$. The aggregation ``saving'' is \emph{negative} at every $N$: the
-sparse contraction is slower than the dense matmul it replaces, despite
-performing $\approx4\times$ fewer multiply--accumulates. Overhead is
-$\texttt{topk} + \texttt{gather} + \texttt{softmax}_k - \texttt{softmax}_N$ and
-so is not a sum of the columns shown.}
-\label{tab:decomp}
-\begin{tabular}{rrrrrrrr}
-\toprule
-$N$ & $k$ & \texttt{topk} & \texttt{gather} & \texttt{agg\_dense} & \texttt{agg\_sparse} & saving & overhead \\
-\midrule
-12  & 2   & 0.014 & 0.015 & 0.017 & 0.019 & $-0.003$ & $+0.029$ \\
-48  & 11  & 0.028 & 0.015 & 0.017 & 0.022 & $-0.005$ & $+0.042$ \\
-96  & 23  & 0.069 & 0.028 & 0.025 & 0.056 & $-0.031$ & $+0.095$ \\
-192 & 47  & 0.258 & 0.148 & 0.059 & 0.146 & $-0.087$ & $+0.383$ \\
-384 & 95  & 1.078 & 0.561 & 0.178 & 0.496 & $-0.318$ & $+1.480$ \\
-512 & 127 & 3.426 & 0.999 & 0.249 & 0.844 & $-0.595$ & $+4.136$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 Figure~\ref{fig:decomp} and Table~\ref{tab:decomp} give two results, both
 against the hypothesis they were meant to test. First, the aggregation saving
 is negative: the sparse
@@ -221,27 +184,23 @@ single stage: \texttt{topk} alone costs $13.7\times$ the entire dense
 aggregation at $N{=}512$, and $51\%$ of the gathered path's forward pass.
 
 How much of this a better kernel could remove is a question the roofline model
-can answer, and the answer is: a substantial part of the selection term, but
-not the outcome. At $N{=}512$, $B{=}256$ the top-$k$ must read the
-$268$\,MB score matrix and write values and indices, about $0.47$\,GB in total.
-At the $1444$\,GB/s we measure as achievable, moving those bytes and nothing
-else would take $0.32$\,ms against the $3.426$\,ms observed, so PyTorch's
-top-$k$ is running at roughly $9\%$ \emph{copy-equivalent bandwidth efficiency}
-on this shape even unsorted. This is a bandwidth-only lower bound and an
-optimistic one: a real selection kernel also compares, ranks and writes
-irregularly, so no kernel should be expected to attain it. The gather stage, by
-contrast, runs near bandwidth. Selection is therefore \emph{not} intrinsically
-expensive in the way the raw decomposition suggests, and we withdraw any
-suggestion that it is: dropping the sort already recovered a fifth of it with a
-one-word change, and an order of magnitude of headroom remains by this
-accounting. What survives is the ordering. Substituting even that unattainable
-copy-equivalent select into the
-$N{=}512$ cell gives roughly $3.4$\,ms for the gathered path against
-$1.99$\,ms unfused and $0.43$\,ms fused --- an optimistic counterfactual that
-still loses, rather than a proof that no kernel can cross over. The conclusion
-does not depend on the selection kernel being bad. It
-depends on the score matrix having to be formed and ranked at all, which is
-assumption A2.
+answers: a substantial part of the selection term, but not the outcome. At
+$N{=}512$, $B{=}256$ the top-$k$ must read the $268$\,MB score matrix and write
+values and indices, about $0.47$\,GB; at the $1444$\,GB/s we measure as
+achievable, moving those bytes and nothing else would take $0.32$\,ms against
+the $3.426$\,ms observed, so PyTorch's top-$k$ runs at roughly $9\%$
+\emph{copy-equivalent bandwidth efficiency} on this shape even unsorted. That
+is a bandwidth-only lower bound and an optimistic one, since a real selection
+kernel also compares, ranks and writes irregularly; the gather stage, by
+contrast, already runs near bandwidth. Selection is therefore \emph{not}
+intrinsically expensive in the way the raw decomposition suggests, and we
+withdraw any suggestion that it is. What survives is the ordering: substituting
+even that unattainable copy-equivalent select into the $N{=}512$ cell gives
+roughly $3.4$\,ms against $1.99$\,ms unfused and $0.43$\,ms fused --- an
+optimistic counterfactual that still loses, rather than a proof that no kernel
+can cross over. The conclusion does not depend on the selection kernel being
+bad. It depends on the score matrix having to be formed and ranked at all,
+which is assumption A2.
 
 \subsection{\texorpdfstring{The evaluated learned gate costs $\mathcal{O}(BN^3)$ memory}{The evaluated learned gate costs O(BN cubed) memory}}
 \label{sec:memory}
@@ -252,34 +211,17 @@ $K = N-1$, materialising $(B,N,N-1,N)$ before reducing. Activation memory is
 therefore $\mathcal{O}(BN^3)$ against dense attention's $\mathcal{O}(BN^2)$ and
 the fused kernel's $\mathcal{O}(BNd)$.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.62\linewidth]{figures/fig5_memory.pdf}
-\caption{Peak activation memory against agent count, batch $256$, with the
-offset-corrected fitted exponent beside each arm. The evaluated gate
-implementation grows cubically and is the first arm to exhaust the device;
-gathering saves no memory over masking, because the gathered value tensor
-replaces the zeros it avoids.}
-\label{fig:memory}
-\end{figure}
-
-Figure~\ref{fig:memory} validates the derivation. Fitting $\text{peak} \sim
-N^p$ over $N \ge 48$ with a constant offset removed gives $p = 3.04$ for the
-gate, against $1.96$ for dense, $2.02$ for masked, $1.98$ for gathered and
-$1.36$ for fused. The absolute check is sharper: at $N{=}384$ the closed form
-predicts $97.5\%$ of the measured peak. In practice the gate consumes
-$55.2$\,GiB at $N{=}384$ (batch $256$) and exhausts the device at $N{=}512$;
-analytically it exhausts a $96$\,GiB card at $N{=}465$, and at batch $4096$ at
-$N{=}185$.
-
-This is a result about the implementation we evaluated, not a lower bound on
-learned gates. The same function admits an $\mathcal{O}(BN^2)$ formulation ---
-a cumulative sum along $K$ rather than a broadcast against an explicit
-cumulative-keep tensor --- and we report the cubic scaling as an easy and
-costly implementation trap rather than as a property of adaptive selection.
-It belongs with the pitfalls of Section~\ref{sec:pitfalls}, and its interest is
-that the arm whose stated purpose is to reduce cost was the first to exhaust
-the device.
+Measurement confirms the derivation (Appendix~\ref{app:memory}). Fitting
+$\text{peak} \sim N^p$ over $N \ge 48$ with a constant offset removed gives
+$p = 3.04$ for the gate, against $1.96$ for dense, $2.02$ for masked, $1.98$ for
+gathered and $1.36$ for fused, and at $N{=}384$ the closed form predicts
+$97.5\%$ of the measured peak; the gate consumes $55.2$\,GiB at $N{=}384$,
+batch $256$, and exhausts the device at $N{=}512$. This is a result about the
+implementation we evaluated, not a lower bound on learned gates --- the same
+function admits an $\mathcal{O}(BN^2)$ formulation --- so we report it as an
+easy and costly implementation trap, belonging with the pitfalls of
+Section~\ref{sec:pitfalls}. Its interest is that the arm whose stated purpose
+is to reduce cost was the first to exhaust the device.
 
 \subsection{Cross-architecture check}
 \label{sec:cpu}
@@ -287,25 +229,16 @@ the device.
 Running the same arms on an x86\_64 CPU tests whether the ordering depends on
 GPU kernel selection. It does not, but obtaining a usable measurement required
 controlling an effect unrelated to attention. With the default glibc allocator
-the dense, masked and gathered paths each allocate and free several multi-MiB
-$(B,N,N)$ temporaries per forward, which the allocator returns to the kernel
-and which are then re-faulted on the next call: at $N{=}192$ this adds
-$\approx37{,}000$ minor page faults per forward and inflates latency by up to
-$8.8\times$. The tax is proportional to the bytes of large temporaries each arm
-churns, so it differs per arm and does not cancel in a ratio. In our archived
-CPU run it landed hard enough on the dense arm at $N{=}48$ to invert the
-ordering there --- the single cell in this study where a gathered path appeared
-to beat a dense one on equal terms. It was an allocator measurement, not an
-attention measurement.
-
-We pin the heap by raising glibc's \texttt{MALLOC\_TOP\_PAD\_} so that freed
-temporaries are retained rather than returned to the kernel, and count minor
-faults per forward from the process's own resource usage across the timed
-region. Because the allocator tuning is part of the measurement rather than a
-detail of it, the harness records the allocator environment, the thread counts,
-the affinity mask and the fault totals in each run's metadata, and the
-superseded un-pinned run is retained beside the pinned one, so the
-before-and-after can be inspected rather than taken on trust.
+the multi-MiB $(B,N,N)$ temporaries each arm allocates and frees per forward
+are returned to the kernel and re-faulted on the next call: at $N{=}192$ this
+adds $\approx37{,}000$ minor page faults per forward and inflates latency by up
+to $8.8\times$. The tax is proportional to the bytes of large temporaries each
+arm churns, so it differs per arm and does not cancel in a ratio, and in our
+archived un-pinned run it landed hard enough on the dense arm at $N{=}48$ to
+invert the ordering there. That was an allocator measurement, not an attention
+measurement. We pin the heap and count minor faults per forward inside the
+timed region; Appendix~\ref{app:cpu} gives the procedure and what the harness
+records so the before-and-after can be inspected rather than taken on trust.
 
 With the heap pinned, the gathered path is slower than both dense baselines at
 every $N$: $1.96$--$3.13\times$ unfused dense and $2.54$--$28.9\times$ the
@@ -316,15 +249,15 @@ device, where a gathered path appeared to beat a dense one on equal terms. The
 fused kernel is the arm least affected by the allocator, because CPU
 flash-attention never materialises a $(B,N,N)$ tensor.
 
-Two things are worth separating here. The gathered-versus-unfused penalty is of
-the same order on both devices and, at $N{=}192$, is smaller on CPU
-($2.10\times$) than on GPU ($2.90\times$) --- agreement in sign, not in
-magnitude. The much larger CPU figure against the \emph{fused} baseline is
-dominated by a different effect: on CPU the fused kernel's tiling avoids
-streaming a $37.7$\,MB score matrix through a $96$\,MiB L3 shared across two
-sockets, giving it a $13.8\times$ advantage over unfused dense at $N{=}192$
-against $4.6\times$ on the GPU. We report that as evidence about which dense
-baseline matters, not as evidence about arithmetic intensity.
+Two effects are worth separating. The gathered-versus-unfused penalty is of the
+same order on both devices and at $N{=}192$ is smaller on CPU ($2.10\times$)
+than on GPU ($2.90\times$) --- agreement in sign, not magnitude. The much larger
+CPU figure against the \emph{fused} baseline is dominated by a different
+effect: the fused kernel's tiling avoids streaming a $37.7$\,MB score matrix
+through a $96$\,MiB L3 shared across two sockets, giving it a $13.8\times$
+advantage over unfused dense at $N{=}192$ against $4.6\times$ on the GPU. That
+is evidence about which dense baseline matters, not about arithmetic
+intensity.
 
 \subsection{Drift control}
 \label{sec:drift}
@@ -333,56 +266,29 @@ Because clocks are unlocked and the host is shared, we re-ran the identical
 sweep twice on the same device: once with the device otherwise idle, and once
 with a concurrent GEMM-and-allocation load running on it.
 
-\begin{table}[t]
-\centering
-\small
-\caption{Reproducibility of the headline sweep. Ratios --- the quantity every
-claim is stated in --- move by less than half as much as absolute latency at
-the median, though under load their worst case is comparable. Entries are
-median and maximum absolute change across the eight $N$ cells.}
-\label{tab:drift}
-\begin{tabular}{lrrrr}
-\toprule
-& \multicolumn{2}{c}{\textbf{latency} $|\Delta|$} & \multicolumn{2}{c}{\textbf{ratio} $|\Delta|$} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}
-\textbf{Condition} & median & max & median & max \\
-\midrule
-Same device, idle, later run        & 0.7\%  & 2.6\%   & \textbf{0.4\%}  & \textbf{1.4\%} \\
-Same device, concurrent GPU load    & 67.9\% & 114.2\% & 33.7\% & 115.9\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:drift} gives the result. With the device idle the ratios
-reproduce to within $1.4\%$ at every $N$ and absolute latency to within
-$2.6\%$, so the measurement is stable across runs. Under concurrent load
-agreement degrades sharply --- absolute latency moves by a median of $68\%$ ---
-while the ratios, being paired, move by a median of $34\%$. The pairing buys
-less than that median suggests: the \emph{worst} ratio cell moves by $116\%$,
-marginally more than the worst absolute-latency cell at $114\%$, so what
-pairing reliably removes is the typical drift, not the tail. The operational consequence is
-that headline latency must be measured on an unloaded device, and that
+Table~\ref{tab:drift} in Appendix~\ref{app:drift} gives the result. With the
+device idle the ratios reproduce to within $1.4\%$ at every $N$ and absolute
+latency to within $2.6\%$. Under concurrent load agreement degrades sharply ---
+absolute latency moves by a median of $68\%$ --- while the paired ratios move by
+a median of $34\%$. The pairing buys less than that suggests: the \emph{worst}
+ratio cell moves by $116\%$, marginally more than the worst absolute-latency
+cell at $114\%$, so what pairing reliably removes is the typical drift, not the
+tail. Headline latency must therefore be measured on an unloaded device, and
 interleaving plus minimum-over-samples reduces contention sensitivity without
 eliminating it.
 
 Direction and magnitude should be reported separately. Under load all eight
-ratio cells moved against the sparse path, by $+12\%$ to $+116\%$. On the idle
-repeat the movements are small and mixed: five of eight against and three in
-its favour, none by more than $1.4\%$. The relevant quantity is therefore the
-margin rather than the direction. The smallest gathered/unfused-dense ratio we
-observe on GPU across every run, precision and execution mode is $1.15\times$;
-the smallest against the fused baseline is $0.89\times$, at $N{=}6$ and batch
-$4096$, where fixed kernel overhead dominates. On CPU the smallest is
-$1.96\times$ against unfused dense. No condition we measured brings any GPU
-cell below $1.15\times$ unfused dense, and the one contention
-regime we could measure moves every cell further from one. We cannot exclude an
-interference pattern that would penalise the dense path more than the sparse
-one --- a competitor that evicted the dense path's working set rather than
-adding launch latency might do so --- but none of the conditions available to us
-does.
-
-We report a same-device drift control here rather than the second physical card
-used in an earlier version of this campaign, because the second device was not
-free of other tenants when these measurements were taken. The idle repeat
-therefore establishes stability across runs and across hours, not independence
-from one physical card.
+ratio cells moved against the sparse path, by $+12\%$ to $+116\%$; on the idle
+repeat the movements are small and mixed, none exceeding $1.4\%$. The relevant
+quantity is therefore the margin. The smallest gathered/unfused-dense ratio we
+observe on GPU across every run, precision and execution mode is $1.15\times$,
+and on CPU $1.96\times$; the smallest against the fused baseline is
+$0.89\times$, at $N{=}6$ and batch $4096$, where fixed kernel overhead
+dominates. No condition we measured brings any GPU cell below $1.15\times$
+unfused dense, and the one contention regime we could measure moves every cell
+further from one. We cannot exclude an interference pattern that would penalise
+the dense path more --- a competitor evicting its working set rather than adding
+launch latency might --- but none available to us does. This is a same-device
+repeat rather than a second card, because the second card was not free of other
+tenants when these measurements were taken; it establishes stability across
+runs and hours, not independence from one physical card.

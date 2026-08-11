@@ -2,98 +2,86 @@
 centralised-inference computational cost: the wall-clock latency and memory of
 executing the communication module on a single device, where all agents'
 observations are available to one process. It is not a claim about
-bandwidth-constrained distributed deployment. In that regime the objective is
-to reduce the number of messages physically transmitted, and top-$k$
-sparsification may well be the correct design even though it does not reduce
-local compute. The analytic ceiling of Proposition~\ref{prop:ceiling} says
-nothing about transmitted bytes.
+bandwidth-constrained distributed deployment, where the objective is to reduce
+messages physically transmitted and top-$k$ sparsification may well be correct
+even though it does not reduce local compute. Proposition~\ref{prop:ceiling}
+says nothing about transmitted bytes.
 
 \paragraph{Measurement envelope.} Single-round attention; scaled dot-product
 attention with the fused backends available in PyTorch 2.11 / CUDA 12.8; input
 embedding width $64$; head width $d \in \{16,32,64,128,256\}$; $N \le 512$;
 batch $32$--$4096$; \texttt{fp32} and \texttt{bf16}; eager,
-\texttt{torch.compile} and CUDA-graph execution. Hardware: one GPU architecture
-(NVIDIA Blackwell, sm\_120) and one x86\_64 CPU. We make no claim outside this
-envelope. Within it, the head-width trend is unresolved: at $N{=}512$ the ratio
-trends downward in $d$ without being strictly monotone, and the sweep ends at
-$d{=}256$, so we do not know where, or whether, it reaches $1$ for larger
-heads.
+\texttt{torch.compile} and CUDA-graph execution; one GPU architecture (NVIDIA
+Blackwell, sm\_120) and one x86\_64 CPU. We make no claim outside it. Within it
+the head-width trend is unresolved: at $N{=}512$ the ratio trends downward in
+$d$ without being strictly monotone, and the sweep ends at $d{=}256$, so we do
+not know where, or whether, it reaches $1$ for larger heads.
 
 \paragraph{Our sparse implementation is not optimal, and we can bound by how
 much.} \Gath{} is a straightforward PyTorch implementation using
 \texttt{gather} and a batched contraction, not a hand-written fused kernel. We
-removed one avoidable cost --- \texttt{torch.topk} sorts its output by default,
-which is unnecessary here and was worth $5$--$24\%$ of the arm --- and one
-remains: PyTorch's top-$k$ still runs at roughly $9\%$ copy-equivalent
-bandwidth efficiency against the rate we measure, so a selection-optimal kernel
-would recover a substantial part of the remaining selection term. Substituting
-even a copy-equivalent select --- an optimistic counterfactual, since a real
-selection kernel must also compare and rank --- into the
-$N{=}512$ cell still leaves the gathered path near $3.4$\,ms against
-$1.99$\,ms unfused and $0.43$\,ms fused, so the ordering survives; but a reader
-should treat our ratios as upper bounds on the penalty, and a fully fused
-selection--gather--contraction kernel remains the most informative single
-follow-up to this work. Such a kernel could reduce intermediate traffic, launch
-overhead and the cost of ranking. It could not avoid forming the score matrix,
-which is assumption A2 and is what Proposition~\ref{prop:ceiling} rests on. We
-do not claim that no implementation can ever cross over; we claim that none of
-the ones available to us does, and that the analytic ceiling bounds what any of
-them could win.
+removed one avoidable cost --- \texttt{torch.topk} sorts by default, worth
+$5$--$24\%$ of the arm --- and one remains: PyTorch's top-$k$ still runs at
+roughly $9\%$ copy-equivalent bandwidth efficiency, so a selection-optimal
+kernel would recover a substantial part of the remaining selection term.
+Substituting even a copy-equivalent select --- optimistic, since a real
+selection kernel must also compare and rank --- still leaves the gathered path
+near $3.4$\,ms at $N{=}512$ against $1.99$\,ms unfused and $0.43$\,ms fused, so
+the ordering survives; but a reader should treat our ratios as upper bounds on
+the penalty, and a fully fused selection--gather--contraction kernel remains
+the most informative single follow-up. It could reduce intermediate traffic,
+launch overhead and the cost of ranking; it could not avoid forming the score
+matrix, which is assumption A2. We do not claim that no implementation can ever
+cross over --- only that none available to us does, and that the analytic
+ceiling bounds what any of them could win.
 
 \paragraph{Generality across architectures.} The intensity argument of
 Section~\ref{sec:roofline} predicts the same qualitative disadvantage wherever
-the gathered path stays below the relevant machine balance. That argument is
-device-independent by construction and therefore cannot itself be evidence of
-device-independence. Our empirical support is one GPU architecture and one
-CPU on which the ordering holds with ratios of the same order, plus a
-same-device drift repeat establishing run-to-run stability. We were unable to replicate on a different GPU
-generation --- the older hardware that produced this project's earlier runs is
-no longer available. A reader who weights architectural replication heavily
-should discount the generality accordingly. We also note that the CPU
-comparison against the \emph{fused} baseline is dominated by cache blocking
-rather than by arithmetic intensity, so it is weaker cross-architecture
-evidence for the intensity mechanism than the unfused comparison is.
+the gathered path stays below the relevant machine balance, but that argument
+is device-independent by construction and so cannot itself be evidence of
+device-independence. Our empirical support is one GPU architecture and one CPU
+on which the ordering holds with ratios of the same order, plus a same-device
+drift repeat. We were unable to replicate on a different GPU generation --- the
+older hardware that produced this project's earlier runs is no longer available
+--- so a reader who weights architectural replication heavily should discount
+the generality accordingly. The CPU comparison against the \emph{fused}
+baseline is also dominated by cache blocking rather than arithmetic intensity,
+making it weaker evidence for the intensity mechanism than the unfused
+comparison is.
 
-\paragraph{Two measurement effects that had to be controlled, and one that
-remains.} Our CPU numbers required pinning the glibc heap; without it, page
-faults on recycled $(B,N,N)$ temporaries inflate arms unequally and can invert
-an ordering (Section~\ref{sec:cpu}). Our GPU ridge point reproduces to within
-$2\%$, but the CPU one is measured with buffers smaller than the host's L3 and
-is therefore a cache-bandwidth figure that does not reproduce: repeat
-measurements of the same host give $1.35$ and $3.68$\,FLOP/byte, and a
-DRAM-resident probe gives lower still. We use the CPU ridge only where the
-conclusion holds across that whole range. What remains uncontrolled is that small-$N$ cells are
-launch-bound, and their measured ratios depend on how many arms share a timing
-group; two of our own sweeps disagree by $5\times$ on one such cell. Ratios at
-$N \le 96$ should be read with that in mind.
+\paragraph{Measurement effects, controlled and uncontrolled.} Our CPU numbers
+required pinning the glibc heap; without it, page faults on recycled $(B,N,N)$
+temporaries inflate arms unequally and can invert an ordering
+(Section~\ref{sec:cpu}). Our GPU ridge point reproduces to within $2\%$, but
+the CPU one is a cache-bandwidth figure that does not: repeat measurements give
+$1.35$ and $3.68$\,FLOP/byte and a DRAM-resident probe lower still, so we use
+it only where the conclusion holds across that whole range. What remains
+uncontrolled is that small-$N$ cells are launch-bound and their ratios depend
+on how many arms share a timing group --- two of our own sweeps disagree by
+$5\times$ on one such cell --- so ratios at $N \le 96$ should be read with that
+in mind.
 
-\paragraph{Fused baseline.} Our fused arm passes a self-attention mask, and on
-this build FlashAttention accepts no \texttt{attn\_mask} in any form, so all
-fused numbers are PyTorch's memory-efficient CUTLASS kernel --- confirmed by
-reading the dispatched kernel from the profiler, not inferred. Forcing
-FlashAttention on the same unmasked shape is $1.5$--$2.5\times$ faster than
-that kernel, so a baseline able to reach it would widen the gap we report
-rather than narrow it.
-
-\paragraph{Unlocked clocks.} We lacked the privilege to lock GPU clocks. We
+\paragraph{Fused baseline and unlocked clocks.} Our fused arm passes a
+self-attention mask, which this build rejects for FlashAttention in any form,
+so all fused numbers are PyTorch's memory-efficient CUTLASS kernel, read from
+the profiler rather than inferred; forcing FlashAttention on the same unmasked
+shape is $1.5$--$2.5\times$ faster, so a baseline able to reach it would widen
+the gap we report. We also lacked the privilege to lock GPU clocks, and
 compensate with interleaved timing, minimum-over-samples reporting, published
 dispersion (Appendix~\ref{app:dispersion}) and an explicit drift control
-(Section~\ref{sec:drift}), and we report that absolute latency under concurrent
-load can move by more than $100\%$. Our drift control is a same-device repeat;
-it establishes stability across runs and hours, not independence from one
-physical card, because a second card free of other tenants was not available
-when these measurements were taken. Median ratio drift is roughly half the
-median absolute-latency drift, though the worst loaded ratio cell moves as far
-as the worst latency cell; all claims are stated in ratios, which buys
-stability in the typical case rather than in the tail.
+(Section~\ref{sec:drift}). Absolute latency under concurrent load can move by
+more than $100\%$; median ratio drift is roughly half the median
+absolute-latency drift, though the worst loaded ratio cell moves as far as the
+worst latency cell, so stating claims in ratios buys stability in the typical
+case rather than in the tail. The drift control is a same-device repeat, so it
+establishes stability across runs and hours, not independence from one physical
+card.
 
 \paragraph{Statistical power of the training study.} Five seeds per arm gives a
 minimum attainable two-sided permutation $p$ of $0.0079$ against a first Holm
-threshold of $0.05/6 = 0.0083$ for six contrasts. The two are close enough that
-a first rejection requires the smallest raw $p$ to sit at the discrete floor,
-which for these untied data means one arm's five seeds lying entirely above the
-other's; the family is not limited to one rejection --- Holm's later thresholds
-are looser --- but no rejection at all is available on weaker evidence.
+threshold of $0.05/6 = 0.0083$, so any Holm rejection requires the smallest
+family $p$-value to sit at the discrete permutation floor
+(Section~\ref{sec:training}).
 Resolving the $d \approx 0.6$ effect suggested by C1 would need roughly $45$
 seeds per arm at two-sided $\alpha = 0.05$ and $80\%$ power, and roughly $70$
 at the family-corrected $\alpha = 0.05/6$; both figures come from the standard
@@ -111,13 +99,12 @@ weigh them accordingly.
 
 \paragraph{Environment.} The partially observable \texttt{simple\_spread}
 variant is our own, documented in Section~\ref{sec:training} and released. It
-carries a difficulty confound across $N$ that we measure and publish, and which
-is why no across-$N$ return comparison appears in this paper. Its zeroed
-visibility mask does not distinguish an absent peer from one at the origin,
-which affects $\le 0.15\%$ of visible peers in our runs. At $N{=}12$ neither
-trained arm beats a uniform-random policy, so no contrast at that agent count
-is interpretable (Section~\ref{sec:training}). Results on MPE tasks may not
-transfer to environments with different observation structure, and our positive
-controls establish that the communicating architecture helps rather than
-isolating the channel, since the communicating arms carry $7$--$19\%$ more
-parameters.
+carries a difficulty confound across $N$ that we measure and publish, which is
+why no across-$N$ return comparison appears here; its zeroed visibility mask
+does not distinguish an absent peer from one at the origin, affecting
+$\le 0.15\%$ of visible peers; and at $N{=}12$ neither trained arm beats a
+uniform-random policy, so no contrast at that agent count is interpretable.
+Results on MPE tasks may not transfer to environments with different
+observation structure, and our positive controls establish that the
+communicating architecture helps rather than isolating the channel, since the
+communicating arms carry $7$--$19\%$ more parameters.

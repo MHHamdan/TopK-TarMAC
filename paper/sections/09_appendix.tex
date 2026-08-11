@@ -1,3 +1,39 @@
+\subsection{Machine balance and arithmetic intensity, tabulated}
+\label{app:roofline}
+
+Table~\ref{tab:roofline} gives the measured machine balance and the analytic
+intensities plotted in Figure~\ref{fig:roofline}.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Measured machine balance, and analytic arithmetic intensity of the two
+paths at batch $256$, $d{=}16$, $k = 25\%$ of peers. The gathered path
+(AI $\approx 0.64$--$0.66$) is below every ridge estimate for either device at
+every $N$, and so is memory-bound throughout. The dense path is memory-bound on
+the GPU at every $N$; on the CPU it exceeds the $1.35$\,FLOP/byte estimate at
+every $N$ we measure, but exceeds the higher $3.68$ estimate only at
+$N \ge 192$. The CPU ridge is quoted at the lower end of the range described in
+the text, since that is the value the probe returns on the run archived with
+these numbers.}
+\label{tab:roofline}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Device} & \textbf{Achievable GEMM} & \textbf{Achievable bandwidth} & \textbf{Ridge point} \\
+\midrule
+RTX PRO 6000 Blackwell (\texttt{fp32}) & 75.3 TFLOP/s & 1444 GB/s & 52.1 FLOP/byte \\
+x86\_64 CPU (\texttt{fp32}, cache-resident) & 1.75 TFLOP/s & 1300 GB/s & 1.35 FLOP/byte \\
+\midrule
+\textbf{$N$} & \textbf{dense AI} & \textbf{gathered AI} & \textbf{ratio} \\
+\midrule
+12  & 1.85 & 0.64 & 0.34$\times$ \\
+48  & 3.23 & 0.66 & 0.20$\times$ \\
+192 & 3.98 & 0.66 & 0.17$\times$ \\
+512 & 4.18 & 0.66 & 0.16$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Dispersion behind every headline number}
 \label{app:dispersion}
 
@@ -92,6 +128,36 @@ Section~\ref{sec:surface}: $2.19 \to 2.29 \to 1.81 \to 1.44$ at $B{=}32$ and
 $2.40 \to 2.44 \to 2.10 \to 1.70$ at $B{=}256$. The two cells that would
 continue the trend at $B{=}4096$ are the ones that exceeded memory.
 
+\subsection{Per-stage decomposition, tabulated}
+\label{app:decomp}
+
+Table~\ref{tab:decomp} gives the per-stage numbers behind
+Figure~\ref{fig:decomp}.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Per-stage latency (ms, $\min$ over interleaved samples), batch $256$,
+$d{=}16$. The aggregation ``saving'' is \emph{negative} at every $N$: the
+sparse contraction is slower than the dense matmul it replaces, despite
+performing $\approx4\times$ fewer multiply--accumulates. Overhead is
+$\texttt{topk} + \texttt{gather} + \texttt{softmax}_k - \texttt{softmax}_N$ and
+so is not a sum of the columns shown.}
+\label{tab:decomp}
+\begin{tabular}{rrrrrrrr}
+\toprule
+$N$ & $k$ & \texttt{topk} & \texttt{gather} & \texttt{agg\_dense} & \texttt{agg\_sparse} & saving & overhead \\
+\midrule
+12  & 2   & 0.014 & 0.015 & 0.017 & 0.019 & $-0.003$ & $+0.029$ \\
+48  & 11  & 0.028 & 0.015 & 0.017 & 0.022 & $-0.005$ & $+0.042$ \\
+96  & 23  & 0.069 & 0.028 & 0.025 & 0.056 & $-0.031$ & $+0.095$ \\
+192 & 47  & 0.258 & 0.148 & 0.059 & 0.146 & $-0.087$ & $+0.383$ \\
+384 & 95  & 1.078 & 0.561 & 0.178 & 0.496 & $-0.318$ & $+1.480$ \\
+512 & 127 & 3.426 & 0.999 & 0.249 & 0.844 & $-0.595$ & $+4.136$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Verification of the corrected implementation}
 \label{app:verification}
 
@@ -105,11 +171,16 @@ asserted:
     $N \in \{6,12,24\}$ and $k \in \{1,2,3,N-1\}$.
   \item \textbf{Distinct executed work.} With
     $N{=}48, k{=}4, B{=}8, d{=}16$ and input width $32$, a FLOP counter reports
-    $2{,}555{,}904$ for dense and \Mask{} (identical), against $2{,}015{,}232$
-    for \Gath{}. The difference, $540{,}672$, is exactly the aggregation term
-    $2BNd(N-k)$ --- two FLOPs per multiply--add, which is the counter's
-    convention rather than the MAC convention of
-    Section~\ref{sec:bound}, and the factor cancels in every ratio.
+    $2{,}555{,}904$ for dense and \Mask{} --- identical, because the counter
+    scores matrix products and \Mask{} issues the same two as dense --- against
+    $2{,}015{,}232$ for \Gath{}. The difference, $540{,}672$, is exactly the
+    aggregation term $2BNd(N-k)$: two FLOPs per multiply--add, which is the
+    counter's convention rather than the MAC convention of
+    Section~\ref{sec:bound}, and the factor cancels in every ratio. \Mask{}'s
+    selection, masking and renormalisation are elementwise and are not matrix
+    products, so they add executed work that this counter does not see; the
+    equality above is therefore an equality of aggregation MACs, not of total
+    executed work.
   \item \textbf{No dense aggregation in the sparse path.} Tracing every
     \texttt{torch.matmul} confirms \Gath{} issues no
     $(B,N,N)\times(B,N,d)$ product and does issue
@@ -132,10 +203,142 @@ asserted:
     backend in turn, at both dtypes and at $N \in \{12,192,512\}$, under no
     mask, an additive float mask and a Boolean mask, and the profiler records
     the kernel the default dispatcher actually launches. FlashAttention is
-    rejected under any non-null mask, and in \texttt{fp32} under any input;
-    the fused arm runs \texttt{fmha\_cutlassF} at both dtypes. The log is
-    released.
+    rejected under any non-null mask, in both the additive-float and the
+    Boolean form, and in \texttt{fp32} under any input; the fused arm runs
+    \texttt{fmha\_cutlassF}, PyTorch's memory-efficient CUTLASS kernel, at both
+    dtypes. On the same unmasked \texttt{bf16} shape, forcing FlashAttention
+    rather than the memory-efficient backend gives $0.0149$ against
+    $0.0223$\,ms at $N{=}192$ and $0.0388$ against $0.0989$\,ms at $N{=}512$,
+    so a baseline able to reach FlashAttention would widen the fused gap we
+    report rather than narrow it. The log is released.
 \end{itemize}
+
+\subsection{Activation memory of the evaluated gate}
+\label{app:memory}
+
+Figure~\ref{fig:memory} plots the peak activation memory discussed in
+Section~\ref{sec:memory}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/fig5_memory.pdf}
+\caption{Peak activation memory against agent count, batch $256$, with the
+offset-corrected fitted exponent beside each arm. The evaluated gate
+implementation grows cubically and is the first arm to exhaust the device;
+gathering saves no memory over masking, because the gathered value tensor
+replaces the zeros it avoids.}
+\label{fig:memory}
+\end{figure}
+
+\subsection{The CPU allocator control}
+\label{app:cpu}
+
+The CPU numbers of Section~\ref{sec:cpu} required pinning the heap before they
+measured attention rather than the allocator. Dense, masked and gathered each
+allocate and free several multi-MiB $(B,N,N)$ temporaries per forward; the
+default glibc allocator returns those pages to the kernel, and they are
+re-faulted on the next call. We raise glibc's \texttt{MALLOC\_TOP\_PAD\_} so
+that freed temporaries are retained instead, and count minor faults per forward
+from the process's own resource usage across the timed region.
+
+Because the tuning is part of the measurement rather than a detail of it, the
+harness records the allocator environment, the thread counts, the affinity mask
+and the fault totals in each run's metadata, and the superseded un-pinned run
+is retained beside the pinned one. The effect it removes is large and unequal
+across arms: at $N{=}192$ the un-pinned run takes $\approx37{,}000$ extra minor
+faults per forward and inflates latency by up to $8.8\times$, and at $N{=}48$
+it inverted the dense/gathered ordering --- gathered appeared $0.81\times$
+unfused dense un-pinned, against $3.13\times$ once the fault storm is removed.
+That was the only cell in this study, on either device, where a gathered path
+appeared to beat a dense one on equal terms.
+
+\subsection{Drift control, tabulated}
+\label{app:drift}
+
+Table~\ref{tab:drift} gives the reproducibility figures discussed in
+Section~\ref{sec:drift}.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Reproducibility of the headline sweep. Ratios --- the quantity every
+claim is stated in --- move by less than half as much as absolute latency at
+the median, though under load their worst case is comparable. Entries are
+median and maximum absolute change across the eight $N$ cells.}
+\label{tab:drift}
+\begin{tabular}{lrrrr}
+\toprule
+& \multicolumn{2}{c}{\textbf{latency} $|\Delta|$} & \multicolumn{2}{c}{\textbf{ratio} $|\Delta|$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+\textbf{Condition} & median & max & median & max \\
+\midrule
+Same device, idle, later run        & 0.7\%  & 2.6\%   & \textbf{0.4\%}  & \textbf{1.4\%} \\
+Same device, concurrent GPU load    & 67.9\% & 114.2\% & 33.7\% & 115.9\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Pre-registration chronology}
+\label{app:prereg}
+
+The analysis plan of Section~\ref{sec:training} was committed when $8$ of the
+$40$ tier-2--4 runs had produced a final evaluation --- all five seeds of
+\texttt{gathered-}$k{=}2$ and three of five of \texttt{random-}$k{=}2$ --- and
+before any tier-2--4 return had been inspected. Commit history establishes the
+ordering: tier-1 artifacts at 12:18, the plan at 12:56, tier-2--4 artifacts at
+19:11 the same day. The tier-1 arms were complete and had been inspected, which
+is why the tier-1 gate is excluded from the inferential family.
+
+The pre-registration document has two commits: the plan itself, and a later
+append to its deviations log. The diff between them touches only the deviations
+section; the endpoint, contrasts, test, effect sizes, interval and correction
+are byte-identical to the pre-unblinding version. The log records one item, the
+bootstrap/permutation tension discussed in Section~\ref{sec:training}.
+Timestamps establish ordering and nothing more --- they cannot establish that a
+file on disk was never opened --- so the plan's independence is stated as a
+claim about our conduct rather than as something the artifact proves, and data
+generation had demonstrably already begun.
+
+\subsection{The reporting-audit procedure}
+\label{app:audit}
+
+For each of the twelve papers in Table~\ref{tab:audit} we read the full text,
+including appendices and the official supplement where one exists, searched it
+for \emph{latency}, \emph{runtime}, \emph{time}, \emph{throughput},
+\emph{speed}, \emph{wall-clock} and \emph{FLOP/s}, and recorded (i) whether it
+makes a computational-efficiency or complexity claim about its mechanism, (ii)
+whether it reports any measured temporal quantity attributable to that
+mechanism, and (iii) the figure, table or sentence that settled the decision. A
+statement such as ``training took a few days'' does not qualify, since it is
+not attributable to the mechanism. The completed sheet is released with the
+artifacts, because a ``no'' is an absence claim and an absence claim is only as
+good as the search behind it. Scope matters for at least one entry: MAT's
+``yes'' rests on a wall-clock figure in its appendix and would be a ``no'' on
+the main body alone.
+
+\subsection{Secondary training analysis}
+\label{app:training}
+
+\paragraph{Two results we report but do not interpret.} C4 has the one sign
+opposite to its pre-registered direction, and should be set aside for a reason
+independent of its $p$-value: neither $N{=}12$ arm learned the task. A
+uniform-random policy scores $-758.9$ under the same evaluation protocol,
+against $-864.9$ for the dense arm --- worse than random, two of five seeds
+below $-975$ --- and $-717.9$ for the gathered arm, so the $+147$ point estimate
+compares a diverged run with a barely learning one. Second, for C4 and C6 the
+bootstrap interval excludes zero while the permutation test does not. The
+pre-registration named the permutation test, so it governs; the disagreement is
+unsurprising at $n{=}5$, where only $5^5 = 3125$ distinct resamples exist per
+arm and the interval is coarse, discrete and of uncertain coverage. We treat it
+as descriptive and keep both on the page, so the reader sees the size of the
+estimated effect as well as the strength of the evidence for it.
+
+Descriptively, and supporting no claim: the Lagrangian arm meets its budget but
+not by the intended route, its gate collapsing to expected $k \approx 1.01$
+within the first $8\%$ of training while the dual multiplier decays to zero;
+entmax settles at a support of $1.64$ of $5$ peers; and attention entropy falls
+from $0.35$ nats over $5$ peers to $0.12$ over $2$. The three sit on different
+supports and are reported only as an instrumentation check.
 
 \subsection{The partially observable environment}
 \label{app:env}
@@ -175,12 +378,6 @@ released harness regenerates the tables in this paper from the raw JSON
 artifacts, and the training arms are driven by generated configuration files
 with the tier ordering enforced by the runner.
 
-The pre-registration document has two commits: the plan itself, and a later
-append to its deviations log. The diff between them touches only the deviations
-section; the endpoint, contrasts, test, effect sizes, interval and correction
-are byte-identical to the pre-unblinding version. The log records one item, the
-bootstrap/permutation tension discussed in Section~\ref{sec:training}.
-
 Two provenance caveats. The aggregate provenance record covers the earlier
 microbenchmark phases of this project, which ran on different hardware that is
 no longer available; run-level provenance for the training arms is in the
@@ -190,3 +387,38 @@ artifacts with a note. The activation-memory measurement is reported from a run
 with the whole card free, since a shared-host repeat exhausts memory one $N$
 earlier for the gate; the fitted exponents for the other four arms are identical
 between the two runs.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Type of evidence offered for efficiency claims, in the twelve
+audited papers ($n{=}6$ per group). ``Measured temporal metric'' means any
+measured time, speed, throughput or achieved FLOP/s attributable to the
+mechanism. This is an audit of reporting
+practice in a small, deliberately selected set --- the papers we ourselves
+relied on --- not a sample of either literature, and a ``no'' means the
+argument rests on operation counts or asymptotics, not that it is wrong.}
+\label{tab:audit}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Paper} & \textbf{Efficiency claim} & \textbf{Type} &
+\begin{tabular}[b]{@{}c@{}}\textbf{Measured}\\\textbf{temporal metric?}\end{tabular} \\
+\midrule
+\multicolumn{4}{l}{\emph{Multi-agent communication / attention}} \\
+CommNet \citep{sukhbaatar2016commnet}      & none explicit          & ---          & n/a \\
+TarMAC \citep{das2019tarmac}               & compact messages       & qualitative  & no \\
+IC3Net \citep{singh2018ic3net}             & fewer messages         & counts       & no \\
+ATOC \citep{jiang2018atoc}                 & bounded group size     & counts       & no \\
+DGN \citep{jiang2018dgn}                   & bandwidth + complexity & asymptotic   & no \\
+MAT \citep{wen2022mat}                     & linear in $N$          & asymptotic   & \textbf{yes} \\
+\midrule
+\multicolumn{4}{l}{\emph{Efficient attention / sparse mixture-of-experts}} \\
+Reformer \citep{kitaev2020reformer}        & $\mathcal{O}(L\log L)$ & asymptotic   & \textbf{yes} \\
+Longformer \citep{beltagy2020longformer}   & $\mathcal{O}(L)$       & asymptotic   & \textbf{yes} \\
+BigBird \citep{zaheer2020bigbird}          & $\mathcal{O}(L)$       & asymptotic   & no \\
+Performer \citep{choromanski2021performers}& $\mathcal{O}(L)$       & asymptotic   & \textbf{yes} \\
+Switch \citep{fedus2022switch}             & FLOPs-matched          & FLOPs        & \textbf{yes} \\
+Sparse MoE \citep{shazeer2017moe}          & large capacity, low cost & FLOPs      & \textbf{yes} \\
+\bottomrule
+\end{tabular}
+\end{table}
