@@ -259,10 +259,10 @@ each stage runs to the machine limit that binds it.}
 
 Low arithmetic intensity in a batched matrix--vector product is the natural
 explanation for the sparse contraction's slowness, and it is not the right one.
-Timed in isolation and charged with its own arithmetic and traffic, both aggregations sit near the bandwidth the device attains on a large copy --- $93\%$ for the sparse contraction and $81\%$ for the dense multiply it replaces (Table~\ref{tab:stages}). Those two figures are close enough that the analytic byte model cannot order them, which is the point: neither is on a worse hardware path.
-Both are bandwidth-saturated and neither is on a
-worse hardware path; the sparse one is slower because it moves about four times
-the bytes, since the compacted operand carries $kd$ elements per query where the
+Timed in isolation and charged with its own arithmetic and traffic, both aggregations sit near the bandwidth the device attains on a large copy --- $93\%$ for the sparse contraction and $81\%$ for the dense multiply it replaces (Table~\ref{tab:stages}). The gap between them is smaller than the byte model's own
+error, so the model cannot order the two; what it does establish is that neither
+sits on a worse hardware path. The sparse one is slower because it moves about
+four times the bytes, since the compacted operand carries $kd$ elements per query where the
 score row carries $N$. The corrected account is simpler, checkable before the
 code is written, and it is the $kd \le N$ criterion of
 Section~\ref{sec:composed}.
