@@ -170,7 +170,9 @@ def _best_dense(rows, N: int) -> float:
 def fig_ksweep() -> None:
     payload = load("attention_core_d16.json")
     rows = rows_of(payload)
-    ns = [n for n in (48, 96, 192, 512)
+    # The agent counts the paper reads claims off, plus the smallest one that
+    # does not reproduce, kept for continuity and labelled as such.
+    ns = [n for n in (96, 192, 384, 512)
           if any(r["n_agents"] == n for r in rows)]
     impls = ["topk_gather", "topk_fused_gather", "topk_fused_masked"]
 
