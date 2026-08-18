@@ -1,8 +1,10 @@
 # Revision audit
 
-Two parts. Part I maps every reviewer concern to an action and says whether it
+Three parts. Part I maps every reviewer concern to an action and says whether it
 threatens a central claim. Part II is the writing audit: the patterns that must
-not survive into the submitted version, with the evidence for each.
+not survive into the submitted version, with the evidence for each. Part III
+records what a second round of independent review — of the revision itself —
+found, and which of the revision's own claims did not survive it.
 
 The archival manuscript is `paper/`, unchanged, at commit `40d06e7`. The
 revision is `paper_submission_revision/`. Checksums of the archival sources are
@@ -16,14 +18,13 @@ asserted.
 ## Summary of what changed, and what it cost the paper
 
 The revision's most important finding is one the reviewer's criticism produced
-directly. Asked for a purpose-built fused sparse kernel, we wrote one; it is
-much faster than the composed PyTorch path, and at extreme sparsity it is faster
-than dense attention. **The manuscript's unconditional claim that the sparse
-path is slower in every measured configuration does not survive and has been
-replaced by a measured, conditional statement.** The operation-count ceiling is
-untouched; what changes is the empirical claim built on top of it, which is now
-sharper and more defensible: sparsity converts to time only below a crossover in
-$k$ that we measure, and never at the sparsity levels this literature uses.
+directly. Asked for a purpose-built fused sparse kernel, we wrote one; it is much
+faster than the composed PyTorch path, and at one retained peer it is faster than
+any dense implementation we could obtain. **The manuscript's unconditional claim
+that the sparse path is slower in every measured configuration does not survive
+and has been replaced by a measured, conditional statement**, itself qualified by
+a tiling search over both kernels (Part III). The operation-count ceiling is
+untouched; what changes is the empirical claim built on top of it.
 
 Two errors of fact found by the audit are corrected. Neither was caught by the
 number checker, and both are in the direction of overstating a negative result.
@@ -342,3 +343,49 @@ or the pre-registration that bound it in advance. The scoping of Propositions 1
 and 2, the separation of assumptions, and the refusal to make a channel-specific
 causal claim from a parameter-unmatched control are all kept as they stand. The
 revision removes the frame that announces those virtues, not the virtues.
+
+---
+
+# PART III — What a second round of review changed
+
+The revision described above was given, complete, to an independent reviewer who
+had not seen it, and to an independent editor told only to find what still
+sounded machine-made. Both returned substantial findings. The full accounting is
+in `reviewer_response_matrix.md` and `writing_revision_report.md`; the summary
+is that three of the revision's own claims did not survive.
+
+**The positive result was not identified.** The revision's one new positive
+claim — a fused sparse kernel faster than a matched dense one — rested on
+matched *authorship*, which does not identify the algorithm. Neither kernel's
+efficiency against the machine was reported anywhere, so the claimed margin
+could have lain entirely inside the dense baseline's deficit. A tiling search
+over roughly a hundred configurations per kernel, with achieved rate reported as
+a fraction of the device's own peak, shows the crossover surviving and shows the
+sparse kernel to be the less efficient of the two — but also shows the crossover
+existing only where nothing reaches half the machine, and disappearing where the
+vendor library does. The claim is kept and labelled provisional.
+
+**The escape-case section used the baseline the paper declares invalid.** Every
+ratio in it was quoted against the vendor library rather than the better of the
+two dense kernels — the pitfall the paper's own measurement-error section names,
+committed in the paper that names it. Corrected, the claim that the pre-score
+attention stage is faster than dense reverses: it is never faster. The
+correction makes the paper's argument more coherent, because the escape case now
+fails for the same reason the score-then-select case does.
+
+**A negative result measured a hundred kernel launches rather than a selector.**
+The pre-score selector's cost, attributed in the text to a sort, was dominated
+by a per-bit Python loop computing Morton codes — the same composition overhead
+the paper wrote fused kernels to remove for the other half of its argument.
+Replaced with a branch-free interleave, verified bit-identical.
+
+Two further defects were structural rather than substantive and are also fixed:
+the claim that equivalence is checked at every reported configuration was false
+as implemented, and the operation-count ceiling was being used as a validity
+check on wall-clock ratios, which a multiply--accumulate bound cannot support and
+which contradicts the paper's own thesis.
+
+The pattern across both rounds is the same one the paper is about. Every defect
+found was a measurement that answered a different question from the one it was
+labelled with, and in every case the label was more favourable to us than the
+measurement was.
