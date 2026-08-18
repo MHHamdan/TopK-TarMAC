@@ -92,9 +92,11 @@ the hardware multiplies quickly.
     sparse path is slower than dense attention throughout the regime by a margin
     its operation count cannot predict, with memory traffic rather than
     arithmetic as the cause (Section~\ref{sec:measurement}).
-  \item We write fused sparse kernels and a dense baseline searched over the
-    same tiling space, and report what fraction of the machine each reaches, so
-    that the comparison identifies the algorithm rather than the authors.
+  \item We write fused sparse kernels and a dense baseline searched over one
+    parameter space under one admissibility filter, and report what fraction of
+    the machine each reaches beside the number of configurations each search
+    admitted, so that the comparison identifies the algorithm rather than the
+    authors.
     Sparsity does become faster than dense attention, at one retained peer, at
     narrow head widths, and nowhere else (Section~\ref{sec:fused}).
   \item We instantiate the constructive half of the analysis with two selectors

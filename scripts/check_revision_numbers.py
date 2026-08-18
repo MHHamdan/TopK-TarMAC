@@ -160,7 +160,39 @@ def main() -> int:
               r"\$(\d+)\\%\$ for the sparse contraction", tol=0.03)
     check_num("dense aggregation attainment", frac("aggregate_dense"),
               r"\$(\d+)\\%\$ for the dense multiply", tol=0.03)
+
+    # The two dense baselines' gap is quoted in Section 7 and in its table. It
+    # was once quoted from the superseded microbenchmark, where the same pair
+    # differs by 4.6x rather than the 5.4x this campaign measures.
+    du = (at(rows, "dense_unfused", N_top) or {}).get("forward", {}).get("min_ms")
+    df = (at(rows, "dense_fused", N_top) or {}).get("forward", {}).get("min_ms")
+    if du and df:
+        check_num("unfused-to-fused dense gap at the largest N", du / df,
+                  r"unfused and fused dense paths differ by \$([\d.]+)\\times\$",
+                  tol=0.03)
     checks += len(nonlocal_checks)
+
+    # ---- 3b. no macro damaged into literal text -------------------------
+    # An escaped backslash in an editing script turns \ref into a carriage
+    # return and the word "ef", which LaTeX sets as text and reports as no
+    # error at all. Four such wrecks reached a compiled PDF once.
+    for src in sorted(SEC.glob("*.tex")) + sorted(TAB.glob("*.tex")):
+        raw = src.read_bytes()
+        checks += 1
+        if b"\r" in raw or b"\t" in raw:
+            fails.append(f"{src.name}: contains a carriage return or tab, "
+                         "which is how an escaped LaTeX macro arrives")
+        text = raw.decode("utf8")
+        for frag in ("ef{", "extbf{", "exttt{", "extit{", "egin{", "rac{"):
+            checks += 1
+            for m in re.finditer(re.escape(frag), text):
+                # A surviving macro keeps its name letter in front of the
+                # fragment (\ref, \begin); a wrecked one has whitespace or a
+                # control character there, because the escape ate the letter.
+                prev = text[m.start() - 1] if m.start() else " "
+                if not prev.isalpha():
+                    fails.append(f"{src.name}: '{frag}' at offset {m.start()} "
+                                 "is a LaTeX macro that lost its backslash")
 
     # ---- 4. banned prose ------------------------------------------------
     banned = [
@@ -180,6 +212,15 @@ def main() -> int:
          "measured, the sparse contraction attains a higher fraction of "
          "bandwidth than the dense matmul; it is slower because it moves "
          "more bytes"),
+        ("the same tiling space",
+         "the two searches admit very unequal configuration counts; say "
+         "'one parameter space under one admissibility filter'"),
+        ("with the same budget",
+         "the sparse search admits three configurations above 192 agents "
+         "against the dense search's 28 to 106"),
+        ("$4.6\\times$",
+         "the 4.6x dense-baseline gap is from the superseded "
+         "microbenchmark; this campaign measures 5.4x"),
         ("slower than unfused dense in all $46$",
          "the campaign no longer has 46 cells and the claim is now "
          "conditional on k"),

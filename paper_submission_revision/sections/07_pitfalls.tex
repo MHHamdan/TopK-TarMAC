@@ -42,7 +42,7 @@ mask leaves the dense aggregation matmul in place, so the advertised saving is
 never executed; a FLOP model based on $1-k/(N-1)$ nonetheless credits that code
 with a $75\%$ saving at $N{=}512, k{=}127$, and with more than $90\%$ wherever
 $k/(N-1) < 0.1$. Comparing against unfused dense alone is the same error in the
-baseline: at $N{=}512$ the unfused and fused dense paths differ by $4.6\times$,
+baseline: at $N{=}512$ the unfused and fused dense paths differ by $5.4\times$,
 so which one is meant sometimes changes the answer. The defence is to state the
 operation count each implementation executes alongside its latency, and to check
 which backend actually serves each shape and dtype, both of which make a
@@ -58,9 +58,11 @@ Against it our fused sparse kernel appears up to $2.5\times$ faster, which is
 more than sparsity can supply at any $k$ and was how we noticed. Matched
 authorship is the obvious remedy and it is not sufficient either: two kernels by
 the same author can differ by more than the margin under test. The condition
-that identifies the algorithm is matched \emph{efficiency}, so we search the
-same tiling space for both and report what fraction of the device's own
-arithmetic rate each one reaches (Section~\ref{sec:fused}). That is also what
+that identifies the algorithm is matched \emph{efficiency}, so we search one
+parameter space for both under one admissibility filter --- which admits very
+unequal numbers of configurations, and we report those counts too --- and give
+the fraction of the device's own arithmetic rate each kernel reaches
+(Section~\ref{sec:fused}). That is also what
 reveals when neither implementation is near the machine, which is a different
 warning and one worth having: a comparison between two kernels at a third of
 peak resolves the algorithms only if the margin exceeds the headroom, and ours
@@ -106,7 +108,7 @@ The advertised saving is never executed &
 Assert executed FLOPs differ and trace the products issued \\
 \addlinespace
 & Comparing only against unfused dense &
-A $4.6\times$ more favourable comparison at $N{=}512$ &
+A $5.4\times$ more favourable comparison at $N{=}512$ &
 Report both baselines; check which backend serves the shape \\
 \midrule
 \parbox{\linewidth}{Wrong\\ baseline}

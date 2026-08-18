@@ -27,10 +27,15 @@ headline sweep was repeated in full, and why no claim is read off an agent count
 below $192$, where the repeat does not reproduce.
 
 Our sparse implementations are not optimal and neither is our dense baseline. We
-searched the same tiling space for both, with the same budget, and report what
-fraction of the device's measured matrix-multiply rate each one reaches, because
-matched authorship is a weaker condition than matched efficiency and only the
-second identifies the algorithm. At the head width where the crossover lives no
+searched the same parameter space for both under one admissibility filter, and
+report what fraction of the device's measured matrix-multiply rate each one
+reaches, because matched authorship is a weaker condition than matched efficiency
+and only the second identifies the algorithm. The budgets the filter admits are
+not equal --- three configurations for the sparse kernel above $192$ agents
+against twenty-eight to a hundred and six for the dense one, for the structural
+reason Section~\ref{sec:fused} gives --- so the sparse figure is a lower bound
+on what a kernel of its shape could reach, and the negative entries at the wider
+head widths are weakly supported. At the head width where the crossover lives no
 implementation available to us --- the vendor library, our own kernel, or any
 configuration in the search --- exceeds $44\%$ of that rate, and the sparse
 kernel reaches $29\%$. The comparison is therefore between a better dense kernel

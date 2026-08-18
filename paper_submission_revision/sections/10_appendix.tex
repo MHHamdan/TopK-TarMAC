@@ -247,7 +247,9 @@ the channel alone accounts for the difference.
 \label{app:audit}
 
 For each audited paper we read the full text, including appendices and the
-official supplement where one exists, searched it for seven temporal keywords,
+official supplement where one exists --- through the ar5iv rendering of the
+arXiv version where the paper is on arXiv, and the venue's own copy
+otherwise --- searched it for seven temporal keywords,
 and recorded whether it makes a computational-efficiency or complexity claim
 about its mechanism, whether it reports any measured temporal quantity
 attributable to that mechanism, and the figure, table or sentence that settled
@@ -278,8 +280,8 @@ in the order the manuscript reports them;
 \texttt{scripts/make\_revision\_tables.py} and
 \texttt{scripts/make\_revision\_figures.py} regenerate every table and figure
 from those artifacts, so no tabular number in the manuscript is transcribed by
-hand; and \texttt{scripts/check\_paper\_numbers.py} re-derives the numbers that
-appear in prose and fails on any disagreement.
+hand; and \texttt{scripts/check\_revision\_numbers.py} re-derives the numbers
+that appear in prose and fails on any disagreement.
 
 Three provenance caveats. The hardware description and the aggregate provenance
 record were written before this project's environment was upgraded and describe

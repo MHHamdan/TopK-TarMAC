@@ -41,11 +41,10 @@ whose latency any artifact reports --- $158$ of them, $136$ with $k < N-1$ so
 that selection is exercised. This is not a formality: exact top-$k$ is
 discontinuous in the scores, so two implementations that accumulate the score
 product in different orders can rank a near-tied pair differently and then
-aggregate over different peers. All agree to 	exttt{fp32} rounding except on
+aggregate over different peers. All agree to \texttt{fp32} rounding except on
 four query rows in $1.25$ million, where two scores tie exactly at the $k$-th
 position and the threshold-selecting kernel keeps one extra peer
-(Appendix~
-ef{app:verification}).
+(Appendix~\ref{app:verification}).
 
 Unless stated otherwise: PyTorch 2.11 with CUDA 12.8 and Triton 3.6,
 \texttt{fp32}, head width $d{=}16$, batch $256$, and one NVIDIA Blackwell GPU
@@ -59,12 +58,10 @@ shared with other tenants.
 \caption{Forward latency (ms, minimum over interleaved samples) of one function
 computed six ways, at a quarter of peers retained. The composed sparse path is
 slower than every dense implementation at every agent count, and the gap widens
-with $N$; the fused kernels change that, and Section~
-ef{sec:fused} reports
+with $N$; the fused kernels change that, and Section~\ref{sec:fused} reports
 where. The last column below $N{=}192$ is shown for completeness and supports no
 claim: those agent counts are launch-bound and do not reproduce
-(Appendix~
-ef{app:drift}).}
+(Appendix~\ref{app:drift}).}
 \label{tab:headline}
 \input{tables/headline}
 \end{table}

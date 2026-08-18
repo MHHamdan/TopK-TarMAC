@@ -35,7 +35,7 @@ total is timed as one call, so the components need not sum exactly.}
 \centering
 \includegraphics[width=\linewidth]{figures/fig5_prescore.pdf}
 \caption{\textbf{Left:} the operation-count saving Proposition~\ref{prop:escape}
-promises, which for the sub-quadratic selector tracks $N/k$. 	extbf{Right:} what the same configurations cost. Neither selector reaches
+promises, which for the sub-quadratic selector tracks $N/k$. \textbf{Right:} what the same configurations cost. Neither selector reaches
 parity, and the two that the count treats similarly diverge by an order of
 magnitude. The dotted line charges the selector nothing and times only the
 attention over the already-chosen peers: it approaches parity from above and
@@ -61,9 +61,18 @@ Working in two dimensions rather than in the head dimension buys a factor in the
 arithmetic and nothing in the traffic, and traffic is what governs
 (Section~\ref{sec:stages}); by $512$ agents its selector alone costs $27$ times
 the whole of dense attention. The Z-order selector avoids the quadratic
-structure and its cost is flat in the agent count, but flat is not small: it
-sits between $0.13$ and $0.37$\,ms across our range, which is comparable to or
-larger than the entire dense attention it is displacing at every agent count.
+structure and its cost does not grow with the agent count, but not growing is
+not being small: it sits between $0.13$ and $0.37$\,ms across our range, which
+is comparable to or larger than the entire dense attention it is displacing at
+every agent count. That range spans a discontinuity we cannot attribute to the
+selector: its cost falls from $0.37$ to $0.13$\,ms partway through the sweep,
+at $384$ agents and sixteen retained peers, and the dense baselines timed in
+that same block fall with it --- the Triton kernel by $29\%$, which has nothing
+to do with Morton codes. The shift is therefore a change in the state of the
+shared device rather than a property of the selector, the inter-run spread
+within every cell being under $1\%$. Ratios are formed inside a block and are
+unaffected, but the low absolute figure should not be read as the selector's
+cost at scale.
 It is also composed from library operators, so like the composed sparse path of
 Section~\ref{sec:composed} its constant is an upper bound rather than a property
 of the design.
@@ -87,8 +96,7 @@ product. At $512$ agents, four retained peers and head width $16$ that is $128$
 gathered elements per query against a $512$-wide contiguous row, and the gathered
 form loses the matrix-multiply shape as well. The arithmetic falls by two orders
 of magnitude and the traffic does not. We did not fuse this stage, and by the
-standard Section~
-ef{sec:fused} sets that makes its constant an upper bound
+standard Section~\ref{sec:fused} sets that makes its constant an upper bound
 rather than a property of the design: a fused pre-score attention kernel is the
 obvious next measurement, and until it exists the explanation above is an
 inference from the accounting and from the score-then-select case rather than an

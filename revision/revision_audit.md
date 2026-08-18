@@ -389,3 +389,53 @@ The pattern across both rounds is the same one the paper is about. Every defect
 found was a measurement that answered a different question from the one it was
 labelled with, and in every case the label was more favourable to us than the
 measurement was.
+
+---
+
+# PART IV — A third pass, on the rebuilt PDF
+
+The compiled submission was read end to end against the artifacts once more,
+after the second round's corrections had landed. Six defects survived that
+round; none touches a central claim, and two of them were introduced by the
+corrections themselves.
+
+**Five LaTeX macros had been wrecked into literal text.** `\ref` and `\texttt`
+arrived through an editing script as a carriage return or a tab plus the rest of
+the macro name, so the PDF printed "Appendix efapp:verification", "Section
+efsec:fused" twice, "extttfp32" and "extbf{Right:}". LaTeX reports no error for
+any of it — the text is valid — and the build gate counted zero undefined
+references because no reference was ever made. `check_revision_numbers.py` now
+scans for control characters and for macro names missing their backslash, and is
+verified to fail on an injected instance.
+
+**The withdrawn matched-search claim was still standing in three places.** The
+second round replaced "the same tiling space ... with the same budget" in
+Section 4.3 and in Table 3's caption, but the identical sentence remained in
+Limitations, and Section 7 and the introduction still asserted one shared tiling
+space. All three now say what the artifact shows, and both phrases are banned by
+the checker.
+
+**A number came from a superseded artifact.** The gap between the two dense
+baselines at 512 agents is quoted in Section 7 and in Table 9 as 4.6x. That is
+`microbenchmark_comm.json`, which this campaign supersedes; the campaign's own
+figure is 5.4x. Corrected, and now re-derived by the checker.
+
+**The Z-order selector's discontinuity is explained rather than reported.** Its
+cost falls from 0.37 to 0.13 ms at one cell of the sweep and stays there. The
+dense baselines timed in that same cell fall with it -- the Triton kernel by 29%,
+which has nothing to do with Morton codes -- so the shift is the device's state
+and not the selector's. Ratios are formed within a cell and survive; the absolute
+range does not, and the text now says so.
+
+**Two pointers were wrong.** The reproduction appendix sent readers to
+`check_paper_numbers.py`, the archival paper's checker, rather than the one that
+validates this manuscript. And the literature audit described reading "the full
+text, including appendices and the official supplement" without saying that the
+reading was done through ar5iv where the paper is on arXiv, which the artifact's
+own method field records.
+
+The pattern of the first two rounds does not repeat here. These are production
+defects and stale pointers, not measurements answering a different question from
+the one they are labelled with -- with the single exception of the 4.6x, which is
+that same failure in miniature and was caught by asking where each number's
+artifact is.
