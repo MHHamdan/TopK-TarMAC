@@ -6,11 +6,10 @@
 Table~\ref{tab:grid} gives the best-over-implementations sparse latency divided
 by the best-over-implementations dense latency, across head width and across
 batch, at each agent count and at the most favourable sparsity available. Head
-width is swept to $512$, which resolves a trend the earlier version of this
-manuscript left open at $256$; batch is swept from $32$ to $1024$. The largest
-batch we attempted, $4096$ at $512$ agents, could not be measured: the score
-matrix alone runs to several gigabytes and the device is shared, so that
-configuration is absent rather than reported.
+width is swept to $512$ and batch from $32$ to $1024$. The largest batch we
+attempted, $4096$ at $512$ agents, could not be measured: the score matrix alone
+runs to several gigabytes and the device is shared, so that configuration is
+absent.
 
 \begin{table}[ht]
 \centering\small
@@ -28,23 +27,45 @@ assumption that contention can only add time. That statistic is trustworthy only
 if the underlying sample was not wildly dispersed, so the harness records the
 median, the interquartile range and the spread of per-run medians for every
 configuration, and the released artifacts carry all of them. Two properties of
-this host bound what any of it can mean. Both GPUs carried between 30 and 80~GiB
+this host limit what any of it can mean. Both GPUs carried between 30 and
+80~GiB
 of other tenants' allocations and near-continuous utilisation throughout the
 campaign, and clocks could not be locked. We therefore report the spread of
 per-run medians beside every configuration rather than a confidence interval: a
-ratio of minima has no sampling distribution, and treating it as though it did
-would be the same error the rest of this paper is about.
+ratio of minima has no sampling distribution.
 
 \subsection{Drift control}
 \label{app:drift}
 
-The identical sweep was repeated on the same device, once with the device as
-idle as we could obtain it and once under a concurrent load. With the device
-idle the ratios reproduce closely; under load absolute latency moves by more
-than $100\%$ while paired ratios move by roughly half as much, and every ratio
-moves against the sparse path. Pairing removes the typical drift rather than the
-tail. This is a same-device repeat, so it establishes stability across runs and
-hours, not independence from one physical card.
+The headline sweep was repeated in full on the same device, hours later and
+under different load from other tenants. Table~\ref{tab:drift} gives how far
+each agent count moved between the two runs, in absolute latency and in the
+ratio against the best dense implementation, which is the quantity every claim
+is stated in.
+
+\begin{table}[ht]
+\centering\small
+\caption{Movement between two runs of the identical sweep. From $192$ agents
+upward both the latencies and the ratios reproduce to about one per cent. At
+$96$ they do not, by a wide margin, which is why no claim in this paper is read
+off an agent count below $192$.}
+\label{tab:drift}
+\input{tables/drift}
+\end{table}
+
+From $192$ agents upward the measurement is stable: median movement is under
+one per cent in latency and under half a per cent in the ratio, with the worst
+single configuration under eleven per cent. At $96$ agents it is not stable at
+all --- every implementation ran between $14\%$ and $394\%$ slower in the second
+run, and the fastest configurations in the first run had recorded inter-run
+spreads above $85\%$ at the time. That is the signature of a launch-bound
+regime on a contended device rather than of anything about attention, and it is
+why the crossover of Section~\ref{sec:fused} is reported only from $192$ agents
+upward even though the sweep measures smaller ones.
+
+The repeat is on the same physical card, so it establishes stability across
+runs and hours, not independence from one device. We were not able to obtain a
+second card free of other tenants.
 
 \section{Implementation and measurement validation}
 \label{app:verification}
@@ -70,8 +91,8 @@ with the reference to \texttt{fp32} tolerance.
 \subsection{What each implementation executes}
 
 The masked and gathered implementations compute the same function while
-executing different work, which is the distinction the paper turns on, so it is
-pinned by regression tests rather than asserted. Maximum absolute deviation
+executing different work, which is the distinction the paper turns on, so
+regression tests pin it. Maximum absolute deviation
 between the two paths is below $10^{-10}$ in \texttt{float64}. A FLOP counter
 attached to the running program reports identical totals for dense and masked
 --- the counter scores matrix products, and masked issues the same two as dense
@@ -114,16 +135,25 @@ superseded un-pinned run is retained beside the pinned one.
 \label{app:roofline}
 
 Peak arithmetic rate is measured with a large matrix multiply and peak bandwidth
-with a large copy, in the same process as the measurements they normalise. The
+with a large copy, in the same process as the measurements they normalise. That
+matters here more than it usually would: on this shared host the peak we measure
+varies between $53$ and $77$~TFLOP/s across sessions, depending on what else is
+running. Every fraction-of-peak figure in the paper is against the peak measured
+in the same process as the number it normalises, and is therefore an upper bound
+on the true efficiency rather than an estimate of it. Comparisons between two
+implementations measured in one process are unaffected; comparisons of a
+fraction across sections are not, and we make none. The
 copy source is written before it is read: an untouched allocation on this
 operating system is backed by the shared zero page, so a host-side copy from it
 re-reads one cache line and reports a bandwidth several times the machine's
-real figure. An earlier version of this probe made that error, and every CPU
-ridge point derived from it was wrong in the direction that flattered the
-argument. The corrected probe reports two ridge points per device, one with a
-cache-resident buffer and one with a buffer larger than the last-level cache,
-because the two differ by a factor of two on the host and a claim that holds for
-one need not hold for the other.
+real figure, and an earlier version of this probe did exactly that: every CPU
+ridge point derived from it was too large by roughly a factor of six. Device
+work is also timed with device events rather than host wall-clock, since host
+timing around a sub-millisecond copy measures launch and synchronisation. The
+probe reports two ridge points per device, one with a cache-resident buffer and
+one with a buffer larger than the last-level cache, because the two differ by a
+factor of two on the host and a claim that holds for one need not hold for the
+other.
 
 \section{Additional training analysis}
 \label{app:training}
@@ -138,21 +168,19 @@ positive-control artifacts at 12:18, the plan at 12:56, and the remaining
 artifacts at 19:11 the same day. The plan has two commits, the second appending
 to its deviations log; the endpoint, comparisons, test, effect sizes, interval
 and correction are byte-identical to the pre-unblinding version. Timestamps
-establish ordering and nothing more, so the plan's independence is a claim about
-our conduct rather than something the artifact proves, and data generation had
-demonstrably already begun.
+establish ordering and nothing more. Data generation had demonstrably already
+begun.
 
 One correction is logged against the released plan. It asserts that at most one
 comparison in the family can reach corrected significance. That is false: Holm
 is a step-down procedure, so once a first rejection is obtained its later
 thresholds are looser and further rejections remain possible. The manuscript
-states the corrected version; the deviation is recorded rather than the artifact
-silently edited.
+states the corrected version; the deviation is logged against the released plan.
 
 \subsection{The remaining comparisons}
 
 Five further comparisons were registered and all are Holm-adjusted nulls. Two
-deserve a note rather than an interpretation. The comparison at twelve agents
+deserve a note without an interpretation. The comparison at twelve agents
 has the one sign opposite to its registered direction and should be set aside
 for a reason independent of its $p$-value: neither variant learns the task
 there. A uniform-random policy scores $-758.9$ under a forty-episode evaluation,
@@ -178,7 +206,7 @@ on different supports and are reported only as an instrumentation check.
 The variant modifies the standard cooperative task in one respect: a peer's
 relative-position entry is zeroed when the peer is farther than a fixed radius.
 Reward, action space, landmark observations, episode length and observation
-dimension are unchanged. Two properties bound what it can support. The mask is a
+dimension are unchanged. Two properties limit what it can support. The mask is a
 zeroing rather than an explicit visibility flag, so a peer at relative position
 exactly zero is not distinguishable from an absent one; measured under a uniform
 random policy, this affects at most $0.15\%$ of visible peers. And the visible
@@ -208,7 +236,15 @@ in a small, deliberately selected set --- the papers we ourselves relied on ---
 and not a sample of either literature; a negative verdict means the argument
 rests on operation counts or asymptotics, not that it is wrong.
 
-\input{tables/audit_placeholder}
+\begin{table}[ht]
+\centering\small
+\caption{The twelve audited papers, their efficiency claim, the kind of evidence
+it rests on, and whether any measured temporal quantity attributable to the
+mechanism appears anywhere in the paper or its supplement. A ``no'' means the
+argument rests on operation counts or asymptotics, not that it is wrong.}
+\label{tab:audit}
+\input{tables/audit}
+\end{table}
 
 \section{Reproduction and provenance}
 \label{app:repro}

@@ -1,10 +1,10 @@
 {
-  "device": "cuda:0",
+  "device": "cuda:1",
   "device_name": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
   "torch": "2.11.0+cu128",
   "timing": "wall_clock_with_device_sync_at_phase_boundaries",
   "iterations_per_arm": 5,
-  "elapsed_s": 638.7,
+  "elapsed_s": 778.4,
   "rows": [
     {
       "n_agents": 6,
@@ -14,26 +14,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 7.941680960357189,
-        "environment": 1005.932223983109,
-        "optimiser": 84.31366737931967,
-        "policy_forward": 613.1459977477789,
-        "update_backward": 126.44829601049423,
-        "update_forward": 237.0996493846178
+        "advantage": 5.671096034348011,
+        "environment": 1039.4803881645203,
+        "optimiser": 87.70184591412544,
+        "policy_forward": 606.7855274304748,
+        "update_backward": 130.79404551535845,
+        "update_forward": 238.7916324660182
       },
       "phase_share": {
-        "advantage": 0.0038275346814561576,
-        "environment": 0.4848142973394518,
-        "optimiser": 0.04063541303484826,
-        "policy_forward": 0.2955089209564659,
-        "update_backward": 0.060942417708181644,
-        "update_forward": 0.11427141627959622
+        "advantage": 0.002688711390765637,
+        "environment": 0.4928258564495899,
+        "optimiser": 0.04158013736185859,
+        "policy_forward": 0.2876818077974265,
+        "update_backward": 0.062010489311330026,
+        "update_forward": 0.1132129976890293
       },
-      "iteration_ms": 2074.881515465677,
+      "iteration_ms": 2109.224535524845,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 771.1283695353098,
+      "env_steps_per_s": 758.5726284953663,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 4.5929136004787114
+      "iteration_ms_spread_pct": 4.571147055656485
     },
     {
       "n_agents": 6,
@@ -43,26 +43,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 7.87374097853899,
-        "environment": 1053.530452772975,
-        "optimiser": 86.87521982938051,
-        "policy_forward": 628.5835728049278,
-        "update_backward": 135.12761145830154,
-        "update_forward": 244.3758575245738
+        "advantage": 5.668233148753643,
+        "environment": 1004.6809418126941,
+        "optimiser": 85.95088217407465,
+        "policy_forward": 620.247564278543,
+        "update_backward": 124.50259644538164,
+        "update_forward": 246.7895420268178
       },
       "phase_share": {
-        "advantage": 0.003651392813561798,
-        "environment": 0.48856744647924016,
-        "optimiser": 0.040287781148277274,
-        "policy_forward": 0.2915012757873067,
-        "update_backward": 0.06266449337582433,
-        "update_forward": 0.1133276103957897
+        "advantage": 0.0027148793971920626,
+        "environment": 0.4812059627925776,
+        "optimiser": 0.04116737492285175,
+        "policy_forward": 0.29707622979281273,
+        "update_backward": 0.059632256669048166,
+        "update_forward": 0.11820329642551768
       },
-      "iteration_ms": 2156.3664553686976,
+      "iteration_ms": 2087.839759886265,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 741.9889119571889,
+      "env_steps_per_s": 766.3423365819799,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 6.583072844966961
+      "iteration_ms_spread_pct": 7.305880859355664
     },
     {
       "n_agents": 6,
@@ -72,26 +72,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 5.937340669333935,
-        "environment": 1014.4647276028991,
-        "optimiser": 30.496330000460148,
-        "policy_forward": 95.05178593099117,
-        "update_backward": 144.8801141232252,
-        "update_forward": 59.98962465673685
+        "advantage": 5.635030567646027,
+        "environment": 1016.342812217772,
+        "optimiser": 88.85282184928656,
+        "policy_forward": 621.4629784226418,
+        "update_backward": 122.67645075917244,
+        "update_forward": 249.12205897271633
       },
       "phase_share": {
-        "advantage": 0.0043953606015964975,
-        "environment": 0.7509992341260284,
-        "optimiser": 0.02257616243407253,
-        "policy_forward": 0.07036599350788662,
-        "update_backward": 0.10725346262529117,
-        "update_forward": 0.044409786705124805
+        "advantage": 0.0026781291685233914,
+        "environment": 0.4830315111771524,
+        "optimiser": 0.042228579072214646,
+        "policy_forward": 0.295359201638966,
+        "update_backward": 0.058303744252146746,
+        "update_forward": 0.11839883469099685
       },
-      "iteration_ms": 1350.8199229836464,
+      "iteration_ms": 2104.092152789235,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 1184.465799457542,
+      "env_steps_per_s": 760.4229681095486,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 31.492132459629445
+      "iteration_ms_spread_pct": 4.0096493246821465
     },
     {
       "n_agents": 6,
@@ -101,26 +101,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 5.781344138085842,
-        "environment": 1006.9021238014102,
-        "optimiser": 36.95083688944578,
-        "policy_forward": 102.487962692976,
-        "update_backward": 185.27279701083899,
-        "update_forward": 79.41979169845581
+        "advantage": 5.630550906062126,
+        "environment": 999.0940084680915,
+        "optimiser": 86.18772868067026,
+        "policy_forward": 629.8858905211091,
+        "update_backward": 124.84987266361713,
+        "update_forward": 249.11576323211193
       },
       "phase_share": {
-        "advantage": 0.0040805219628092144,
-        "environment": 0.7106801000660117,
-        "optimiser": 0.026080215581403887,
-        "policy_forward": 0.07233687749830511,
-        "update_backward": 0.13076711907416927,
-        "update_forward": 0.056055165817300794
+        "advantage": 0.0026879168272640106,
+        "environment": 0.4769482848452208,
+        "optimiser": 0.041144365815965936,
+        "policy_forward": 0.3006954226388419,
+        "update_backward": 0.05960093056844529,
+        "update_forward": 0.11892307930426205
       },
-      "iteration_ms": 1416.8148562312126,
+      "iteration_ms": 2094.763814471662,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 1129.2936356243945,
+      "env_steps_per_s": 763.8092604743363,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 7.7716074835630335
+      "iteration_ms_spread_pct": 5.44499110662889
     },
     {
       "n_agents": 6,
@@ -130,26 +130,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 5.894114263355732,
-        "environment": 1013.8768339529634,
-        "optimiser": 27.659395709633827,
-        "policy_forward": 101.97984799742699,
-        "update_backward": 98.89614675194025,
-        "update_forward": 58.02126694470644
+        "advantage": 5.674201995134354,
+        "environment": 1031.9248102605343,
+        "optimiser": 83.69636349380016,
+        "policy_forward": 625.0317990779877,
+        "update_backward": 134.57971531897783,
+        "update_forward": 246.6685976833105
       },
       "phase_share": {
-        "advantage": 0.0045119725235831555,
-        "environment": 0.7761275422727851,
-        "optimiser": 0.021173399069757664,
-        "policy_forward": 0.07806605904881261,
-        "update_backward": 0.07570547106749753,
-        "update_forward": 0.04441555601756392
+        "advantage": 0.0026669803386964105,
+        "environment": 0.4850238293134124,
+        "optimiser": 0.039338845541586634,
+        "policy_forward": 0.2937765558276655,
+        "update_backward": 0.06325496608172397,
+        "update_forward": 0.1159388228969151
       },
-      "iteration_ms": 1306.3276056200266,
+      "iteration_ms": 2127.575487829745,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 1224.8076157286646,
+      "env_steps_per_s": 752.0297207560407,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 25.538978461658896
+      "iteration_ms_spread_pct": 5.320030256573436
     },
     {
       "n_agents": 12,
@@ -159,26 +159,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 7.922475226223469,
-        "environment": 3316.570925526321,
-        "optimiser": 41.656775400042534,
-        "policy_forward": 364.62419480085373,
-        "update_backward": 101.43781267106533,
-        "update_forward": 102.2181399166584
+        "advantage": 5.635255947709084,
+        "environment": 3323.064649477601,
+        "optimiser": 86.19892410933971,
+        "policy_forward": 598.9458793774247,
+        "update_backward": 103.9018202573061,
+        "update_forward": 230.65147083252668
       },
       "phase_share": {
-        "advantage": 0.0020136270246852114,
-        "environment": 0.8429608997475543,
-        "optimiser": 0.010587752730247759,
-        "policy_forward": 0.09267521974380158,
-        "update_backward": 0.025782083892584157,
-        "update_forward": 0.025980416861127044
+        "advantage": 0.0012959384002353537,
+        "environment": 0.7642043459398481,
+        "optimiser": 0.019823145008645,
+        "policy_forward": 0.13773943401159738,
+        "update_backward": 0.023894275606156687,
+        "update_forward": 0.05304286103351752
       },
-      "iteration_ms": 3934.4303235411644,
+      "iteration_ms": 4348.398000001907,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 406.6662435033105,
+      "env_steps_per_s": 367.9515996464211,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 12.890538815273464
+      "iteration_ms_spread_pct": 2.282249659142804
     },
     {
       "n_agents": 12,
@@ -188,26 +188,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 7.947503589093685,
-        "environment": 3350.4129899665713,
-        "optimiser": 31.53208177536726,
-        "policy_forward": 417.52950567752123,
-        "update_backward": 70.66602073609829,
-        "update_forward": 76.15379896014929
+        "advantage": 5.641360767185688,
+        "environment": 3276.3003148138523,
+        "optimiser": 91.34578425437212,
+        "policy_forward": 610.4162205010653,
+        "update_backward": 157.81092271208763,
+        "update_forward": 247.32087831944227
       },
       "phase_share": {
-        "advantage": 0.0020098678302096613,
-        "environment": 0.8472959100882008,
-        "optimiser": 0.007974241982956836,
-        "policy_forward": 0.10559027903758267,
-        "update_backward": 0.017870940248623342,
-        "update_forward": 0.0192587608124267
+        "advantage": 0.0012853889810030585,
+        "environment": 0.7465078900138279,
+        "optimiser": 0.02081321677291479,
+        "policy_forward": 0.13908386930712605,
+        "update_backward": 0.035957356656918425,
+        "update_forward": 0.056352278268209786
       },
-      "iteration_ms": 3954.241900704801,
+      "iteration_ms": 4388.835481368005,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 404.6287607530579,
+      "env_steps_per_s": 364.5613983008719,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 8.86597973734717
+      "iteration_ms_spread_pct": 3.84122641057478
     },
     {
       "n_agents": 12,
@@ -217,26 +217,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 6.22778944671154,
-        "environment": 3344.440675340593,
-        "optimiser": 33.953722566366196,
-        "policy_forward": 354.8345360904932,
-        "update_backward": 126.99232250452042,
-        "update_forward": 66.80476758629084
+        "advantage": 5.6136976927518845,
+        "environment": 3273.6724000424147,
+        "optimiser": 89.16566986590624,
+        "policy_forward": 617.1349948272109,
+        "update_backward": 130.59039134532213,
+        "update_forward": 242.5876148045063
       },
       "phase_share": {
-        "advantage": 0.0015833683108068667,
-        "environment": 0.8502987180313207,
-        "optimiser": 0.00863247686928462,
-        "policy_forward": 0.09021399403960381,
-        "update_backward": 0.032286836427265105,
-        "update_forward": 0.01698460632171883
+        "advantage": 0.0012879102201661476,
+        "environment": 0.751055074970318,
+        "optimiser": 0.02045663728143634,
+        "policy_forward": 0.14158483597831975,
+        "update_backward": 0.029960412703785914,
+        "update_forward": 0.055655128845973866
       },
-      "iteration_ms": 3933.253813534975,
+      "iteration_ms": 4358.764768578112,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 406.78788500608226,
+      "env_steps_per_s": 367.0764734849276,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 11.09678085077474
+      "iteration_ms_spread_pct": 3.2607152250748235
     },
     {
       "n_agents": 12,
@@ -246,26 +246,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 7.953296415507793,
-        "environment": 3396.3197311386466,
-        "optimiser": 89.70832917839289,
-        "policy_forward": 620.8348730579019,
-        "update_backward": 104.71170395612717,
-        "update_forward": 257.5960224494338
+        "advantage": 5.657781846821308,
+        "environment": 3297.248249873519,
+        "optimiser": 91.95191040635109,
+        "policy_forward": 616.1824595183134,
+        "update_backward": 135.1976953446865,
+        "update_forward": 246.63810059428215
       },
       "phase_share": {
-        "advantage": 0.0017764298003187999,
-        "environment": 0.7585940805678141,
-        "optimiser": 0.020037043882656667,
-        "policy_forward": 0.13866823414587665,
-        "update_backward": 0.0233881627983996,
-        "update_forward": 0.057536048804934216
+        "advantage": 0.0012879447524455656,
+        "environment": 0.7505898417276052,
+        "optimiser": 0.020932051410172563,
+        "policy_forward": 0.14026856933896886,
+        "update_backward": 0.030776577637003186,
+        "update_forward": 0.05614501513380459
       },
-      "iteration_ms": 4477.12395619601,
+      "iteration_ms": 4392.876197583973,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 357.37228087815566,
+      "env_steps_per_s": 364.22606238709386,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 29.820153496291024
+      "iteration_ms_spread_pct": 5.586488893404886
     },
     {
       "n_agents": 12,
@@ -275,26 +275,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 7.906547747552395,
-        "environment": 3448.7549867480993,
-        "optimiser": 91.61877539008856,
-        "policy_forward": 637.0385065674782,
-        "update_backward": 146.54281549155712,
-        "update_forward": 250.81327464431524
+        "advantage": 5.627207458019257,
+        "environment": 3288.3449671790004,
+        "optimiser": 87.50429004430771,
+        "policy_forward": 618.5526335611939,
+        "update_backward": 160.61066184192896,
+        "update_forward": 245.32752949744463
       },
       "phase_share": {
-        "advantage": 0.0017253128159242,
-        "environment": 0.7525637443296247,
-        "optimiser": 0.01999242304060379,
-        "policy_forward": 0.13901018936593723,
-        "update_backward": 0.03197757171927121,
-        "update_forward": 0.054730758728638876
+        "advantage": 0.0012771786734152653,
+        "environment": 0.7463389424053233,
+        "optimiser": 0.01986040392338261,
+        "policy_forward": 0.14038974711042207,
+        "update_backward": 0.03645298552753671,
+        "update_forward": 0.05568074235992002
       },
-      "iteration_ms": 4582.674906589091,
+      "iteration_ms": 4405.967289581895,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 349.1410655596533,
+      "env_steps_per_s": 363.14386713293834,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 1.658690610945017
+      "iteration_ms_spread_pct": 2.3031634238735887
     },
     {
       "n_agents": 24,
@@ -304,26 +304,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 7.9241907224059105,
-        "environment": 12282.151653431356,
-        "optimiser": 88.00791576504707,
-        "policy_forward": 629.1427295655012,
-        "update_backward": 123.25951270759106,
-        "update_forward": 237.8570009022951
+        "advantage": 5.6562842801213264,
+        "environment": 11767.862828448415,
+        "optimiser": 88.55506964027882,
+        "policy_forward": 618.4319173917174,
+        "update_backward": 119.02634613215923,
+        "update_forward": 238.30819223076105
       },
       "phase_share": {
-        "advantage": 0.0005927578848456986,
-        "environment": 0.9187489915981784,
-        "optimiser": 0.006583307725174094,
-        "policy_forward": 0.04706213248866234,
-        "update_backward": 0.009220253600544345,
-        "update_forward": 0.017792556702595188
+        "advantage": 0.0004405946793983667,
+        "environment": 0.9166543782684438,
+        "optimiser": 0.006897972341026286,
+        "policy_forward": 0.048172580952221225,
+        "update_backward": 0.009271523886867448,
+        "update_forward": 0.018562949872042912
       },
-      "iteration_ms": 13368.343003094196,
+      "iteration_ms": 12837.840638123453,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 119.6857381374542,
+      "env_steps_per_s": 124.63155176179824,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 3.2504900864081114
+      "iteration_ms_spread_pct": 4.154658285860968
     },
     {
       "n_agents": 24,
@@ -333,26 +333,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 7.983106188476086,
-        "environment": 12246.73075042665,
-        "optimiser": 89.57651071250439,
-        "policy_forward": 628.4251194447279,
-        "update_backward": 145.8236128091812,
-        "update_forward": 253.4180423244834
+        "advantage": 7.948326878249645,
+        "environment": 11825.346450321376,
+        "optimiser": 91.7679164558649,
+        "policy_forward": 639.1086112707853,
+        "update_backward": 165.43238144367933,
+        "update_forward": 250.5727969110012
       },
       "phase_share": {
-        "advantage": 0.000597003572757352,
-        "environment": 0.9158517799946385,
-        "optimiser": 0.006698833219542929,
-        "policy_forward": 0.04699574735214511,
-        "update_backward": 0.010905180988965965,
-        "update_forward": 0.018951454871950144
+        "advantage": 0.0006123435138564906,
+        "environment": 0.9110312533541395,
+        "optimiser": 0.00706985121304522,
+        "policy_forward": 0.04923728210429077,
+        "update_backward": 0.012745002477952714,
+        "update_forward": 0.019304267336715343
       },
-      "iteration_ms": 13371.957141906023,
+      "iteration_ms": 12980.176483280957,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 119.65338977835954,
+      "env_steps_per_s": 123.26488796672919,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 2.5114044364595554
+      "iteration_ms_spread_pct": 3.2988230428102296
     },
     {
       "n_agents": 24,
@@ -362,26 +362,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 8.006822317838669,
-        "environment": 12093.102119863033,
-        "optimiser": 90.95116890966892,
-        "policy_forward": 634.7080506384373,
-        "update_backward": 153.32608669996262,
-        "update_forward": 246.03883177042007
+        "advantage": 7.977648638188839,
+        "environment": 11674.491346813738,
+        "optimiser": 92.5462618470192,
+        "policy_forward": 640.9505708143115,
+        "update_backward": 146.51538152247667,
+        "update_forward": 251.1860765516758
       },
       "phase_share": {
-        "advantage": 0.0006053789319438769,
-        "environment": 0.9143339210738345,
-        "optimiser": 0.006876625870779306,
-        "policy_forward": 0.04798893575240437,
-        "update_backward": 0.011592661722836036,
-        "update_forward": 0.01860247664820196
+        "advantage": 0.0006225890262336065,
+        "environment": 0.911096806719677,
+        "optimiser": 0.0072224648713003605,
+        "policy_forward": 0.050020853242008945,
+        "update_backward": 0.011434305125154455,
+        "update_forward": 0.019602981015625694
       },
-      "iteration_ms": 13226.13308019936,
+      "iteration_ms": 12813.66728618741,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 120.97262217899011,
+      "env_steps_per_s": 124.86667276937432,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 1.6623998478460578
+      "iteration_ms_spread_pct": 1.5856298151102604
     },
     {
       "n_agents": 24,
@@ -391,26 +391,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 8.005423471331596,
-        "environment": 12282.225663773715,
-        "optimiser": 91.74364432692528,
-        "policy_forward": 647.0142267644405,
-        "update_backward": 152.53220312297344,
-        "update_forward": 257.5682606548071
+        "advantage": 7.842564955353737,
+        "environment": 11620.616895146668,
+        "optimiser": 90.07277432829142,
+        "policy_forward": 639.0173686668277,
+        "update_backward": 186.57608795911074,
+        "update_forward": 254.1680634021759
       },
       "phase_share": {
-        "advantage": 0.00059568198557847,
-        "environment": 0.9139179953340556,
-        "optimiser": 0.006826626525451936,
-        "policy_forward": 0.04814420132511139,
-        "update_backward": 0.011349891226408521,
-        "update_forward": 0.019165603603394085
+        "advantage": 0.0006127820712524037,
+        "environment": 0.9079817292909453,
+        "optimiser": 0.0070378736460017235,
+        "policy_forward": 0.04992988760272977,
+        "update_backward": 0.014578200152197232,
+        "update_forward": 0.01985952723687356
       },
-      "iteration_ms": 13439.089422114193,
+      "iteration_ms": 12798.293754458427,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 119.0556852287313,
+      "env_steps_per_s": 125.01666477553871,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 2.1407488797268672
+      "iteration_ms_spread_pct": 0.7802615786323105
     },
     {
       "n_agents": 24,
@@ -420,26 +420,26 @@
       "rollout_len": 100,
       "ppo_epochs": 10,
       "phase_ms": {
-        "advantage": 7.9550230875611305,
-        "environment": 12119.311184622347,
-        "optimiser": 93.09483040124178,
-        "policy_forward": 635.1786470040679,
-        "update_backward": 148.6323829740286,
-        "update_forward": 257.05626234412193
+        "advantage": 7.938562892377377,
+        "environment": 11638.910830020905,
+        "optimiser": 91.16728790104389,
+        "policy_forward": 628.5281274467707,
+        "update_backward": 142.32467859983444,
+        "update_forward": 247.7517193183303
       },
       "phase_share": {
-        "advantage": 0.00059987075777174,
-        "environment": 0.9138905448758151,
-        "optimiser": 0.007020075974983194,
-        "policy_forward": 0.04789742180566999,
-        "update_backward": 0.0112080404070059,
-        "update_forward": 0.019384046178754052
+        "advantage": 0.0006223092121393372,
+        "environment": 0.9123819420445798,
+        "optimiser": 0.007146664185410066,
+        "policy_forward": 0.04927073692070702,
+        "update_backward": 0.011156925983730933,
+        "update_forward": 0.019421421653432826
       },
-      "iteration_ms": 13261.228330433369,
+      "iteration_ms": 12756.621206179261,
       "env_steps_per_iteration": 1600,
-      "env_steps_per_s": 120.6524735214866,
+      "env_steps_per_s": 125.42506155352217,
       "iterations_timed": 5,
-      "iteration_ms_spread_pct": 3.5730868087680627
+      "iteration_ms_spread_pct": 1.671076678977819
     }
   ]
 }

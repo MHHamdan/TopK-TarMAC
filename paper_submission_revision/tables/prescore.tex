@@ -1,18 +1,19 @@
-\begin{tabular}{rlrrrrrr}
+\begin{tabular}{rlr rrr r rr}
 \toprule
-& & \textbf{operations} & \multicolumn{3}{c}{\textbf{measured (ms)}} & &  \\
-\cmidrule(lr){4-6}
-$N$ & selector & saved ($\times$) & select & attend & total & dense & ratio \\
+& & \textbf{ops} & \multicolumn{3}{c}{\textbf{measured (ms)}} & \textbf{best}
+& \multicolumn{2}{c}{\textbf{$\div$ best dense}} \\
+\cmidrule(lr){4-6}\cmidrule(lr){8-9}
+$N$ & selector & saved & select & attend & total & dense & attend & total \\
 \midrule
-48 & nearest neighbours & 7.7 & 0.049 & 0.030 & 0.078 & 0.011 & 7.17 \\
-48 & Z-order window & 10.0 & 0.162 & 0.030 & 0.197 & 0.011 & 18.19 \\
-96 & nearest neighbours & 11.3 & 0.098 & 0.046 & 0.144 & 0.027 & 5.29 \\
-96 & Z-order window & 19.8 & 0.174 & 0.046 & 0.226 & 0.027 & 8.32 \\
-192 & nearest neighbours & 14.8 & 0.317 & 0.087 & 0.397 & 0.066 & 6.01 \\
-192 & Z-order window & 39.4 & 0.176 & 0.087 & 0.271 & 0.066 & 4.10 \\
-384 & nearest neighbours & 17.5 & 1.812 & 0.166 & 1.984 & 0.216 & 9.20 \\
-384 & Z-order window & 78.3 & 0.189 & 0.165 & 0.353 & 0.216 & 1.64 \\
-512 & nearest neighbours & 18.3 & 5.224 & 0.221 & 5.514 & 0.345 & 16.00 \\
-512 & Z-order window & 103.7 & 0.197 & 0.221 & 0.437 & 0.345 & 1.27 \\
+48 & nearest neighbours & 8 & 0.151 & 0.064 & 0.167 & 0.035 & 1.85 & 4.85 \\
+48 & Z-order window & 10 & 0.367 & 0.059 & 0.386 & 0.035 & 1.72 & 11.18 \\
+96 & nearest neighbours & 11 & 0.188 & 0.068 & 0.206 & 0.051 & 1.33 & 4.03 \\
+96 & Z-order window & 20 & 0.362 & 0.065 & 0.385 & 0.051 & 1.28 & 7.53 \\
+192 & nearest neighbours & 15 & 0.378 & 0.097 & 0.442 & 0.086 & 1.13 & 5.17 \\
+192 & Z-order window & 39 & 0.366 & 0.095 & 0.410 & 0.086 & 1.11 & 4.79 \\
+384 & nearest neighbours & 17 & 1.871 & 0.173 & 2.024 & 0.169 & 1.02 & 11.96 \\
+384 & Z-order window & 78 & 0.374 & 0.171 & 0.478 & 0.169 & 1.01 & 2.82 \\
+512 & nearest neighbours & 18 & 4.986 & 0.231 & 5.192 & 0.186 & 1.24 & 27.90 \\
+512 & Z-order window & 104 & 0.131 & 0.221 & 0.372 & 0.186 & 1.19 & 2.00 \\
 \bottomrule
 \end{tabular}%

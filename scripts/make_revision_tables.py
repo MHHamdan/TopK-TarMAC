@@ -86,10 +86,12 @@ def table_crossover() -> str:
     """The k at which the best sparse implementation stops being faster."""
     pay = load("attention_core_d16.json")
     rows = live(pay)
-    # Below 96 agents the cost of every implementation is governed by how many
-    # kernels it launches rather than by arithmetic or bandwidth, so a crossover
-    # read off those configurations would be a fact about launch counts.
-    ns = [n for n in sorted({r["n_agents"] for r in rows}) if n >= 96]
+    # Below 192 agents the cost of every implementation is governed by how many
+    # kernels it launches rather than by arithmetic or bandwidth, and the
+    # repeated sweep shows those configurations do not reproduce: at 96 agents
+    # the two runs disagree by a median of 61% in the ratio, against 0.3% at
+    # 192. A crossover read off them would be a fact about device contention.
+    ns = [n for n in sorted({r["n_agents"] for r in rows}) if n >= 192]
     body = []
     for N in ns:
         bd = min(x for x in (ms(at(rows, "dense_fused", N)),
@@ -118,6 +120,52 @@ def table_crossover() -> str:
   \multicolumn{2}{c}{\textbf{at the widest $k$}} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
 $N$ & $k$ & of peers & ratio & at $k$ & ratio & at $k$ \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
+def table_autotune() -> str:
+    """Both kernels searched over the same tiling space, with what each attains."""
+    pay = load("autotune.json")
+    rows = pay["rows"]
+    peak = pay["peak_flops"]
+    ds = sorted({r["head_dim"] for r in rows})
+    body = []
+    for d in ds:
+        ns = sorted({r["n_agents"] for r in rows if r["head_dim"] == d})
+        for N in ns:
+            dn = [r for r in rows if r["kind"] == "dense"
+                  and r["head_dim"] == d and r["n_agents"] == N]
+            if not dn:
+                continue
+            dn = dn[0]
+            B = dn["batch"]
+            d_ms = dn["best"]["ms"]
+            d_eff = 100 * (4 * B * N * N * d) / (d_ms * 1e-3) / peak
+            sp = sorted([r for r in rows if r["kind"] == "sparse"
+                         and r["head_dim"] == d and r["n_agents"] == N],
+                        key=lambda r: r["k"])
+            if not sp:
+                continue
+            best = min(sp, key=lambda r: r["best"]["ms"] / d_ms)
+            k = best["k"]
+            s_ms = best["best"]["ms"]
+            s_eff = 100 * (2 * B * N * N * d + 2 * B * N * k * d) / (s_ms * 1e-3) / peak
+            wins = [r["k"] for r in sp if r["best"]["ms"] < d_ms]
+            pays = ("$\\le " + str(max(wins)) + "$") if wins else "none"
+            src = dn["best"]["name"].split("_")[0]
+            body.append(
+                f"{d} & {N} & {src} & "
+                f"{d_ms:.4f} & {d_eff:.0f} & {k} & {s_ms:.4f} & {s_eff:.0f} & "
+                f"{s_ms / d_ms:.2f} & {pays} " + r"\\")
+    return r"""\begin{tabular}{rr lrr rrr r c}
+\toprule
+& & \multicolumn{3}{c}{\textbf{best dense}} &
+    \multicolumn{3}{c}{\textbf{best sparse}} & & \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+$d$ & $N$ & from & ms & \% peak & $k$ & ms & \% peak & ratio & $k$ that pays \\
 \midrule
 """ + "\n".join(body) + r"""
 \bottomrule
@@ -214,20 +262,70 @@ def table_prescore() -> str:
             if not r:
                 continue
             r = r[0]
+            d = r.get("t_dense_best_ms", r["t_dense_fused_ms"])
             body.append(
-                f"{N} & {nm} & {r['flop_ratio_vs_dense']:.1f} & "
+                f"{N} & {nm} & {r['flop_ratio_vs_dense']:.0f} & "
                 f"{r['t_selector_ms']:.3f} & {r['t_attention_ms']:.3f} & "
-                f"{r['t_total_ms']:.3f} & {r['t_dense_fused_ms']:.3f} & "
-                f"{r['t_total_ms'] / r['t_dense_fused_ms']:.2f} \\\\")
-    return r"""\begin{tabular}{rlrrrrrr}
+                f"{r['t_total_ms']:.3f} & {d:.3f} & "
+                f"{r['t_attention_ms'] / d:.2f} & "
+                f"{r['t_total_ms'] / d:.2f} \\\\")
+    return r"""\begin{tabular}{rlr rrr r rr}
 \toprule
-& & \textbf{operations} & \multicolumn{3}{c}{\textbf{measured (ms)}} & &  \\
-\cmidrule(lr){4-6}
-$N$ & selector & saved ($\times$) & select & attend & total & dense & ratio \\
+& & \textbf{ops} & \multicolumn{3}{c}{\textbf{measured (ms)}} & \textbf{best}
+& \multicolumn{2}{c}{\textbf{$\div$ best dense}} \\
+\cmidrule(lr){4-6}\cmidrule(lr){8-9}
+$N$ & selector & saved & select & attend & total & dense & attend & total \\
 \midrule
 """ + "\n".join(body) + r"""
 \bottomrule
 \end{tabular}""", k
+
+
+def table_audit() -> str:
+    """The reporting audit, from the released sheet rather than from prose."""
+    pay = load("literature_latency_audit.json")
+    # Two groups, matching the split the manuscript reports, rather than the
+    # four sub-fields the sheet records.
+    marl = ("MARL communication", "MARL attention")
+    groups: dict[str, list] = {
+        "Multi-agent communication and attention": [],
+        "Efficient attention and sparse mixture-of-experts": []}
+    for r in pay["papers"]:
+        key = ("Multi-agent communication and attention" if r["field"] in marl
+               else "Efficient attention and sparse mixture-of-experts")
+        groups[key].append(r)
+    label = {"qualitative": "qualitative", "counts": "counts",
+             "asymptotic": "asymptotic", "flops": "FLOPs", "none": "---",
+             "None": "---"}
+    body = []
+    for field in groups:
+        body.append(r"\multicolumn{4}{l}{\emph{" + field + r"}} \\")
+        for r in sorted(groups[field], key=lambda x: x["bibkey"]):
+            ct = label.get(r.get("claim_type", "none"),
+                           r.get("claim_type", "---"))
+            yes = r.get("reports_measured_latency")
+            mark = (r"\textbf{yes}" if yes else
+                    ("n/a" if ct == "---" else "no"))
+            claim = r.get("efficiency_claim", "")
+            claim = "none explicit" if ct == "---" else claim.split(":")[0]
+            claim = claim.split(".")[0].strip().strip("'")
+            if len(claim) > 46:                      # truncate on a word break
+                claim = claim[:46].rsplit(" ", 1)[0] + r"\,\ldots"
+            # The sheet quotes papers verbatim, so it contains characters that
+            # are markup in LaTeX and mathematics outside maths mode.
+            for a, b in (("&", r"\&"), ("%", r"\%"), ("_", r"\_"),
+                         ("#", r"\#"), ("^2", "$^2$"), ("^", "")):
+                claim = claim.replace(a, b)
+            body.append(f"\\citet{{{r['bibkey']}}} & {claim} & {ct} & {mark} "
+                        + r"\\")
+    return r"""\begin{tabular}{p{0.29\linewidth}p{0.36\linewidth}p{0.14\linewidth}l}
+\toprule
+\textbf{Paper} & \textbf{Efficiency claim} & \textbf{Type} &
+\begin{tabular}[b]{@{}l@{}}\textbf{Measured}\\\textbf{time?}\end{tabular} \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
 
 
 def table_grid() -> str:
@@ -268,6 +366,49 @@ def table_grid() -> str:
     return "\n\n\\vspace{1em}\n\n".join(blocks)
 
 
+def table_drift() -> str:
+    """How far the headline sweep moves when it is repeated on the same device."""
+    a = live(load("attention_core_d16.json"))
+    b = live(load("attention_core_d16_repeat.json"))
+
+    def index(rows):
+        return {(r["impl"], r["n_agents"], r["k"]): ms(r) for r in rows}
+
+    ia, ib = index(a), index(b)
+    common = [k for k in ia if k in ib and ia[k] and ib[k]]
+    ns = sorted({k[1] for k in common})
+    body = []
+    for N in ns:
+        lat, rat = [], []
+        keys = [k for k in common if k[1] == N]
+        for key in keys:
+            lat.append(abs(ib[key] - ia[key]) / ia[key])
+        # Ratios are against the best dense implementation in each run, which is
+        # the quantity every claim in the paper is stated in.
+        def best_dense(idx):
+            return min(idx[k] for k in idx if k[1] == N
+                       and k[0] in ("dense_fused", "dense_triton"))
+        da, db = best_dense(ia), best_dense(ib)
+        for key in keys:
+            if key[0].startswith("topk"):
+                ra, rb = ia[key] / da, ib[key] / db
+                rat.append(abs(rb - ra) / ra)
+        body.append(f"{N} & {len(keys)} & {100 * sorted(lat)[len(lat)//2]:.1f} "
+                    f"& {100 * max(lat):.1f} & "
+                    f"{100 * sorted(rat)[len(rat)//2]:.1f} & "
+                    f"{100 * max(rat):.1f} \\\\")
+    return r"""\begin{tabular}{rrrrrr}
+\toprule
+& & \multicolumn{2}{c}{\textbf{latency} $|\Delta|$ (\%)}
+& \multicolumn{2}{c}{\textbf{ratio} $|\Delta|$ (\%)} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+$N$ & configurations & median & max & median & max \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
 def table_training_step() -> str:
     """Where a training iteration spends its time."""
     pay = load("training_step_timing.json")
@@ -290,7 +431,11 @@ def table_training_step() -> str:
                 f"{100 * r['phase_share'].get(s, 0):.0f}" for s in order)
             rel = (f"{r['iteration_ms'] / base['iteration_ms']:.3f}"
                    if base else "---")
-            body.append(f"{N} & \\texttt{{{r['arm'].replace('_', chr(92) + '_')}}}"
+            name = {"no_comm": "none", "dense": "dense, unfused",
+                    "dense_sdpa": "dense, library fused",
+                    "topk_masked": "top-$k$, masked",
+                    "topk_gather": "top-$k$, gathered"}.get(r["arm"], r["arm"])
+            body.append(f"{N} & {name}"
                         f" & {shares} & {r['iteration_ms'] / 1e3:.2f} & {rel} & "
                         f"{r['iteration_ms_spread_pct']:.1f} \\\\")
     head = " & ".join(label[s] for s in order)
@@ -298,7 +443,7 @@ def table_training_step() -> str:
 \toprule
 & & \multicolumn{5}{c}{\textbf{share of the iteration (\%)}} & & & \\
 \cmidrule(lr){3-7}
-$N$ & communication & """ + head + r""" & s/iter & $\div$ dense & spread \\
+$N$ & communication & """ + head + r""" & s/iter & $\div$ fused & spread \\
 \midrule
 """ + "\n".join(body) + r"""
 \bottomrule
@@ -331,7 +476,10 @@ def main() -> int:
     put("prescore", pre)
     macros["PrescoreK"] = str(k)
     for name, fn in (("training_step", table_training_step),
-                     ("grid", table_grid)):
+                     ("grid", table_grid),
+                     ("drift", table_drift),
+                     ("autotune", table_autotune),
+                     ("audit", table_audit)):
         try:
             put(name, fn())
         except SystemExit as exc:

@@ -17,7 +17,8 @@ matrices each implementation frees between calls, so the next call re-faults
 them; at $N{=}192$ that added roughly $37{,}000$ minor page faults per forward
 and inflated latency by up to $8.8\times$. Errors of this kind leave traces ---
 an impossible latency, a curve that is flat where it should be quadratic, a
-non-monotone cost --- and are caught by looking at the shape of the result rather
+non-monotone cost --- and are caught by looking at the shape of the result
+rather
 than its value.
 
 \paragraph{Interference from a shared device.} Timing implementations in
@@ -48,21 +49,22 @@ which backend actually serves each shape and dtype, both of which make a
 mismatch between the claimed and the executed algorithm visible immediately.
 
 \paragraph{Attributing implementation quality to the algorithm.} The fourth kind
-appeared only when we wrote our own kernels, and it is the one we would most
-readily have published. Timing a hand-written sparse kernel against a vendor
-library's dense kernel measures sparsity and authorship at once. At the head
-widths used in multi-agent communication, PyTorch's fused attention path runs at
-roughly half the rate of a straightforward Triton kernel we wrote in an
-afternoon, because it is tuned for the long sequences and wide heads of language
-models. Compared against it, our fused sparse kernel appears up to $2.5\times$
-faster than dense attention --- a speedup that exceeds what
-Proposition~\ref{prop:ceiling} permits from sparsity, which is the signal that
-something other than sparsity is producing it. Against a dense kernel written in
-the same framework with the same tiling, the same measurement shows a much
-smaller advantage, confined to the smallest $k$, and consistent with the
-ceiling. A sparse implementation must be compared against a dense
-implementation of matched engineering effort, or the comparison silently
-credits sparsity with the difference between two authors.
+appeared only when we wrote our own kernels. Timing a hand-written sparse kernel
+against a vendor library's dense kernel measures sparsity and authorship at
+once. At the head widths used in multi-agent communication, PyTorch's fused
+attention path runs at roughly half the rate of a straightforward Triton kernel,
+because it is tuned for the long sequences and wide heads of language models.
+Against it our fused sparse kernel appears up to $2.5\times$ faster, which is
+more than sparsity can supply at any $k$ and was how we noticed. Matched
+authorship is the obvious remedy and it is not sufficient either: two kernels by
+the same author can differ by more than the margin under test. The condition
+that identifies the algorithm is matched \emph{efficiency}, so we search the
+same tiling space for both and report what fraction of the device's own
+arithmetic rate each one reaches (Section~\ref{sec:fused}). That is also what
+reveals when neither implementation is near the machine, which is a different
+warning and one worth having: a comparison between two kernels at a third of
+peak resolves the algorithms only if the margin exceeds the headroom, and ours
+does not everywhere.
 
 \begin{table}[t]
 \centering
@@ -123,5 +125,4 @@ our harness that added an analytic term on top of the counter's output for that
 implementation, publishing a figure $1.83\times$ too large. The narrower point
 generalises better than the one we started with: a counter has to be validated
 against the kernels it is expected to observe, because only a counter attached
-to the running program will contradict a FLOP model that is describing code
-nobody executed.
+to the running program can contradict a FLOP model.

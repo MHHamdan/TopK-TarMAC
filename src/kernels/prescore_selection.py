@@ -55,18 +55,30 @@ def select_radius_knn(pos: torch.Tensor, k: int) -> torch.Tensor:
     return d2.topk(k, dim=-1, largest=False, sorted=False).indices
 
 
+#: Bit-spreading constants for the standard branch-free Morton interleave.
+#: Spreading ten bits with five shift-and-mask steps replaces a per-bit loop
+#: that would issue four elementwise kernels per bit; on the shapes measured
+#: here that loop cost more than the sort it feeds, which made an earlier
+#: version of this module measure its own launch overhead rather than the
+#: selector.
+_SPREAD = ((16, 0x0000FFFF), (8, 0x00FF00FF), (4, 0x0F0F0F0F),
+           (2, 0x33333333), (1, 0x55555555))
+
+
+def _spread_bits(v: torch.Tensor) -> torch.Tensor:
+    """Insert a zero between consecutive bits of a non-negative integer."""
+    for shift, mask in _SPREAD:
+        v = (v | (v << shift)) & mask
+    return v
+
+
 def _morton_code(pos: torch.Tensor, bits: int = 10) -> torch.Tensor:
     """Interleave the bits of quantised 2-D coordinates. pos: (B, N, 2)."""
     lo = pos.amin(dim=1, keepdim=True)
     hi = pos.amax(dim=1, keepdim=True)
     span = (hi - lo).clamp_min(1e-6)
     grid = ((pos - lo) / span * (2 ** bits - 1)).long().clamp_(0, 2 ** bits - 1)
-    x, y = grid[..., 0], grid[..., 1]
-    code = torch.zeros_like(x)
-    for b in range(bits):
-        code |= ((x >> b) & 1) << (2 * b)
-        code |= ((y >> b) & 1) << (2 * b + 1)
-    return code
+    return _spread_bits(grid[..., 0]) | (_spread_bits(grid[..., 1]) << 1)
 
 
 def select_morton_window(pos: torch.Tensor, k: int) -> torch.Tensor:

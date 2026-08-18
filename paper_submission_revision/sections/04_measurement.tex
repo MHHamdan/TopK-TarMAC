@@ -11,7 +11,7 @@ ratios stay paired; the sequential design produced swings above $100\%$ between
 identical configurations on this shared host. The primary statistic is the
 minimum over samples, on the modelling assumption that contention adds time
 rather than removing it, and the whole timed block is repeated so that the
-spread of per-run medians is reported rather than hidden
+spread of per-run medians is reported and not hidden
 (Appendix~\ref{app:dispersion}). GPU clocks could not be locked; the account
 lacks the privilege. Executed operation counts come from
 \texttt{torch.utils.flop\_counter}, so latency is always reported beside the
@@ -54,24 +54,23 @@ reports where.}
 \input{tables/headline}
 \end{table}
 
-The composed sparse path behaves as the manuscript's earlier version reported.
-Gathering executes less arithmetic than dense attention --- the counter confirms
-the reduction Proposition~\ref{prop:ceiling} permits --- and is nonetheless
-slower than every dense implementation at every agent count we measure
+Gathering executes less arithmetic than dense attention (the counter confirms
+the reduction Proposition~\ref{prop:ceiling} permits) and is nonetheless slower
+than every dense implementation at every agent count we measure
 (Table~\ref{tab:headline}). Correcting the implementation from masked to
 gathered helps at small $N$ and stops helping as $N$ grows, because the gather's
 traffic grows faster than the masked path's wasted arithmetic.
 
-The mechanism is memory traffic rather than arithmetic. Gathering does not
+Memory traffic is the mechanism, not arithmetic. Gathering does not
 remove the score matrix; it adds a compacted $(B,N,k,d)$ tensor and the indices
 that build it, and then reads both back. Counting bytes gives a criterion that
 is easier to check than the intensity argument it replaces: gathering is
 byte-neutral only when the gathered operand is no larger than the score row it
 avoids reading, that is when $kd \le N$. At $d{=}16$ and $N{=}512$ that bound is
 $k \le 32$, and the quarter-of-peers operating point is four times past it. The
-criterion also explains the reversal in which gathering loses to masking at
-intermediate $N$, which the earlier version of this manuscript could only
-attribute to an inference from its byte accounting.
+criterion also predicts the reversal in which gathering loses to masking at
+intermediate $N$: the gathered operand passes the score row in size before the
+wasted multiplications catch up.
 
 \subsection{What a purpose-built kernel changes}
 \label{sec:fused}
@@ -97,7 +96,9 @@ the number of peers retained. The dotted line is what an operation count
 predicts for the gathered path, $(N+k)/2N$, which lies below parity everywhere
 and so predicts a saving at every sparsity. Shading marks the region in which
 sparsity is actually faster; only the fused gathered kernel enters it, and only
-at the smallest $k$.}
+at the smallest $k$. The $N{=}96$ panel is shown for continuity and supports no
+claim: repeating the sweep moves its ratios by a median of $61\%$
+(Appendix~\ref{app:drift}).}
 \label{fig:ksweep}
 \end{figure}
 
@@ -105,78 +106,106 @@ at the smallest $k$.}
 \centering\small
 \caption{The sparsity at which a purpose-built sparse kernel stops being faster
 than the best dense implementation, and how far it is from parity at the
-sparsity multi-agent communication actually uses.}
+sparsity multi-agent communication actually uses. Restricted to the agent counts
+whose measurements reproduce on repetition.}
 \label{tab:crossover}
 \input{tables/crossover}
 \end{table}
 
-Fusion removes most of the penalty and, at extreme sparsity, reverses the
-result. At $512$ agents retaining a single peer, the composed sparse path costs
-$4.63$\,ms and the fused one $0.139$\,ms, a factor of $33$ that is attributable
-to the implementation and not to the algorithm; the best dense implementation
-costs $0.188$\,ms, so the fused sparse path is faster. The manuscript's earlier
-claim that no sparse implementation available to us is faster than dense
-attention in any measured configuration does not survive, and we report the
-correction rather than the claim.
+Fusion removes most of the penalty. At $512$ agents retaining a single peer the
+composed sparse path costs $4.62$\,ms and the fused one $0.139$\,ms, a factor of
+$33$ attributable to the implementation and not to the algorithm. At that
+configuration the fused sparse path is also faster than the best dense
+implementation available to us.
 
-What replaces it is narrower and more useful. A fused sparse kernel is faster
-than the best dense implementation only when one or two peers are retained ---
-between $0.2\%$ and $2.1\%$ of the available peers, depending on the agent
-count --- and the best ratio anywhere in the sweep is $0.66$
-(Table~\ref{tab:crossover}). At a quarter of peers, which is the setting the
-multi-agent communication literature uses, the best sparse implementation
-available to us is $15$ to $26$ times slower than dense attention.
+\begin{table}[t]
+\centering\small
+\caption{Both kernels searched over the same tiling space --- query tile, key
+tile or head chunk, warp count and pipeline depth --- with the same budget, and
+the better of the search and the vendor library taken as the dense baseline.
+Efficiency is the executed arithmetic divided by the elapsed time, against the
+matrix-multiply rate the device attains in the same process. Sparsity pays only
+where nothing reaches half of that rate.}
+\label{tab:autotune}
+\resizebox{\linewidth}{!}{\input{tables/autotune}}
+\end{table}
 
-Three things about that crossover matter more than its existence.
+That statement has to be qualified in turn, and the qualification is the more
+useful result. Matched authorship is a weaker condition than matched efficiency:
+two kernels written by the same person in the same session can still differ by
+more than the margin being measured, and only efficiency against the machine
+identifies the algorithm. We therefore searched the same tiling space for both
+kernels with the same budget --- roughly a hundred configurations each --- took
+the better of that search and the vendor library as the dense baseline, and
+report what fraction of the device's own matrix-multiply rate each kernel
+reaches beside its latency (Table~\ref{tab:autotune}).
 
-The measured advantage stays inside the analytic ceiling. Proposition~\ref{prop:ceiling}
-permits at most a twofold reduction in operation count, and the largest speedup
-we measure from sparsity, with implementation held constant, is below that. This
-is the ceiling behaving as a bound on what is achievable rather than as an
-abstraction: once the composed implementation's overheads are removed, the
-residual advantage is the one the count allows and no more. It is also why the
-first version of these measurements was wrong. Against the library dense path
-alone the fused sparse kernel appeared more than twice as fast, which exceeds
-what sparsity can supply and was the signal that the baseline, not the
-algorithm, was producing the result.
+Three things follow, and they do not all point the same way.
 
-Selection, not aggregation, is what the sparse kernel cannot make cheap. The
-argmax-rounds kernel performs $k$ row-wide reductions per query, and reductions
-of this shape run at a small fraction of the arithmetic units' throughput
-because each is a dependent chain with little instruction-level parallelism.
-Its cost is accordingly linear in $k$ and dominates as soon as $k$ exceeds a
-handful. The bisection kernel removes that dependence, and the only way it can
-is by giving up the compaction --- so the implementation whose selection is cheap
-is the one that performs dense aggregation arithmetic. On this hardware a
-score-then-select kernel can have sparse arithmetic or $k$-independent
-selection, and we could not write one with both.
+The crossover survives tuning, and it is not produced by a sparse kernel that
+happens to be well written. Across head widths $16$ and $32$ the sparse kernel
+is the \emph{less} efficient of the two at every agent count --- $21$ to $33\%$
+of the device's rate against $30$ to $47\%$ for dense --- and it is faster only
+because it performs about half the arithmetic. Whatever bias remains from
+unequal engineering runs against sparsity, not for it.
 
-Fusion is available to dense attention too, and not equally. Dense attention can
-stream keys and values in blocks with an online softmax, keeping only a small
-tile resident. Exact score-then-select cannot: the complete score row of a query
-must exist before the row can be ranked, so the sparse kernel must hold an
-$N$-wide tile and its occupancy falls as $N$ grows. That asymmetry is a
-consequence of assumption A2 rather than of our implementation, and it is why
-the crossover moves to smaller $k$ as the agent count grows.
+The crossover is confined to a single retained peer, or two at the largest
+configuration. At four retained peers the sparse kernel is already $1.3$ to
+$2.1$ times slower, and at a quarter of peers it is more than an order of
+magnitude slower. A single retained peer is not a communication design: the
+softmax over one element is identically one, so the mechanism degenerates to
+copying the highest-scoring peer's value. The crossover is a fact about the cost
+model, not a recommendation.
+
+And the crossover exists only where no implementation is near the machine.
+Dense efficiency rises with head width, from $30\%$ at $d{=}16$ to $77\%$ at
+$d{=}128$, as the score product becomes a better-shaped matrix multiply; the
+crossover disappears exactly where dense passes about half the device's rate.
+We cannot exclude that a dense kernel reaching at $d{=}16$ what the vendor
+library reaches at $d{=}128$ would remove the crossover altogether. Neither the
+library nor any of the hundred-odd configurations we searched comes close to
+that at narrow head widths, so we could not test it; a reader who expects such a
+kernel to exist should read our positive result as provisional. Nothing else in
+the paper depends on it.
+
+Two structural obstacles are independent of all of this, and they are what a
+successor design has to face. Selection is the first. Ranking $N$ candidates to
+keep $k$ costs $k$ sequential row-wide reductions in the argmax kernel, and a
+reduction of that shape runs at a small fraction of the arithmetic units'
+throughput because each round depends on the one before it and the hardware has
+nothing to overlap it with. That is why the sparse kernel's cost grows almost
+linearly in $k$ while its arithmetic barely does. The bisection kernel removes
+the dependence on $k$, and the only way it can is by expressing the retained set
+as a zero weight instead of by compaction --- so it performs the dense
+aggregation arithmetic whatever $k$ is. We could not write a kernel with both
+sparse arithmetic and $k$-independent selection; a radix or bitonic select would
+narrow the gap and we did not implement one, so this is a statement about the
+implementations we obtained, not about what is possible.
+
+The second obstacle is available to dense attention and not to exact
+score-then-select. Dense attention can stream keys and values in blocks with an
+online softmax, keeping only a small tile resident. Exact selection cannot: the
+complete score row of a query must exist before the row can be ranked, so the
+sparse kernel holds an $N$-wide tile and fewer queries can be in flight per
+streaming multiprocessor as $N$ grows. That is a consequence of full-score
+selection itself, not of our implementation, and it is why the tiling the search
+chooses for the sparse kernel is narrower at every size.
 
 \subsection{Sensitivity to head width and batch}
 \label{sec:sensitivity}
 
-Extending the sweep to head width $512$ resolves a question the earlier version
-of this manuscript left open, and resolves it against the direction that version
-extrapolated. Reading the ratio down the head-width axis, the crossover exists
-only at the two narrowest head widths: the best sparse implementation is faster
+Across head widths to $512$, the crossover exists only at the two narrowest: the best sparse implementation is faster
 than the best dense one at head widths $16$ and $32$ at every agent count, and
 at no agent count for head width $128$ or above, where it is roughly twice as
-slow (Appendix~\ref{app:grid}). The archival version of this work observed the
-ratio falling as head width grew and declined to extrapolate; with the
-implementation corrected, the trend runs the other way.
+slow (Appendix~\ref{app:grid}). The ratio does not fall monotonically with head
+width; it reverses.
 
 That is what the byte criterion predicts. Byte-neutrality requires
 $kd \le N$, so widening the head at fixed agent count tightens the bound on the
 retained set proportionally, and at head width $128$ the criterion permits only
 $k \le 4$ at $512$ agents --- by which point the selection cost of
-Section~\ref{sec:fused} has already overtaken the saving. Widening the batch over a
+Section~\ref{sec:fused} has already overtaken the saving. Widening the batch
+over a
 thirty-twofold range, by contrast, moves the ratio by less than a fifth and
 never across parity, which is the expected behaviour of a quantity that is a
 ratio of per-element costs.
@@ -206,14 +235,12 @@ each stage runs to the machine limit that binds it.}
 \label{fig:stages}
 \end{figure}
 
-Timing each stage in isolation and charging it with its own arithmetic and
-traffic corrects an explanation the earlier version of this manuscript offered.
-We had attributed the sparse contraction's slowness to a batched
-matrix--vector product having lower arithmetic intensity than a real matrix
-multiply and being unable to reach the same hardware paths. Measured, that is
-wrong. The sparse contraction reaches $93\%$ of the bandwidth the device
-attains on a large copy, against $91\%$ for the dense multiply it replaces
-(Table~\ref{tab:stages}). Both are bandwidth-saturated and neither is on a
+Low arithmetic intensity in a batched matrix--vector product is the natural
+explanation for the sparse contraction's slowness, and it is not the right one.
+Timed in isolation and charged with its own arithmetic and traffic, the sparse
+contraction reaches $93\%$ of the bandwidth the device attains on a large copy,
+against $81\%$ for the dense multiply it replaces (Table~\ref{tab:stages}).
+Both are bandwidth-saturated and neither is on a
 worse hardware path; the sparse one is slower because it moves about four times
 the bytes, since the compacted operand carries $kd$ elements per query where the
 score row carries $N$. The corrected account is simpler, checkable before the
@@ -254,7 +281,8 @@ times its forward. At $512$ agents the gathered path is $18.5$ times the fused
 dense path on the forward alone and $6.3$ times on forward and backward
 together; the same narrowing appears at every agent count. The sparse path's
 disadvantage in training is therefore substantially smaller than the
-forward-only measurements suggest, and remains a disadvantage. The fused kernels are excluded from this comparison: they are
+forward-only measurements suggest, and remains a disadvantage. The fused
+kernels are excluded from this comparison: they are
 hand-written forward passes, and timing one against an autograd graph would
 compare two different things.
 
@@ -269,17 +297,16 @@ in the rightmost column.}
 
 End to end, none of this is visible. Timing a complete training iteration by
 phase, with the communication implementation swapped and everything else fixed,
-puts the environment at $91\%$ of the iteration at twenty-four agents and
-leaves all five implementations within $1.6\%$ of one another, against an
-iteration-to-iteration spread of $1.7$ to $3.6\%$ (Table~\ref{tab:trainstep}).
-The communication-free variant, which performs no attention at all, is not the
-fastest of the five --- which is the clearest available demonstration that this
-measurement does not resolve the implementations rather than that it resolves
-them as equal. We report it as the null it is. It bounds the practical stakes of
-the whole measurement campaign in the regime the training study occupies, and it
-is why the computational argument is made on the module in isolation: an effect
-a training loop cannot resolve is still an effect, but a paper claiming a
-throughput improvement from it would be claiming something it cannot measure.
+puts the environment and per-step action selection at $78\%$ of the iteration at
+six agents and $96\%$ at twenty-four, and leaves all five implementations within
+$2\%$ of one another at every agent count, against an iteration-to-iteration
+spread of $0.8$ to $7.3\%$ (Table~\ref{tab:trainstep}). The communication-free
+variant, which performs no attention at all, is not the fastest of the five.
+This does not resolve the implementations as equal; it fails to resolve them at
+all, which is the honest description and the useful one. It bounds the practical
+stakes of the whole measurement campaign in the regime the training study
+occupies, and it is why the computational argument is made on the module in
+isolation.
 
 \subsection{Robustness}
 \label{sec:robustness}

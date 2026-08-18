@@ -25,11 +25,17 @@ interleaved, 60 repetitions in each of 3 runs, minimum over samples.
 **Script.** `scripts/bench_attention_core.py`
 **Artifact.** `results/attention_core_d16.json`
 
-**Result.** Best sparse divided by best dense, at one retained peer: 0.66 at 96
-agents, 0.71 at 192, 0.86 at 384, 0.74 at 512. At a quarter of peers: 2.2, 25.9,
-18.4 and 15.3 respectively. The composed PyTorch sparse path never falls below
-2.0. At 512 agents and one retained peer the composed path costs 4.63 ms and the
-fused one 0.139 ms, a factor of 33 attributable to implementation.
+**Result.** Best sparse divided by best dense, at one retained peer: 0.71 at 192
+agents, 0.86 at 384, 0.74 at 512. At a quarter of peers: 25.9, 18.4 and 15.3.
+The composed PyTorch sparse path never falls below 2.0. At 512 agents and one
+retained peer the composed path costs 4.63 ms and the fused one 0.139 ms, a
+factor of 33 attributable to implementation.
+
+Agent counts below 192 are excluded from every claim. A full repeat of the sweep
+(experiment 9) moves the ratio at 96 agents by a median of 61%, against 0.3% at
+192, because those configurations are launch-bound on a contended device. The
+first run showed a crossover at 96 agents; the repeat did not, and we report the
+restriction rather than the more favourable of the two runs.
 
 **How it changes the manuscript.** It overturns the earlier unconditional claim
 that no sparse implementation is faster than dense attention anywhere, and
@@ -48,12 +54,11 @@ hand-written kernels are forward-only and are excluded.
 **Artifact.** `results/attention_core_d16.json`, `backward_total` field.
 
 **Result.** The gathered path's backward costs 0.48 to 0.62 of its own forward
-at 96 agents and above, because the retained indices are recorded in the forward
+at 192 agents and above, because the retained indices are recorded in the forward
 pass and the backward is a scatter of gradients into them; dense attention's
 backward costs several times its forward. Against fused dense at a quarter of
-peers the ratio falls from 3.9 to 1.4 at 96 agents, 6.0 to 2.2 at 192, 11.0 to
-4.1 at 384, and 18.5 to 6.3 at 512, going from forward-only to
-forward-plus-backward.
+peers the ratio falls from 6.0 to 2.2 at 192 agents, 11.0 to 4.1 at 384, and
+18.5 to 6.3 at 512, going from forward-only to forward-plus-backward.
 
 **How it changes the manuscript.** New Section 4.6 and Table 4. The conclusion
 is unchanged in direction and materially weaker in magnitude, which is the
@@ -164,6 +169,24 @@ asked for and inverts the conclusion we expected to draw from it. Escaping the
 operation-count ceiling turns out to be necessary, not sufficient, and not even
 predictive of which of two escaping selectors is faster. Section 5, Table 6,
 Figure 5, and the third paragraph of the conclusion.
+
+## 9. Drift repeat
+
+**Question.** Does the headline sweep reproduce?
+
+**Configuration.** The identical sweep, repeated in full on the same device
+hours later, under different load from other tenants.
+
+**Artifact.** `results/attention_core_d16_repeat.json`
+
+**Result.** From 192 agents upward, median movement between the two runs is
+under 1% in latency and under 0.5% in the ratio against the best dense
+implementation, with the worst single configuration under 11%. At 96 agents
+every implementation ran between 14% and 394% slower in the second run.
+
+**How it changes the manuscript.** It removes a crossover the first run showed
+at 96 agents and restricts every claim to 192 agents and above. Appendix A,
+Table 7.
 
 ## 7. Head width to 512, and batch over two orders of magnitude
 

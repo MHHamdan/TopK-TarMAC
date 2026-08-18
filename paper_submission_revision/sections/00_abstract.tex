@@ -12,13 +12,16 @@ executes no saving at all; a genuinely sparse implementation assembled from
 general-purpose tensor operations moves several times more data than dense
 attention despite performing less arithmetic, and runs an order of magnitude
 slower. Writing a fused kernel that keeps every intermediate on chip removes
-most of that penalty, and at the very sparsest settings it makes attention over
-selected peers faster than the best dense kernel we could write, by a margin
-within the analytic ceiling and confined to retaining one or two peers. At the
-sparsity levels multi-agent communication actually uses, the fastest sparse
-implementation we could construct is still far slower, because ranking the
-candidates costs more than aggregating over the survivors saves. Genuine savings
-therefore have to come from deciding what to attend to before the scores exist,
-and from executing that decision in a kernel written for it; we measure two such
-selectors, and the difference between them shows that escaping the operation
-count is necessary but not sufficient.
+most of that penalty, and where a single peer is retained it makes the sparse
+path faster than any dense implementation we could obtain. That is the only
+regime in which it does, it holds only at narrow head widths where nothing we
+tried reaches half the machine's arithmetic rate, and retaining one peer is not
+a communication design. At every sparsity the field actually uses, the fastest
+sparse implementation we could construct remains an order of magnitude slower,
+because ranking the candidates costs more than aggregating over the survivors
+saves. Deciding what to attend to before the scores exist removes the bound
+entirely, and we measure two selectors that do so: they reduce the operation
+count by up to two orders of magnitude and neither is faster, because attention
+over a handful of gathered peers is not a shape this hardware is quick at. The
+design target is therefore not the arithmetic but the shape the remaining work
+is executed in.

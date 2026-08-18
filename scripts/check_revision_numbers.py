@@ -98,16 +98,17 @@ def main() -> int:
                 best[k] = min(cand) / bd
         crossings[N] = best
 
-    # No sparse implementation may beat dense by more than the ceiling
-    # permits; if one does, the baseline is wrong, not the algorithm.
+    # A sparse implementation faster than dense by more than the operation-count
+    # ceiling permits is a signal about the baseline, not a result: the ceiling
+    # bounds operations, not time, so this is a smoke alarm and not a proof.
     for N, best in crossings.items():
         for k, ratio in best.items():
             checks += 1
             if ratio < 0.5:
                 fails.append(
                     f"N={N}, k={k}: best sparse is {1/ratio:.2f}x the best "
-                    "dense, which exceeds what Proposition 1 permits from "
-                    "sparsity -- check the dense baseline before believing it")
+                    "dense. Sparsity cannot supply that at this k; inspect the "
+                    "dense baseline's efficiency before reporting it")
 
     # The manuscript must not claim the sparse path always loses if it does not.
     ever_wins = any(r < 1.0 for b in crossings.values() for r in b.values())
@@ -117,6 +118,49 @@ def main() -> int:
                                everything, re.I):
         fails.append("a sparse implementation is faster somewhere, so the "
                      "unconditional 'slower everywhere' claim is false")
+
+    # Prose numbers, each re-derived from the artifact it came from. A number
+    # in a sentence cannot be generated the way a table cell can, so it is
+    # checked here instead.
+    def check_num(desc, value, pattern, tol=0.02):
+        nonlocal_checks.append(1)
+        m = re.search(pattern, everything)
+        if not m:
+            fails.append(f"{desc}: no sentence matching {pattern!r}")
+            return
+        quoted = float(m.group(1))
+        if value is None:
+            fails.append(f"{desc}: no artifact value to check against")
+            return
+        if abs(quoted - value) > tol * max(abs(value), 1e-9):
+            fails.append(f"{desc}: manuscript says {quoted}, artifact says "
+                         f"{value:.4g}")
+
+    nonlocal_checks: list[int] = []
+    N_top = max(r["n_agents"] for r in rows)
+    comp = (at(rows, "topk_gather", N_top, 1) or {}).get("forward", {}).get("min_ms")
+    fus = (at(rows, "topk_fused_gather", N_top, 1) or {}).get("forward", {}).get("min_ms")
+    if comp and fus:
+        check_num("composed sparse at the largest N, k=1", comp,
+                  r"composed sparse path costs \$([\d.]+)\$\\,ms")
+        check_num("fused sparse at the largest N, k=1", fus,
+                  r"the fused one \$([\d.]+)\$\\,ms")
+        check_num("composed-to-fused implementation factor", comp / fus,
+                  r"a factor of \$(\d+)\$ attributable to the implementation",
+                  tol=0.05)
+
+    st = load("stage_accounting.json")["rows"]
+    sN = max(r["n_agents"] for r in st)
+
+    def frac(stage):
+        c = [r for r in st if r["stage"] == stage and r["n_agents"] == sN]
+        return 100 * c[0]["frac_of_binding_roof"] if c else None
+
+    check_num("sparse aggregation attainment", frac("aggregate_sparse"),
+              r"reaches \$(\d+)\\%\$ of the bandwidth", tol=0.03)
+    check_num("dense aggregation attainment", frac("aggregate_dense"),
+              r"against \$(\d+)\\%\$ for the dense multiply", tol=0.03)
+    checks += len(nonlocal_checks)
 
     # ---- 4. banned prose ------------------------------------------------
     banned = [
@@ -160,6 +204,24 @@ def main() -> int:
         ("rather than taken on trust", "meta-commentary about candour"),
         ("we withdraw any suggestion", "meta-commentary about candour"),
         ("cannot rank what it has not scored", "slogan"),
+        ("within the analytic ceiling",
+         "a MAC-count bound does not bound wall-clock in either direction"),
+        ("inside the analytic ceiling",
+         "a MAC-count bound does not bound wall-clock in either direction"),
+        ("with implementation held constant",
+         "the fused sparse and dense kernels are different kernels"),
+        ("the archival version",
+         "the submitted paper should not narrate its own revision history"),
+        ("the manuscript's earlier version",
+         "the submitted paper should not narrate its own revision history"),
+        ("version of this manuscript",
+         "the submitted paper should not narrate its own revision history"),
+        ("earlier version of this work",
+         "the submitted paper should not narrate its own revision history"),
+        ("we report the correction rather than the claim",
+         "report the corrected number; do not narrate having reported it"),
+        ("we report it as the null it is",
+         "report the null; do not narrate having reported it"),
         ("decide where to look before looking", "slogan"),
         ("the arm meant to save cost", "slogan, and 'arm' is harness jargon"),
     ]

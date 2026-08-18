@@ -19,8 +19,8 @@ communication module.
 Two positive controls establish that the channel carries something. The first is
 a reference task in which each agent observes only its partner's goal, so
 information must pass between agents; it is fixed at two agents, where the
-selection mechanism is degenerate, so it validates the message pathway rather
-than the selection. The second is a partially observable variant of a standard
+selection mechanism is degenerate, so it validates the message pathway and not
+the selection. The second is a partially observable variant of a standard
 cooperative task, introduced here, in which a peer's relative position is
 withheld beyond a fixed radius. Under a uniform random policy the fraction of
 peers visible falls with the number of agents while the absolute number visible
@@ -40,7 +40,7 @@ fixes the power expectation in advance: with five seeds per variant the smallest
 attainable two-sided $p$-value is $2/252 = 0.0079$ against a first Holm
 threshold of $0.05/6 = 0.0083$, a margin of $4\times10^{-4}$, so a first
 rejection requires one variant's five seeds to lie entirely above the other's.
-Any null in this family is under-powered rather than evidence of absence, and no
+Any null in this family is under-powered and is not evidence of absence, and no
 equivalence claim is available because no equivalence margin was registered.
 
 \subsection{Results}
@@ -72,7 +72,7 @@ attention-selected peers $-$ uniformly random peers, same budget
 Both positive controls separate completely, each attaining the floor of the
 permutation test for this design (Table~\ref{tab:training}). Measured attention
 entropy on the partially observable control is $0.35$ nats against a ceiling of
-$1.61$, so the learned weighting is peaked rather than uniform. What this
+$1.61$, so the learned weighting is peaked, not uniform. What this
 establishes is that sparsification is being applied to an architecture whose
 communication machinery improves return under the evaluated setup. It does not
 establish that the learned attention channel alone accounts for the difference:
@@ -92,10 +92,10 @@ comparisons are reported in Appendix~\ref{app:training} as point estimates with
 intervals \citep{agarwal2021rliable}, and all six are Holm-adjusted nulls. No
 conclusion in this paper rests on any of them.
 
-Two limits of the environment bound what the study can say. At twelve agents
+The environment limits the study in two ways. At twelve agents
 neither variant learns the task well: the dense variant scores below a
 uniform-random policy and the sparse variant only just above it, so no
 comparison at that agent count is interpretable. And the centralised critic sees
-the same masked observations as the actors rather than a privileged global
+the same masked observations as the actors, with no privileged global
 state, which departs from standard practice for this learner and is a plausible
 contributor to that failure.

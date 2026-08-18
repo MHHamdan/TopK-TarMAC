@@ -3,62 +3,55 @@ highest-scoring peers rests on an operation count, and the count is smaller than
 it looks. Because the selection reads the scores, every pairwise interaction has
 been evaluated before any is discarded, so only the aggregation is sparsifiable
 and no choice of sparsity removes more than half of attention's arithmetic. That
-bound is not a property of top-$k$ but of the price of the selector: writing it
-as one accounting in which a rule is charged for what it costs to decide places
-every restriction mechanism on a single axis, and the mechanisms that obtain
-asymptotic savings are exactly those whose selectors are cheap.
+bound is not a property of top-$k$ but of what the selector costs: written as
+one
+accounting in which a rule is charged for deciding, it places every restriction
+mechanism on a single axis, and the mechanisms that obtain asymptotic savings
+are exactly those whose selectors are cheap.
 
-Measuring what executes shows the bounded saving to be optimistic twice over.
-An implementation that applies the selection as a mask performs the dense
-aggregation anyway, so it executes no saving at all while a count credits it
-with a large one. An implementation that genuinely compacts the retained peers
-executes the saving and is slower regardless, because compaction replaces
-multiplication by zeros with the writing and re-reading of a gathered tensor,
-and at these sizes time follows bytes. The criterion that emerges is simple
-enough to check before writing the code: gathering is byte-neutral only when the
-compacted operand is no larger than the score row it avoids re-reading.
+Measuring what executes shows the bounded saving to be optimistic twice over. An
+implementation that applies the selection as a mask performs the dense
+aggregation anyway, so it executes no saving while a count credits it with a
+large one. An implementation that genuinely compacts the retained peers executes
+the saving and is slower regardless, because compaction replaces multiplication
+by zeros with the writing and re-reading of a gathered tensor, and at these
+sizes time follows bytes. Gathering is byte-neutral only when the compacted
+operand is no larger than the score row it avoids re-reading, which is a
+criterion that can be checked before the code is written.
 
-Whether any of this is a property of the algorithm or of the tools was the
-question our earlier measurements could not answer, and writing the kernels
-answered it in both directions. Most of the measured penalty is the composition
-of general-purpose operators, and a fused kernel removes it. What remains is the
-algorithm, and it is decisive at the sparsity levels this literature uses: the
-fastest sparse implementation we could write is faster than the fastest dense
-implementation we could write only when one or two peers are retained, by a
-margin the analytic ceiling bounds, and is an order of magnitude slower once a
-realistic number of peers is kept. Two structural reasons survive every
-optimisation we tried. Ranking $N$ candidates to keep $k$ of them costs more, on
-the units that perform the ranking, than aggregating over the $k$ saves; and a
-kernel can make that ranking cheap in $k$ only by expressing the retained set as
-a zero weight, which abandons the sparse arithmetic it was built to obtain.
-Exact score-then-select attention, fused, can have sparse arithmetic or cheap
-selection, and we could not obtain both.
+Whether the remaining penalty belongs to the algorithm or to the tools is a
+question only kernels can answer, and writing them answered it in both
+directions. Most of the measured penalty is the composition of general-purpose
+operators; a fused kernel removes it, and at one retained peer the fused sparse
+path is faster than any dense implementation we could obtain, including a search
+over a hundred tilings of a dense kernel of our own. That is the whole of the
+positive result. It holds at one retained peer, where the softmax is identically
+one and nothing is being weighted; it holds only at the head widths where no
+implementation we have reaches half the device's arithmetic rate, and disappears
+where the vendor library does; and it is gone by four retained peers. At the
+sparsity this literature uses, the fastest sparse implementation we could write
+is more than an order of magnitude slower than dense attention.
 
-The constructive implication is not that sparse communication is a bad idea but
-that the saving has to be taken before the scores exist rather than after. A
-selector that fixes the retained set in advance is not bound by the ceiling, and
-its promised saving grows without limit as the retained set shrinks. Measuring
-two such selectors shows that removing the bound is necessary and not
-sufficient, and shows it twice over. A selector that reaches its decision
-through a quadratic intermediate --- ranking a matrix of pairwise distances
-rather than of pairwise scores --- delivers an order of magnitude of arithmetic
-saving and is an order of magnitude slower, because it reproduces in two
-dimensions exactly the traffic the ceiling was about. A selector that never
-forms such a structure delivers the saving where it matters: its attention stage
-is roughly twice as fast as dense attention at the largest agent count we
-measure, which no score-then-select implementation in this paper achieves at any
-sparsity. Even that one does not win overall, and the reason is the third
-finding: its own fixed cost, a sort of a few hundred keys, is comparable at
-these sizes to the entire dense attention it is displacing.
+The constructive half fares no better, and fails in a way we did not anticipate.
+A selector that fixes the retained set before any score exists is genuinely
+unbound by the ceiling, and the two we measured reduce the operation count by up
+to two orders of magnitude. Neither is faster. One of them ranks a pairwise
+matrix of its own and so reproduces the cost it was introduced to avoid, which
+is the failure the accounting predicts once the selector is charged in the right
+currency. The other does not, and still loses --- and it loses even with its
+selector set aside and only the attention over the already-chosen peers timed.
+Scoring $Nk$ chosen pairs and aggregating over $k$ of them is not cheaper than
+scoring $N^2$ and aggregating over $N$, at these sizes, because the gathered
+operand has lost the shape the hardware multiplies quickly. The arithmetic falls
+by two orders of magnitude and the time does not move.
 
-A successor method is therefore accountable for three things, of which an
-operation count shows only the first: what its selector costs in operations,
-whether it reaches its decision without materialising a structure of the size it
-means to avoid, and whether its constant is small against the work it skips at
-the size in question. The third is why block-level selection succeeds in
-long-context attention and why the same idea does not transfer unchanged to a
-few hundred agents: a selector amortised over the blocks of a hundred-thousand
-token sequence is negligible against what it skips, while the same selector
-against a few hundred agents is not. That is a statement about a ratio rather
-than about a mechanism, and it is checkable in advance, which is the most useful
-thing this analysis produces.
+That is the finding we would put in front of a designer. An operation count
+prices work in operations, and on this hardware, at these sizes, the price is
+set by the shape the work is executed in. A successor method has to answer for
+what its selector costs, for whether it reaches its decision without
+materialising the structure it meant to avoid, and for whether what it leaves
+behind can still be executed as a dense block. Only the first is visible in a
+count. The third is why block-level selection succeeds at a hundred thousand
+tokens and per-pair selection does not succeed at a few hundred agents: a
+selected block is still a matrix multiply, and a handful of gathered peers is
+not.

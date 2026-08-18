@@ -77,7 +77,8 @@ constitute attention, and excluding the shared input and output projections:
 \begin{equation}
 C_{\text{scores}} = N^2 d, \quad C_{\text{agg}} = N^2 d, \quad
 C_{\text{dense}} = 2N^2 d, \qquad
-C_{\text{top-}k} = \underbrace{N^2 d}_{\text{all scores}} + \underbrace{Nkd}_{\text{aggregate }k}.
+C_{\text{top-}k} = \underbrace{N^2 d}_{\text{all scores}} +
+\underbrace{Nkd}_{\text{aggregate }k}.
 \end{equation}
 
 \begin{proposition}[Score-then-select ceiling]
@@ -107,7 +108,7 @@ time.
 
 We use $N^2 d$ rather than $N(N{-}1)d$ because it is the count the
 implementations execute: self-masking writes $-\infty$ into the diagonal of a
-full $N \times N$ score matrix rather than skipping work. Counting the diagonal
+full $N \times N$ score matrix and does not skip work. Counting the diagonal
 exactly gives $2(N{-}1)/\bigl((N{-}1)+k\bigr)$, which is strictly smaller for
 every $1 \le k \le N-1$, so the proposition is a valid upper bound under either
 convention.
@@ -178,7 +179,7 @@ ceiling. Reading the two propositions as one statement places any peer-selection
 mechanism on a single axis, the cost of deciding what to keep, and the position
 on that axis determines what the mechanism can save.
 
-The selector-cost term is material rather than decorative. A fixed topology or a
+The selector-cost term is material, not decorative. A fixed topology or a
 precomputed spatial prior really is free at inference and lands in case~(i),
 which is why Longformer and BigBird obtain asymptotic savings where
 score-then-select top-$k$ cannot
@@ -186,13 +187,12 @@ score-then-select top-$k$ cannot
 any score is formed, so nothing is spent deciding. A hash must be evaluated and
 its buckets assembled \citep{kitaev2020reformer}, and a routing rule must
 maintain and query its clusters \citep{roy2021routing}, so their
-$C_{\mathrm{sel}}$ has to be counted rather than assumed away. Between the two
+$C_{\mathrm{sel}}$ has to be counted, not assumed away. Between the two
 sits a family of multi-agent methods whose selector is itself pairwise --- a
 learned hard-attention or scheduling network evaluated over all $N^2$ pairs
 before communication attention runs \citep{liu2020g2anet,niu2021magic} --- and
 for these $C_{\mathrm{sel}}$ is of the same order as the score matrix they
-avoid, so they inherit a ceiling of the same kind as
-Proposition~\ref{prop:ceiling} rather than escaping it.
+avoid, so they inherit a ceiling of the same kind instead of escaping it.
 
 Both propositions concern operation counts only. Whether a pre-score selector
 attains a proportional \emph{speedup} is a separate question, and one that the
@@ -215,19 +215,20 @@ memory traffic, analytically per stage, counting each tensor read and written
 once, and compare it against a machine balance measured on the same device: a
 large matrix multiply gives the achievable arithmetic rate, a large copy gives
 achievable bandwidth, and their ratio is the ridge point above which a kernel is
-compute-bound. Two limits bound the model's use, and both were mis-stated in an
-earlier version of this work. Counting each tensor once ignores cache residency,
-so at small $N$, where the working set fits the GPU's L2, the analytic byte
-counts overstate traffic; the per-stage accounting of Section~\ref{sec:stages}
-flags such stages rather than leaving the reader to infer them. And the ridge
-point depends on whether the probe's buffer fits the last-level cache, so we
-measure two of them per device. On the GPU the ridge is $23$\,FLOP/byte
+compute-bound. Counting each tensor once ignores cache residency, so at small
+$N$, where the
+working set fits the GPU's L2, the analytic byte counts overstate traffic; the
+per-stage accounting of Section~\ref{sec:stages} flags such stages so the
+reader need not infer
+them. The ridge point itself depends on whether the
+probe's buffer fits the last-level cache, so we measure two of them per
+device. On the GPU the ridge is $23$\,FLOP/byte
 cache-resident and $53$ from memory; on the host it is $8$ and $28$. Both paths
 in this study sit below every one of those figures at every agent count, on both
 devices, so the memory-bound conclusion does not depend on which ridge is the
-relevant one --- which is a simpler statement than the earlier version could
-make, because its host bandwidth probe read an unwritten buffer and reported a
-figure several times too large (Appendix~\ref{app:roofline}).
+relevant one. Appendix~\ref{app:roofline} gives the probe, including the
+buffer-initialisation defect that made an earlier version of it overstate host
+bandwidth several-fold.
 
 Section~\ref{sec:stages} applies this accounting stage by stage and reports, for
 each stage, how close it runs to whichever machine limit binds it. That is what

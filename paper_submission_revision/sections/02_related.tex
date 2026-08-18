@@ -36,7 +36,7 @@ paid for in the selector, at the same order as the score matrix they avoid.
 
 The mechanism this paper analyses --- selecting peers by the attention score
 itself, after computing all of them --- is the limiting case of that third
-group, and it is rare in multi-agent communication rather than absent. The
+group, and it is rare in multi-agent communication, not absent. The
 closest published relative is the adaptive sparse communication graph of
 \citet{sun2020sparsecomm}, which replaces softmax with a generalisation of
 sparsemax so that the normalisation itself emits exact zeros. It motivates the
@@ -45,14 +45,14 @@ reduce the complexity of both the forward pass and the back-propagation of the
 policy and value networks'', and it explicitly considers and rejects hard
 top-$k$ thresholding as non-differentiable. Because the sparsity-inducing map is
 applied to logits already formed for every pair, its selection is post-score and
-sits inside the class Proposition~\ref{prop:ceiling} constrains. That is a
-statement about where the method lands in our accounting rather than a
-contradiction of its claims: its reported gains are in sample efficiency at up
+sits inside the class Proposition~\ref{prop:ceiling} constrains. That places
+the method in our accounting and does not
+contradict its claims: its reported gains are in sample efficiency at up
 to $30$ agents and it reports no measured runtime. Handshake-style mechanisms
 that match a requester's query against every candidate key and then select
 \citep{liu2020who2com} are score-then-select in the same sense.
 
-Two consequences for scope. The design we analyse is one we proposed and built,
+The design we analyse is one we proposed and built,
 so the ceiling constrains our own design and the structural selectors above are
 outside it. And the agent counts at which these methods operate are small:
 between two and roughly thirty agents for the attention-based communication
@@ -60,7 +60,7 @@ methods above, with DGN reaching the low hundreds in grid worlds. Our sweep runs
 to $N{=}512$ so that the trend is visible, but the regime the argument is about
 is $N \lesssim 10^2$, and beyond it the field has already abandoned all-pairs
 interaction in favour of neighbourhoods and mean fields --- which is to say, in
-favour of Proposition~\ref{prop:escape}.
+favour of selectors fixed before any score exists.
 
 \subsection{Sparse and efficient attention}
 
@@ -101,22 +101,22 @@ Sparsemax \citep{martins2016sparsemax} and $\alpha$-entmax
 \citep{peters2019entmax} obtain exact zeros from the normalisation rather than a
 hard cutoff, and make no claim about attention cost; that their zeros arrive
 after the scores exist, and are therefore subject to our ceiling, is an
-inference we draw rather than a claim they make. Gumbel-softmax
+inference we draw, not a claim they make. Gumbel-softmax
 \citep{jang2017gumbel} supplies the relaxation used by learned discrete gates,
 and constrained-RL formulations \citep{achiam2017cpo,stooke2020pidlagrangian}
 the machinery for optimising under a communication budget. We implement entmax
-and a Lagrangian budget as arms in Section~\ref{sec:training}.
+and a Lagrangian budget as variants in Section~\ref{sec:training}.
 
 Score-then-select is used at scale in sparse mixture-of-experts, where a router
 scores every expert and dispatches each token to the best $k$
 \citep{shazeer2017moe,fedus2022switch}. The structure of the argument is the one
 we examine, and so is the exemption: these architectures are designed so that
 the router is small relative to the expert computation it gates, so the analogue
-of our $N^2 d$ score term is a minor cost rather than an equal one, and the
+of our $N^2 d$ score term is a minor cost, not an equal one, and the
 saving is real. Whether score-then-select pays therefore depends on the ratio
 between the cost of scoring all candidates and the cost of the work being
 skipped --- large in mixture-of-experts, and equal to one in single-head
-attention, which is Proposition~\ref{prop:ceiling}.
+attention, which is the ceiling above.
 
 \subsection{Hardware-aware sparse execution}
 
@@ -129,7 +129,8 @@ the winning implementations of dense attention reduce memory traffic without
 changing the operation count at all, which is precisely the axis a FLOPs-based
 argument cannot see. Longformer anticipates the distinction this paper turns on,
 reporting runtime and memory for three implementations of one attention pattern
---- a loop version, a vectorised chunked version and a custom CUDA kernel --- and
+--- a loop version, a vectorised chunked version and a custom CUDA kernel ---
+and
 noting that the chunked variant consumes roughly twice the optimal memory
 because it computes some zero values.
 
@@ -154,7 +155,7 @@ successor design in our regime would have to change.
 
 \paragraph{Measurement practice.} Our training protocol follows the
 recommendations of \citet{papoudakis2021epymarl} for systematic MARL
-benchmarking, and we report effect sizes and intervals rather than bare means
+benchmarking, and we report effect sizes and intervals in place of bare means
 \citep{agarwal2021rliable}. Environments come from the PettingZoo/MPE family
 \citep{terry2020pettingzoo} and the learner is MAPPO \citep{yu2022mappo}.
 Motivated by Longformer's precedent, we also checked whether the efficiency

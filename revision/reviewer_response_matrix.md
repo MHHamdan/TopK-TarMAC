@@ -47,15 +47,16 @@ discount, stated because the alternative is for the reviewer to find it.
   of the score, so selection cost is independent of the number retained, at the
   cost of aggregating densely.
 - **Location.** Section 4.3, Figure 2, Table 2.
-- **Result.** **This overturns one of the manuscript's claims, and the
-  correction is stated as such.** Fusion removes most of the measured penalty,
-  and at the sparsest settings the sparse path becomes genuinely faster than the
-  best dense implementation available to us. The advantage is smaller than the
-  analytic ceiling permits and disappears well before the sparsity levels this
-  literature uses. Two structural obstacles survive: ranking candidates costs
-  more on the units that do the ranking than aggregating over the survivors
-  saves, and the only selection strategy whose cost is independent of the number
-  retained achieves that by abandoning the sparse aggregation.
+- **Result.** **This overturns one of the manuscript's claims.** Fusion removes
+  most of the measured penalty, and at one retained peer the sparse path becomes
+  faster than the best dense implementation available to us — including a search
+  over roughly a hundred tilings of a dense kernel of our own. The advantage is
+  confined to one retained peer, to the narrow head widths where no
+  implementation reaches half the device's arithmetic rate, and it is gone by
+  four retained peers. Two structural obstacles survive: ranking candidates
+  costs more on the units that do the ranking than aggregating over the
+  survivors saves, and the only selection strategy whose cost is independent of
+  the number retained achieves that by abandoning the sparse aggregation.
 - **Remaining limitation.** The kernels are Triton rather than tuned assembly;
   their selection strategies are argmax rounds and bisection rather than a radix
   or bitonic select; and they hold the whole score row in registers, which caps
@@ -79,9 +80,9 @@ dangerous than it.
   not the algorithm, was producing the result. We would have published the
   unmatched comparison, and the checker now refuses a sparse speedup larger than
   the ceiling permits.
-- **Remaining limitation.** "Matched effort" is a judgement, not a measurement.
-  Both kernels were written by the same person in the same session, which is the
-  closest control available to us.
+- **Remaining limitation.** Matched effort turned out to be the wrong condition;
+  see the second-round entry below, which replaces it with matched efficiency
+  and a tiling search.
 
 ### Incomplete exploration of very small k
 
@@ -211,3 +212,133 @@ dangerous than it.
 | The headline agent count moves down | The manuscript made 512 agents its headline while its own related work said this literature operates at fewer than a hundred. The attention-communication methods it cites run between two and roughly thirty agents. The larger counts are now a stress test. |
 | The absence claim becomes a taxonomy | "No audited paper selects peers by attention score after computing all of them" is defensible as scoped and vulnerable as read; handshake-based collaborative perception does exactly that. Restating Proposition 1 as the special case of Proposition 2 in which the selector is a full score matrix places every mechanism on one axis and replaces an absence claim with a result. |
 | Existing work is credited for supporting the thesis | The exact top-k attention of Gupta et al. reports that its mechanism is as fast as vanilla attention and buys memory rather than time — an independent instance of this paper's central finding, in the sequence regime, published in 2021. Routing Transformer states the pre-score/post-score distinction explicitly. Both were previously under-used. |
+
+---
+
+# Second round: a fresh review of the revision
+
+The revised manuscript was given to an independent skeptical reviewer who had
+not seen it before, together with the artifacts and the kernel source. They
+returned *major revisions required* and identified defects that the first round
+had introduced or missed. Everything below was found by that review and acted on
+before submission.
+
+### The crossover might be an artifact of a weak dense baseline
+
+**The objection.** The paper's only positive claim rested on a hand-written
+sparse kernel beating a hand-written dense kernel by the same author. Matched
+authorship does not identify the algorithm; matched *efficiency against the
+machine* does. Neither kernel's achieved efficiency was reported anywhere, and
+the dense kernel ran at a fraction of what the vendor library reaches at wider
+head widths, so the claimed margin could lie entirely inside the baseline's
+deficit.
+
+**Action.** `scripts/autotune_kernels.py` searches roughly a hundred tilings for
+each kernel — query tile, key tile or head chunk, warp count, pipeline depth —
+with the same budget, takes the better of that search and the vendor library as
+the dense baseline, and reports achieved arithmetic rate as a fraction of the
+peak the device attains in the same process.
+
+**Result.** The crossover survives tuning and is not produced by an unusually
+good sparse kernel: across the head widths where it exists, the sparse kernel
+reaches 21–33% of the device's rate against 30–47% for dense, so it wins only by
+doing about half the arithmetic and any residual engineering bias runs against
+it. **The objection is partly vindicated all the same.** Dense efficiency climbs
+with head width to 77% at $d{=}128$, and the crossover disappears exactly where
+dense passes about half the device's rate. We cannot exclude that a dense kernel
+reaching at $d{=}16$ what the library reaches at $d{=}128$ would remove it
+entirely. That is now stated in the section, the limitations and the abstract,
+and the positive result is labelled provisional.
+
+### Section 5 used the baseline the paper itself declares invalid
+
+**The objection.** The pre-score experiment quoted every ratio against PyTorch's
+library kernel, not against the matched dense kernel — the exact pitfall the
+paper's own measurement-error section names. Against the correct baseline, the
+claim that the pre-score attention stage is "roughly twice as fast as dense"
+reversed.
+
+**Action and result.** Re-run against the better of both dense kernels. The
+claim was wrong and is withdrawn: the pre-score attention stage is *never*
+faster than dense, running 1.01–1.85× it. **This makes the paper's argument
+stronger and more coherent**, because it is now the same finding in the escape
+case as in the score-then-select case: the arithmetic falls by two orders of
+magnitude and the time does not move.
+
+### The pre-score negative result measured an unfused bit loop, not a selector
+
+**The objection.** The ~0.19 ms selector cost, attributed in the text to a sort,
+was roughly a hundred kernel launches from a Python per-bit loop computing
+Morton codes — the same composition overhead the paper wrote fused kernels to
+eliminate for the other half of its argument. A double standard.
+
+**Action.** Replaced with the standard branch-free bit-spreading interleave,
+verified bit-identical to the loop. Selector cost falls by about a third. The
+conclusion is unchanged in direction and the text no longer attributes the cost
+to the sort. The remaining constant is still a composed-operator upper bound and
+is now labelled as one.
+
+### The equivalence claim was false as implemented
+
+**The objection.** The paper stated that every implementation is checked against
+the reference at every configuration whose latency is reported. The check ran
+once per (batch, head width, agent count) at the widest $k$ — which at several
+agent counts is $k = N-1$, where selection retains every peer and is never
+exercised. There was no correctness check at the small $k$ that produce the
+positive result.
+
+**Action.** The check now runs at every $(N, d, k)$ whose latency is reported,
+and the campaign was re-run so the released artifact matches the claim.
+
+### The operation-count ceiling was used as a validity check on wall-clock
+
+**The objection.** A multiply–accumulate bound constrains time in neither
+direction, and using it as a plausibility check contradicts the paper's own
+thesis. It is also one-sided and blind to a sub-2× baseline deficiency.
+
+**Action.** Removed from the abstract, the contributions and Section 4.3. It
+survives only in the measurement-error section, as the smoke alarm that caught
+one real error, and is described as that rather than as a criterion. The checker
+now bans the phrase.
+
+### Prose contradicted a table, and an appendix was a placeholder
+
+The text quoted 91% attainment for dense aggregation where the table said 81%
+(a stale number from a superseded run); the checker now re-derives both from the
+artifact. The literature-audit appendix rendered as "[pending]"; it is now
+generated from the released audit sheet.
+
+### Training-step timing was contaminated by warm-up
+
+**The objection.** At six agents the first two implementations showed six times
+the action-selection cost of the last three — warm-up, not a property of the
+implementations — and it was that artifact which produced the "the
+communication-free variant is not the fastest" observation.
+
+**Action.** Two discarded iterations instead of one. All five implementations
+now agree within 2% at every agent count with consistent phase shares, and the
+null is clean.
+
+### Smaller items acted on
+
+Table 5's raw code identifiers replaced with the names used elsewhere; the
+"widest $k$" column's varying fraction-of-peers made explicit; the claim that
+implementation was "held constant" across two different kernels removed; the
+"sparse arithmetic or cheap selection but not both" claim softened to a
+statement about the implementations we obtained; the disagreement between two
+machine probes explained (peak varies between 53 and 77 TFLOP/s on this shared
+host, so every fraction-of-peak is an upper bound); and the figure panel at 96
+agents labelled as supporting no claim.
+
+### Raised and not acted on
+
+- **A radix or bitonic select** would beat both of our selection strategies and
+  would sharpen the "not both" question. Not implemented; stated as a
+  limitation.
+- **Moving the learning study wholly to an appendix.** We compressed it and
+  removed the non-vacuity claim's stronger form, but kept the design and the
+  primary comparison in the body, because a reader deciding whether the
+  sparsified architecture is inert should not have to go looking.
+- **A dense kernel at $d{=}16$ reaching library-at-$d{=}128$ efficiency.** We
+  could not write one and neither could the search. This is the single
+  outstanding threat to the positive result and it is stated as such.

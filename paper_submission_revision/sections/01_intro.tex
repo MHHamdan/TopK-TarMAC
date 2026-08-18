@@ -51,15 +51,17 @@ general-purpose tensor operations, the sparse path is slower than dense
 attention everywhere we measure, by up to an order of magnitude, and it moves
 several times more memory traffic while performing less arithmetic. A fused
 kernel that keeps the score row in registers and writes no intermediate removes
-most of that penalty; at the very sparsest settings it makes the sparse path
-genuinely faster than the best dense implementation available to us, by a margin
-that stays inside the analytic ceiling. The advantage does not survive an
-increase in the number of retained peers, because ranking candidates costs more
-than aggregating over survivors saves, and it is gone well before the sparsity
-levels this literature uses. A kernel can make selection cheap in the number
-retained only by abandoning the compaction that made the aggregation sparse in
-the first place, so on this hardware a score-then-select kernel can have sparse
-arithmetic or cheap selection but not both.
+most of that penalty, and where a single peer is retained it is faster than any
+dense implementation we could obtain, including a search over a hundred tilings
+of a dense kernel we wrote ourselves. Three qualifications bound that result and
+we state them with it. The advantage exists only at one retained peer, where the
+softmax is identically one and no weighting is being learned. It exists only at
+the narrow head widths where nothing we tried reaches half the device's
+arithmetic rate, and vanishes at the widths where the vendor library does. And
+it does not survive an increase in the number of retained peers, because ranking
+candidates costs more than aggregating over survivors saves; a kernel can make
+selection cheap in the number retained only by abandoning the compaction that
+made the aggregation sparse.
 
 What follows constructively is the mechanism the negative result identifies.
 Selection that fixes the retained set before any score exists is not subject to
@@ -67,13 +69,16 @@ the ceiling, and its operation-count saving is unbounded in principle. Whether
 it converts into time is a separate question, and we answer it for two selectors
 the count treats similarly: choosing the nearest peers by distance, which is
 what neighbourhood-based communication already does, and ordering agents along a
-space-filling curve, which is asymptotically cheaper. They behave oppositely as
-the agent count grows. The first saves an order of magnitude of arithmetic and
-loses an order of magnitude of time, because it ranks a pairwise matrix of its
-own; the second makes attention over the retained peers genuinely faster than
-dense attention, and is held above parity only by the fixed cost of its own
-sort. Escaping the operation-count bound is necessary, is not sufficient, and
-does not by itself say which of two escaping selectors will be faster.
+space-filling curve, which is asymptotically cheaper. They remove between one
+and two orders
+of magnitude of arithmetic and neither is faster. The nearest-neighbour selector
+ranks a pairwise matrix of its own and reproduces the cost it was introduced to
+avoid. The Z-order selector does not, and still loses --- and it loses even when
+its selector is set aside entirely and only the attention over the
+already-chosen
+peers is timed. Scoring and aggregating a handful of gathered peers is not
+cheaper than scoring and aggregating all of them, whatever the operation count
+says, because the gathered form is not a shape the hardware multiplies quickly.
 
 \paragraph{Contributions.}
 \begin{itemize}
@@ -89,20 +94,18 @@ does not by itself say which of two escaping selectors will be faster.
     sparse path is slower than dense attention throughout the regime by a margin
     its operation count cannot predict, with memory traffic rather than
     arithmetic as the cause (Section~\ref{sec:measurement}).
-  \item We write fused sparse kernels and a matched fused dense baseline, and
-    thereby separate what the algorithm costs from what the implementation
-    costs. Sparsity does become faster than dense attention, but only when one
-    or two peers are retained, by less than the analytic ceiling permits, and
-    never at the sparsity multi-agent communication uses
-    (Section~\ref{sec:fused}).
+  \item We write fused sparse kernels and a dense baseline searched over the
+    same tiling space, and report what fraction of the machine each reaches, so
+    that the comparison identifies the algorithm rather than the authors.
+    Sparsity does become faster than dense attention, at one retained peer, at
+    narrow head widths, and nowhere else (Section~\ref{sec:fused}).
   \item We instantiate the constructive half of the analysis with two selectors
-    that fix the retained set before scoring, and show that removing the
-    operation-count bound is necessary but not sufficient. A selector can save
-    the arithmetic the accounting promises and cost an order of magnitude in
-    time if it reaches its decision through a structure of the size it meant to
-    avoid; and a selector that avoids that can make the attention itself faster
-    than dense and still lose on its own fixed cost, which at these agent counts
-    is comparable to the attention it displaces (Section~\ref{sec:prescore}).
+    that fix the retained set before scoring. Both remove the operation-count
+    bound and neither is faster, and the reason is not the selector: attention
+    over a pre-chosen handful of peers is itself no cheaper than attention over
+    all of them at these sizes. The design target is the shape the remaining
+    work is executed in, which an operation count cannot express
+    (Section~\ref{sec:prescore}).
 \end{itemize}
 
 A secondary pre-registered training study establishes that the architecture

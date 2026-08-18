@@ -378,12 +378,16 @@ def main() -> int:
                         for k in ks:
                             group.append(build_cell(impl, B, N, d, k, device,
                                                     dtype, args.backward))
-                # Equivalence is checked at every configuration whose latency
-                # is reported, at a smaller batch so the check is cheap.
-                eq = verify(min(B, 32), N, d, max(ks), device, dtype,
-                            [i for i in args.impls])
-                equivalence.append({"n_agents": N, "head_dim": d, "batch": B,
-                                    "k": max(ks), "deviation": eq})
+                # Equivalence is checked at every (N, d, k) whose latency is
+                # reported, not once per cell at the widest k. Checking only the
+                # widest k would, at the agent counts where k reaches N-1,
+                # exercise no selection at all -- and the configurations that
+                # carry this paper's positive result are the smallest k.
+                for kk in ks:
+                    eq = verify(min(B, 32), N, d, kk, device, dtype,
+                                list(args.impls))
+                    equivalence.append({"n_agents": N, "head_dim": d,
+                                        "batch": B, "k": kk, "deviation": eq})
                 interleaved(group, device, args.reps, args.warmup, args.runs,
                             False)
                 if args.backward:

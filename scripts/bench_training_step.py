@@ -146,7 +146,8 @@ def main() -> int:
     p.add_argument("--ppo-epochs", type=int, default=10)
     p.add_argument("--n-minibatches", type=int, default=4)
     p.add_argument("--iterations", type=int, default=5,
-                   help="timed iterations after one untimed warm-up")
+                   help="timed iterations, after --warmup untimed ones")
+    p.add_argument("--warmup", type=int, default=2)
     p.add_argument("--k-frac", type=float, default=0.25)
     p.add_argument("--out", default=str(ROOT / "results" /
                                         "training_step_timing.json"))
@@ -175,13 +176,17 @@ def main() -> int:
             optim = Adam(agent.parameters(), lr=3e-4, eps=1e-5)
             obs_t = torch.from_numpy(venv.reset()).float().to(device)
 
+            # Two discarded iterations, not one: the first pays for lazy CUDA
+            # module loading and autotuning caches that the later ones inherit,
+            # and with a single discard the implementation that happens to run
+            # first carries that cost into its reported time.
             per_iter: list[dict[str, float]] = []
-            for it in range(args.iterations + 1):
+            for it in range(args.iterations + args.warmup):
                 ph, obs_t = one_iteration(
                     agent, optim, venv, obs_t, cfg, device,
                     args.rollout_len, args.n_envs, args.ppo_epochs,
                     args.n_minibatches)
-                if it:                              # discard the warm-up
+                if it >= args.warmup:
                     per_iter.append(ph)
 
             keys = sorted(per_iter[0])

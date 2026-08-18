@@ -68,9 +68,11 @@ def fig_taxonomy() -> None:
         ("Top-$k$, fused", "kept", "tiled", r"$N^2d + Nkd$", "topk_fused"),
     ]
 
-    fig, axes = plt.subplots(len(rows), 3, figsize=(W, 4.6),
-                             gridspec_kw={"width_ratios": [1.0, 1.0, 2.1],
-                                          "hspace": 0.22, "wspace": 0.10})
+    fig, axes = plt.subplots(len(rows), 3, figsize=(W, 3.6),
+                             gridspec_kw={"width_ratios": [1.0, 1.0, 1.35],
+                                          "hspace": 0.30, "wspace": 0.06,
+                                          "left": 0.02, "right": 0.99,
+                                          "top": 0.90, "bottom": 0.10})
     for r, (label, weights, storage, cost, impl) in enumerate(rows):
         col = fs.IMPL_COLOR[impl]
 
@@ -102,25 +104,21 @@ def fig_taxonomy() -> None:
         written = {"stored": r"writes an $N\times N$ matrix",
                    "compacted": r"writes an $N\times k$ tensor",
                    "tiled": "writes no intermediate"}[storage]
-        ax.text(0.0, 0.70, label, fontsize=fs.MIN_PT + 1.5, color=col,
+        ax.text(0.0, 0.72, label, fontsize=fs.MIN_PT + 1.5, color=col,
                 fontweight="semibold", va="center")
-        ax.text(0.0, 0.34, written, fontsize=fs.MIN_PT, color=fs.MUTED_COLOR,
+        ax.text(0.0, 0.40, written, fontsize=fs.MIN_PT, color=fs.MUTED_COLOR,
                 va="center")
-        ax.text(0.60, 0.34, cost, fontsize=fs.MIN_PT + 1.0,
+        ax.text(0.0, 0.10, cost, fontsize=fs.MIN_PT + 1.0,
                 color=fs.ANNOT_COLOR, va="center")
         if r == 0:
-            ax.text(0.60, 1.05, "aggregation cost", fontsize=fs.MIN_PT + 0.5,
-                    color=fs.ANNOT_COLOR, va="bottom")
+            ax.text(0.0, 1.12, "stored, and multiplied",
+                    fontsize=fs.MIN_PT + 0.5, color=fs.ANNOT_COLOR, va="bottom")
         ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 
-    fig.text(0.5, 0.02,
-             "Every implementation evaluates every pairwise score, because a "
-             "score-then-select rule must form the complete score row before it "
-             "can rank it.\n"
+    fig.text(0.5, 0.01,
              "A dashed outline marks weights that are used but never written to "
              "memory; a cross marks the masked self-interaction.",
-             ha="center", fontsize=fs.MIN_PT, color=fs.MUTED_COLOR,
-             linespacing=1.5)
+             ha="center", fontsize=fs.MIN_PT, color=fs.MUTED_COLOR)
     fs.savefig(fig, OUT / "fig1_taxonomy.pdf", W)
     plt.close(fig)
 
@@ -407,7 +405,8 @@ def fig_prescore() -> None:
             continue
         st = fs.style(sel)
         ax.plot([p["n_agents"] for p in pts],
-                [p["t_total_ms"] / p["t_dense_fused_ms"] for p in pts],
+                [p["t_total_ms"] / p.get("t_dense_best_ms",
+                                        p["t_dense_fused_ms"]) for p in pts],
                 markersize=4.0, **st)
     pts = [r for r in rows if r["selector"] == "radius_knn" and r["k"] == k_show]
     pts.sort(key=lambda r: r["n_agents"])
@@ -415,14 +414,16 @@ def fig_prescore() -> None:
         st = fs.style("topk_gather")
         st["label"] = "score-then-select, gathered"
         ax.plot([p["n_agents"] for p in pts],
-                [p["t_topk_gather_ms"] / p["t_dense_fused_ms"] for p in pts],
+                [p["t_topk_gather_ms"] / p.get("t_dense_best_ms",
+                                              p["t_dense_fused_ms"])
+                 for p in pts],
                 markersize=4.0, **st)
     fs.parity_line(ax)
     ax.set_xscale("log", base=2); ax.set_yscale("log")
     ax.set_xticks(ns); ax.set_xticklabels([str(n) for n in ns])
     ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.set_xlabel("agents $N$")
-    ax.set_ylabel("latency / fused dense")
+    ax.set_ylabel("latency / best dense")
     ax.set_title("what the clock delivers", pad=4)
     ax.set_ylim(top=ax.get_ylim()[1] * 3.2)
     ax.legend(fontsize=fs.MIN_PT, loc="upper center", ncol=1,

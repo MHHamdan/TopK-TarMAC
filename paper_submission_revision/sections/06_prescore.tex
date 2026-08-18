@@ -1,32 +1,31 @@
-Proposition~\ref{prop:escape} says that a selector which fixes the retained set
+Proposition~\ref{prop:escape} says that a selector fixing the retained set
 before any score exists is not bound by the twofold ceiling, and that its
 operation-count saving grows without limit as the retained set shrinks. That is
-a statement about counts, and the rest of this paper is about what counts fail
-to predict. This section instantiates the escape and measures it.
+a statement about counts, and this paper is about what counts fail to predict.
+This section instantiates the escape and measures it.
 
-Two selectors, both chosen because multi-agent communication already uses
-mechanisms of their kind rather than because they are new. The first retains
-each agent's $k$ nearest peers by Euclidean distance in the two-dimensional
-position space, which is what neighbourhood-based communication does
-\citep{jiang2018dgn,jiang2018atoc}; its selector is still pairwise, but pairwise
-in two dimensions rather than in the head dimension, so it costs a factor of
-$d/2$ less than forming the scores. The second orders agents along a Morton
-curve and retains the $k$ agents adjacent in that order, which costs
-$O(N \log N)$ and so satisfies the $o(Nkd)$ condition of case~(i) of the
-proposition for any fixed $k$. Both then evaluate attention scores for the
-retained pairs only, so the score term falls from $N^2d$ to $Nkd$ and the
-ceiling does not apply.
+We use two selectors, both corresponding to mechanisms multi-agent
+communication already uses. The first retains each agent's $k$ nearest peers by
+Euclidean distance over two-dimensional positions, which is what
+neighbourhood-based communication does \citep{jiang2018dgn,jiang2018atoc}. Its
+selector is still pairwise, but pairwise in two dimensions rather than in the
+head dimension, so it costs a factor of $d/2$ less than forming the scores. The
+second orders agents along a Morton curve and retains the $k$ agents adjacent in
+that order, at $O(N \log N)$, which satisfies the $o(Nkd)$ condition of
+case~(i). Both then evaluate attention scores for the retained pairs only, so
+the score term falls from $N^2d$ to $Nkd$ and the ceiling does not apply.
 
 The two selectors attend to different peers than a top-$k$ rule would, so what
-follows is a comparison of cost and not of quality. Selection and attention are
-timed separately as well as together, because a proposition that charges for the
-selector is only tested by an experiment that charges for it.
+follows compares cost and not quality. Selection and attention are timed
+separately as well as together, so that the selector is charged and not assumed
+away. Every ratio is against the faster of the library dense kernel and our
+own, for the reason Section~\ref{sec:pitfalls} gives.
 
 \begin{table}[t]
 \centering\small
-\caption{Selecting before scoring, at \PrescoreK{} retained peers.
-The operation-count saving is large and grows with the agent count; the elapsed
-time does not follow it. Selection and attention are timed separately and the
+\caption{Selecting before scoring, at \PrescoreK{} retained peers. The
+operation-count saving reaches two orders of magnitude and the elapsed time does
+not follow it anywhere. Selection and attention are timed separately and the
 total is timed as one call, so the components need not sum exactly.}
 \label{tab:prescore}
 \input{tables/prescore}
@@ -37,63 +36,69 @@ total is timed as one call, so the components need not sum exactly.}
 \includegraphics[width=\linewidth]{figures/fig5_prescore.pdf}
 \caption{\textbf{Left:} the operation-count saving Proposition~\ref{prop:escape}
 promises, which for the sub-quadratic selector tracks $N/k$. \textbf{Right:}
-what the same configurations cost. Escaping the ceiling in operation count does
-not by itself produce a speedup, and the two selectors that the count treats
-similarly behave oppositely as the agent count grows.}
+what the same configurations cost. Neither reaches parity, and the two selectors that the count treats
+similarly diverge by an order of magnitude.}
 \label{fig:prescore}
 \end{figure}
 
-Both selectors deliver what the accounting promises and neither delivers a
-speedup, and the reasons differ in a way that identifies a second condition the
-count cannot express.
+The operation-count saving is exactly what the proposition predicts. At $512$
+agents retaining four peers, the Z-order path performs $104$ times fewer
+operations than dense attention and the nearest-neighbour path $18$ times fewer,
+the difference between them being the cost of their selectors. Neither is faster
+than dense attention at any agent count we measure.
 
-The nearest-neighbour selector removes an order of magnitude of arithmetic and
-gets slower, relative to dense attention, as the agent count rises: at $512$
-agents it performs roughly twenty times fewer operations than dense attention
-and takes fifteen times longer. Its selector is quadratic, so it materialises an
-$N \times N$ distance matrix and ranks it --- the same two operations, on the
-same shape, that Proposition~\ref{prop:ceiling} says a score-then-select rule
-cannot avoid. Working in two dimensions rather than in the head dimension buys a
-factor in the arithmetic and nothing in the traffic, and Section~\ref{sec:stages}
-shows traffic to be what governs. A pre-score selector of this kind escapes the
-proposition on paper and reproduces its cost structure in silicon.
+Two separate things go wrong, and only the first is the one we expected.
 
-The Morton selector behaves in the opposite direction and comes close. Its cost
-is essentially independent of the agent count over our whole range, because a
-sort of a few hundred keys per batch element is bound by kernel launch rather
-than by work, and its attention stage --- scoring and aggregating only the
-retained pairs --- is roughly twice as fast as dense attention at the largest
-agent count, which is what Proposition~\ref{prop:escape} predicts once the score
-term shrinks with the aggregation. The ratio against dense attention therefore
-improves monotonically with the agent count, from an order of magnitude at $48$
-agents to within a small margin of parity at $512$. What keeps it above parity
-is not the attention at all but the fixed cost of the sort, which at these sizes
-is comparable to the entire dense attention it is trying to displace.
+The selector can cost more than the attention it is choosing for. The
+nearest-neighbour selector materialises an $N \times N$ distance matrix and
+ranks it, which are the same two operations, on the same shape, that
+Proposition~\ref{prop:ceiling} says a score-then-select rule cannot avoid.
+Working in two dimensions rather than in the head dimension buys a factor in the
+arithmetic and nothing in the traffic, and traffic is what governs
+(Section~\ref{sec:stages}); by $512$ agents its selector alone costs $27$ times
+the whole of dense attention. The Z-order selector avoids the quadratic
+structure and its cost is flat in the agent count, but flat is not small: it
+sits between $0.13$ and $0.37$\,ms across our range, which is comparable to or
+larger than the entire dense attention it is displacing at every agent count.
+It is also composed from library operators, so like the composed sparse path of
+Section~\ref{sec:composed} its constant is an upper bound rather than a property
+of the design.
 
-Three conclusions follow, and the third is the one we would have missed without
-this measurement.
+The second failure is the one that matters, because no better selector can
+repair it. Setting the selector aside entirely and timing only the attention
+over an already-chosen peer set --- scoring $Nk$ pairs instead of $N^2$, then
+aggregating over $k$ --- that stage is \emph{still} not faster than dense
+attention. It runs between $1.01$ and $1.85$ times dense across the range, worst
+at the smallest agent count and converging towards parity from above, and it
+never crosses. An operation count says this stage should be one or two orders of
+magnitude cheaper. It is not cheaper at all.
 
-Escaping the operation-count ceiling is necessary. The Morton selector's
-attention stage is genuinely faster than dense attention, and no score-then-select
-implementation in this paper achieves that at any comparable sparsity, because
-none of them can remove the score term.
+The reason is the one Section~\ref{sec:composed} identifies for the
+score-then-select path, and it survives the change of selector because it was
+never about selection. Scoring $Nk$ chosen pairs requires gathering $k$ keys and
+$k$ values per query, so the operand is $2kd$ elements per query where dense
+attention reads a contiguous $N$-row block and multiplies it as a matrix
+product. At $512$ agents, four retained peers and head width $16$ that is $128$
+gathered elements per query against a $512$-wide contiguous row, and the
+gathered form loses the matrix-multiply shape as well. The arithmetic falls by
+two orders of magnitude and the traffic does not fall at all.
 
-Escaping it is not sufficient, and the accounting says nothing about which of
-the two selectors will be faster. Both satisfy the proposition; one improves with
-scale and one deteriorates. What separates them is whether the selector reaches
-its decision through a structure of the size it was introduced to avoid.
-Proposition~\ref{prop:escape} charges for the selector in operations, and
-operations are the wrong currency: the nearest-neighbour selector's arithmetic is
-small and its traffic is exactly the traffic the ceiling is about.
+What this leaves of Proposition~\ref{prop:escape} is worth being exact about,
+because the proposition is not wrong. Removing the full score matrix genuinely
+removes the ceiling: the count ratios in Table~\ref{tab:prescore} are far above
+the factor of two that bounds any score-then-select rule, and no implementation
+elsewhere in this paper achieves anything like them. The proposition simply
+turns out to bound the wrong quantity twice over. Its selector term is charged
+in operations, and the nearest-neighbour selector shows that a selector can be
+cheap in operations and ruinous in traffic. And the term it leaves --- attention
+over $Nk$ pairs --- is itself priced in operations, and at these sizes that
+price is not what the hardware charges.
 
-And a selector must be cheap in absolute terms at the size in question, not
-merely asymptotically. The Morton selector is asymptotically free relative to
-attention and is nonetheless the reason its path does not win, because a few
-hundred agents is small enough that a launch-bound sort costs as much as the
-quadratic work it is avoiding. This is the same quantity that makes block-level
-selection succeed in long-context attention, where a selector amortised over
-blocks of a long sequence is negligible against the work it skips
-\citep{yuan2025nsa,lai2026msa}, and it is the quantity a successor method for
-multi-agent communication has to get right. Nothing about the analysis suggests
-this is impossible; it does suggest that the design target is the selector's
-constant, not the aggregation's asymptotics.
+A successor design is therefore accountable for three things rather than one,
+and an operation count shows only the first: what the selector costs to run,
+whether it reaches its decision without materialising a structure of the size it
+meant to avoid, and whether the sparse attention it leaves behind can be
+executed in a shape the hardware is fast at. The third is the one this section
+adds, and it is the reason block-level selection works in long-context attention
+while per-pair selection does not work here. A block of a long sequence is still
+a dense matrix multiply after selection; a handful of gathered peers is not.

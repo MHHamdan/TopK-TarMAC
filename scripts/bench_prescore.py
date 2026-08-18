@@ -40,6 +40,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.kernels.prescore_selection import (  # noqa: E402
     SELECTORS, analytic_flops, prescore_attention)
+from src.kernels.fused_dense_attention import fused_dense_attention  # noqa: E402
 
 
 def _stats(s: list[float]) -> dict[str, float]:
@@ -126,6 +127,9 @@ def main() -> int:
                 q.unsqueeze(1), kt.unsqueeze(1), v.unsqueeze(1),
                 attn_mask=mask).squeeze(1)
 
+        def dense_triton():
+            return fused_dense_attention(q, kt, v)
+
         for k in args.k_list:
             if k >= N:
                 continue
@@ -142,6 +146,7 @@ def main() -> int:
             fns: dict[str, Any] = {
                 "dense_unfused": dense_unfused,
                 "dense_fused": dense_fused,
+                "dense_triton": dense_triton,
                 "topk_gather": gathered,
             }
             for sel_name, sel in SELECTORS.items():
@@ -167,6 +172,14 @@ def main() -> int:
                     "t_total_ms": timed[f"total:{sel_name}"]["min_ms"],
                     "t_dense_unfused_ms": timed["dense_unfused"]["min_ms"],
                     "t_dense_fused_ms": timed["dense_fused"]["min_ms"],
+                    "t_dense_triton_ms": timed["dense_triton"]["min_ms"],
+                    # The baseline every ratio is quoted against: the better of
+                    # the library fused path and a dense kernel written in the
+                    # same framework as the selectors' attention stage. Quoting
+                    # against the library alone would be the pitfall this paper
+                    # names in its own measurement-error section.
+                    "t_dense_best_ms": min(timed["dense_fused"]["min_ms"],
+                                           timed["dense_triton"]["min_ms"]),
                     "t_topk_gather_ms": timed["topk_gather"]["min_ms"],
                     "flops": fl,
                     "flop_ratio_vs_dense": fl["dense_total"] / fl["total"],
@@ -177,11 +190,12 @@ def main() -> int:
                 print(f"N={N:>4} k={k:<3} {sel_name:<14} "
                       f"sel {r['t_selector_ms']:7.4f} attn "
                       f"{r['t_attention_ms']:7.4f} total "
-                      f"{r['t_total_ms']:7.4f} ms | dense unfused "
-                      f"{r['t_dense_unfused_ms']:7.4f} fused "
-                      f"{r['t_dense_fused_ms']:7.4f} | FLOP ratio "
-                      f"{r['flop_ratio_vs_dense']:6.2f}x | time ratio vs fused "
-                      f"{r['t_total_ms'] / r['t_dense_fused_ms']:5.2f}x",
+                      f"{r['t_total_ms']:7.4f} ms | dense best "
+                      f"{r['t_dense_best_ms']:7.4f} (lib "
+                      f"{r['t_dense_fused_ms']:.4f} ours "
+                      f"{r['t_dense_triton_ms']:.4f}) | FLOP ratio "
+                      f"{r['flop_ratio_vs_dense']:6.2f}x | time ratio "
+                      f"{r['t_total_ms'] / r['t_dense_best_ms']:5.2f}x",
                       flush=True)
         del q, kt, v, pos, eye
         torch.cuda.empty_cache()
