@@ -154,41 +154,30 @@ the retained pairs, and the two together are timed separately.
 **Scripts.** `src/kernels/prescore_selection.py`, `scripts/bench_prescore.py`
 **Artifact.** `results/prescore.json`
 
-**Result** (four retained peers). The nearest-neighbour selector saves 7.7 to
-18.3 times the operations and costs 5.3 to 16.0 times the time, worsening with
-the agent count because its selector is quadratic. The Z-order selector saves
-10.0 to 103.7 times the operations, and its cost against dense attention
-improves monotonically with the agent count, from 18.2 at 48 agents to 1.27 at
-512. Its attention stage alone is roughly half the cost of dense attention at
-512 agents; what keeps the total above parity is its own selector, whose cost is
-flat in the agent count at about 0.19 ms and is therefore comparable at these
-sizes to the entire dense attention it displaces.
+**Result** (four retained peers, every ratio against the better of the two dense
+kernels). The nearest-neighbour selector saves 8 to 18 times the operations and
+costs 4 to 28 times the time, worsening with the agent count because its
+selector is quadratic. The Z-order selector saves 10 to 104 times the operations
+and costs 2.0 to 11.2 times the time. Setting both selectors aside and timing
+only the attention over an already-chosen peer set, that stage is *never* faster
+than dense attention: it runs 1.01 to 1.85 times dense, converging towards
+parity from above and never crossing.
 
 **How it changes the manuscript.** It supplies the escape case the reviewer
 asked for and inverts the conclusion we expected to draw from it. Escaping the
-operation-count ceiling turns out to be necessary, not sufficient, and not even
-predictive of which of two escaping selectors is faster. Section 5, Table 6,
-Figure 5, and the third paragraph of the conclusion.
+operation-count ceiling removes the bound and delivers no time, and the reason
+is not the selector: attention over a pre-chosen handful of peers is itself no
+cheaper than attention over all of them at these sizes, because the gathered
+operand has lost the shape the hardware multiplies quickly. Section 5, Table 7,
+Figure 4, and the fourth paragraph of the conclusion.
 
-## 9. Drift repeat
+An earlier version of this measurement quoted every ratio against the vendor
+library rather than against the better of the two dense kernels, and reported
+the Z-order attention stage as roughly twice as fast as dense. That was the
+pitfall this paper's own measurement-error section names, and the claim reversed
+when it was corrected.
 
-**Question.** Does the headline sweep reproduce?
-
-**Configuration.** The identical sweep, repeated in full on the same device
-hours later, under different load from other tenants.
-
-**Artifact.** `results/attention_core_d16_repeat.json`
-
-**Result.** From 192 agents upward, median movement between the two runs is
-under 1% in latency and under 0.5% in the ratio against the best dense
-implementation, with the worst single configuration under 11%. At 96 agents
-every implementation ran between 14% and 394% slower in the second run.
-
-**How it changes the manuscript.** It removes a crossover the first run showed
-at 96 agents and restricts every claim to 192 agents and above. Appendix A,
-Table 7.
-
-## 7. Head width to 512, and batch over two orders of magnitude
+## 7. Head width to 512, and batch over a thirty-twofold range
 
 **Question.** The archival sweep stopped at head width 256 and declared the
 trend unresolved.
@@ -223,6 +212,49 @@ the simpler claim.
 well-defined numbers, cache-resident and memory-resident, instead of a range
 that was an artifact of a broken probe. The awkward hedge about using the range
 only where a conclusion holds across all of it is gone.
+
+## 9. Tiling search over both kernels
+
+**Question.** Is the fused sparse kernel's advantage a property of sparsity, or
+of the two kernels having received unequal engineering?
+
+**Configuration.** Roughly a hundred configurations per kernel — query tile,
+key tile or head chunk, warp count, pipeline depth — searched with the same
+budget for the dense and the sparse kernel, at agent counts 192 to 512 and head
+widths 16 to 128. The dense baseline is the better of that search and the vendor
+library. Achieved arithmetic rate is reported as a fraction of the peak the
+device attains in the same process.
+
+**Script.** `scripts/autotune_kernels.py`
+**Artifact.** `results/autotune.json`
+
+**Result.** The crossover survives tuning and is not produced by an unusually
+good sparse kernel: at head widths 16 and 32 the sparse kernel reaches 21–33% of
+the device's rate against 30–47% for dense, so it wins only by performing about
+half the arithmetic. It is nonetheless confined: dense efficiency climbs to 77%
+at head width 128, and the crossover disappears exactly where dense passes about
+half the machine.
+
+**How it changes the manuscript.** Section 4.3 and Table 3. The positive result
+is now stated as provisional on the dense baseline, in the abstract, the section
+and the limitations, and the "matched engineering effort" criterion is replaced
+by matched efficiency.
+
+## 10. Full repeat of the headline sweep
+
+**Question.** Does the headline sweep reproduce?
+
+**Configuration.** The identical sweep, repeated on the same device hours later
+under different load from other tenants.
+
+**Artifact.** `results/attention_core_d16_repeat.json`
+
+**Result.** From 192 agents upward, median movement between runs is under 1% in
+latency and under 0.5% in the ratio, worst configuration under 11%. At 96 agents
+every implementation ran between 14% and 394% slower in the second run.
+
+**How it changes the manuscript.** Every claim is restricted to 192 agents and
+above. A crossover the first run showed at 96 agents is removed. Appendix A.
 
 ---
 

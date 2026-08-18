@@ -300,10 +300,11 @@ phase, with the communication implementation swapped and everything else fixed,
 puts the environment and per-step action selection at $78\%$ of the iteration at
 six agents and $96\%$ at twenty-four, and leaves all five implementations within
 $2\%$ of one another at every agent count, against an iteration-to-iteration
-spread of $0.8$ to $7.3\%$ (Table~\ref{tab:trainstep}). The communication-free
-variant, which performs no attention at all, is not the fastest of the five.
-This does not resolve the implementations as equal; it fails to resolve them at
-all, which is the honest description and the useful one. It bounds the practical
+spread of $0.8$ to $7.3\%$ (Table~\ref{tab:trainstep}). The ordering among the five is not stable: the communication-free variant, which performs no attention at all, is fourth of five at six agents and at
+twenty-four, and the gathered sparse implementation is the fastest of the
+five at twenty-four. This does not resolve the implementations as equal; it
+fails to resolve them at all, which is the useful description as well as the
+honest one. It bounds the practical
 stakes of the whole measurement campaign in the regime the training study
 occupies, and it is why the computational argument is made on the module in
 isolation.

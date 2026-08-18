@@ -68,20 +68,32 @@ A purpose-built fused kernel is faster than the best dense implementation at the
 sparsest settings. Replaced by the conditional claim below.
 
 **With a purpose-built fused kernel, sparse attention is faster than the best
-dense implementation only when very few peers are retained, and is an order of
-magnitude slower at the sparsity multi-agent communication uses.**
-Evidence: `results/attention_core_d16.json`, Table 2 and Figure 2. Scope: as
-above; the dense baseline is the better of the library fused path and a
-streaming dense kernel written in the same framework. **Defensible: yes**, and
-it is the claim the reviewer's criticism produced.
+dense implementation only when a single peer is retained, and is 14 to 26 times
+slower at the sparsity multi-agent communication uses.**
+Evidence: `results/attention_core_d16.json` and `results/autotune.json`,
+Tables 2 and 3, Figure 2. The dense baseline is the better of the library fused
+path and a search over roughly a hundred tilings of a dense kernel written in
+the same framework. Scope: agent counts from 192 upward, where the sweep
+reproduces on repetition; head widths 16 and 32, where the crossover exists at
+all; `fp32`. **Defensible: yes, and provisional.** The crossover exists only
+where no implementation reaches half the device's arithmetic rate, and
+disappears at the head widths where the library does. A dense kernel closing
+that gap at narrow head widths would remove it. We could not write one and
+neither could the search, and the manuscript says so in the abstract, the
+section and the limitations.
 
-**The measured speedup from sparsity, with implementation held constant, stays
-inside the twofold analytic ceiling.**
-Evidence: the same artifact; the checker fails the build if any configuration
-shows a sparse implementation more than twice as fast as the best dense one,
-because that would indicate a deficient baseline rather than an algorithmic win.
-Scope: the ceiling bounds operation counts, not time; the agreement is empirical
-and is reported as such. **Defensible: yes.**
+**The sparse kernel is the less efficient of the two, so residual engineering
+bias runs against sparsity.**
+Evidence: `results/autotune.json`. Across the head widths where the crossover
+exists the sparse kernel attains 21–33% of the device's arithmetic rate against
+30–47% for dense. **Defensible: yes.**
+
+**WITHDRAWN — "the measured speedup stays inside the twofold analytic ceiling",
+used as a validity check on a wall-clock ratio.**
+A multiply--accumulate bound constrains time in neither direction, so this is
+not a test, and using it as one contradicts the paper's own thesis. It survives
+only in the measurement-error section as the smoke alarm that caught a real
+error, described as that. The checker bans the phrase.
 
 **A fused score-then-select kernel can have sparse aggregation arithmetic or
 selection cost independent of the number retained, and we could not obtain
@@ -108,11 +120,12 @@ implementations only; the hand-written kernels are forward-only and excluded.
 is dominated by the environment and by per-step action selection, and the
 communication implementations differ by less than the variation between
 iterations.**
-Evidence: `results/training_step_timing.json`, Table 5. The communication-free
-variant, which performs no attention at all, is not the fastest, which is the
-clearest available demonstration that this measurement does not resolve the
-implementations. Scope: this pipeline, few agents, a CPU-bound environment.
-**Defensible: yes**, and it is reported as a null.
+Evidence: `results/training_step_timing.json`, Table 5. All five agree within
+2% at every agent count, and the ordering among them is unstable: the
+communication-free variant is fourth of five at six and twenty-four agents, and
+the gathered sparse implementation is fastest at twenty-four. Scope: this
+pipeline, few agents, a CPU-bound environment. **Defensible: yes**, and it is
+reported as a failure to resolve rather than as an equality.
 
 ---
 
@@ -120,31 +133,43 @@ implementations. Scope: this pipeline, few agents, a CPU-bound environment.
 
 **Both pre-score selectors deliver the operation-count saving the accounting
 promises and neither delivers a speedup.**
-Evidence: `results/prescore.json`, Table 6 and Figure 4. Scope: a cost
-comparison; the selectors attend to different peers than a top-$k$ rule, so no
-quality claim is made. **Defensible: yes.**
+Evidence: `results/prescore.json`, Table 7 and Figure 4. Every ratio is against
+the better of the two dense kernels. Scope: a cost comparison; the selectors
+attend to different peers than a top-$k$ rule, so no quality claim is made.
+**Defensible: yes.**
 
-**A pre-score selector whose own decision is reached through a quadratic
-structure reproduces the cost it was introduced to avoid, and gets worse with
-scale.**
-Evidence: the nearest-neighbour selector performs roughly twenty times fewer
-operations than dense attention at 512 agents and takes fifteen times longer;
-its selector time grows quadratically. **Defensible: yes.**
+**A pre-score selector whose decision is reached through a quadratic structure
+reproduces the cost it was introduced to avoid, and gets worse with scale.**
+Evidence: the nearest-neighbour selector performs 18 times fewer operations than
+dense attention at 512 agents and takes 28 times longer; its selector time grows
+quadratically. **Defensible: yes.**
 
-**A sub-quadratic selector makes the attention itself faster than dense
-attention, and is held above parity by its own fixed cost.**
-Evidence: at 512 agents and two retained peers the Z-order path's attention
-stage is roughly half the cost of dense attention, and the total is just above
-parity, with the difference accounted for by a selector cost that is flat in the
-agent count. Scope: our range stops at 512 agents; we do not claim the trend
-continues, only that it is monotone within the range measured. **Defensible:
-yes.**
+**WITHDRAWN — "a sub-quadratic selector makes the attention itself faster than
+dense attention."**
+This was measured against the library dense kernel, which is the pitfall the
+paper's own measurement-error section names. Against the better of the two dense
+kernels the pre-score attention stage is never faster: it runs between 1.01 and
+1.85 times dense across the range. The withdrawal makes the argument more
+coherent, not less, because it is now the same finding in the escape case as in
+the score-then-select case.
 
-**Escaping the operation-count ceiling is necessary but not sufficient, and the
-accounting does not say which of two escaping selectors will be faster.**
-Evidence: both selectors satisfy Proposition 2 and they behave oppositely with
-scale. **Defensible: yes.** This is the revision's main new analytic
-contribution and it exists only because the escape case was measured.
+**Attention over a pre-chosen peer set is not cheaper than attention over all
+peers, despite up to 104 times fewer operations, because the gathered operand
+loses the matrix-multiply shape.**
+Evidence: `results/prescore.json`, the `attend` column of Table 7. The
+explanation is consistent with the per-stage accounting, where the sparse
+aggregation attains a higher fraction of achievable bandwidth than the dense one
+and is slower because it moves more bytes. Scope: an interpretation of two
+measurements that agree, not an independently controlled experiment.
+**Defensible: yes, as an interpretation.**
+
+**Escaping the operation-count ceiling is necessary but not sufficient, and a
+successor design is accountable for three things of which a count shows one.**
+Evidence: both selectors satisfy Proposition 2, neither is faster, and the
+failure is not attributable to the selector in either case. **Defensible: yes.**
+This is the revision's main new analytic contribution and it exists only because
+the escape case was measured — and only because it was re-measured against the
+right baseline.
 
 ---
 

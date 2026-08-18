@@ -1,42 +1,46 @@
 # Writing revision report
 
-Measured over the LaTeX sources, with float environments excluded from word and
-sentence counts so that tables do not inflate prose statistics.
+Counts are over the LaTeX sources with float environments excluded, so tables do
+not inflate prose statistics.
 
 ## Counts
 
 | | archival `paper/` | revision `paper_submission_revision/` |
 |---|---|---|
-| Abstract, words | 334 | 279 |
+| Abstract, words | 334 | 301 |
 | Abstract, mathematical notation | 11 symbols and one displayed ratio | none |
-| Prose words, all sections | 10,561 | see note below |
-| Em dashes | 118 | 43 |
+| Prose words | 10,561 | 12,287 |
+| Em dashes | 118 | 50 |
+| Words per em dash | 89 | 245 |
 | `\paragraph{}` mini-headings | 20 | 6 |
-| Sentences whose subject is a float | 13 | 7, all genuine cross-references to appendix detail |
+| Sentences whose subject is a float | 13 | 8, all cross-references to appendix detail |
 | Sentence-initial `First,`/`Second,`/`Third,`/`Finally,` | 12 | 3 |
-| Appendix subsections | 11 | 5 sections with 13 subsections, consolidated by topic |
-| Opaque experiment codes in prose (P1–P7, C1–C6, G1/G2, tier-*n*) | 31 occurrences | 0 |
-| Uses of *arm* and *cell* as nouns for implementations and configurations | 63 | 0 in the main text |
+| Occurrences of "rather than" | 49 | 33 |
+| Opaque experiment codes in prose (P1–P7, C1–C6, G1/G2, tier-*n*) | 31 | 0 |
+| *arm* / *cell* as nouns for implementations and configurations | 63 | 0 in the main text |
+| Total pages | 26 | 29 |
+| Main text / appendix pages | 20 / 6 | 23 / 6 |
+| Appendix subsections | 11, five of which existed only to point at one float | 13 under 5 topic-based sections, none of which is a pointer |
 
-Note on total word count: the revision adds a section that did not exist (the
-pre-score measurements) and a fused-kernel subsection, and removes an equivalent
-volume from the appendix and the training study. Main-text density is lower
-because the diagnostic material moved: the training study falls from 1,209 to
-about 700 words in the body, and the seven-pitfall table's supporting prose from
-605 to a conceptual account that no longer requires a lookup table.
+The revision is longer because it contains a section, two tables and a figure
+that did not exist — the fused-kernel comparison, the tiling search, and the
+pre-score measurements. The parts that were criticised as dense are shorter: the
+training study falls from 1,209 to about 800 words in the body, and the
+seven-pitfall section's prose from a code-indexed list to a conceptual account
+that needs no lookup table.
 
 ## Sections reorganised
 
 | archival | revision |
 |---|---|
-| 2 Related Work **and a Reporting Audit** | 2 Related Work, in three subsections; the audit protocol and completed sheet move to Appendix D |
-| 3 What Sparsifying Attention Can and Cannot Save | 3 Computational Limits of Score-Then-Select Attention, with the intuition before the algebra and Proposition 1 restated as a special case of Proposition 2 |
-| 4 Measuring the Cost | 4 Measured Cost, reorganised around questions: what the composed implementations cost, what a purpose-built kernel changes, sensitivity, where the time goes, backward and training throughput, robustness |
-| — | 5 Selecting Before Scoring (new: the empirical escape case) |
-| 5 Does Sparsification Cost Return? | 6 Learning Study, compressed, with the inferential machinery moved to the appendix |
-| 6 Seven Pitfalls in Attention Benchmarking | 7 Sources of Measurement Error, organised by the four kinds of failure rather than by numbered code, with an eighth pitfall added |
-| 7 Limitations | 8 Limitations, four coherent paragraphs instead of eight run-in headings |
-| 8 Conclusion | 9 Conclusion, four paragraphs with no tricolon |
+| 2 Related Work **and a Reporting Audit** | 2 Related Work in three subsections; the audit protocol and the completed sheet move to Appendix D |
+| 3 What Sparsifying Attention Can and Cannot Save | 3 Computational Limits of Score-Then-Select Attention, intuition before algebra, Proposition 1 restated as a special case of Proposition 2 |
+| 4 Measuring the Cost | 4 Measured Cost, organised by question: what the composed implementations cost, what a purpose-built kernel changes, sensitivity, where the time goes, backward and training throughput, robustness |
+| — | 5 Selecting Before Scoring (new) |
+| 5 Does Sparsification Cost Return? | 6 Learning Study, compressed, inferential machinery to the appendix |
+| 6 Seven Pitfalls in Attention Benchmarking | 7 Sources of Measurement Error, organised by the four kinds of failure, with an eighth pitfall added |
+| 7 Limitations | 8 Limitations, five coherent paragraphs instead of eight run-in headings |
+| 8 Conclusion | 9 Conclusion, five paragraphs with no tricolon |
 | Appendix A, eleven subsections | Appendices A–E: additional results; implementation and measurement validation; additional training analysis; literature audit; reproduction and provenance |
 
 ## Representative before and after
@@ -51,15 +55,15 @@ about 700 words in the body, and the seven-pitfall table's supporting prose from
 
 > *Before:* "Table~\ref{tab:headline} says *that* the sparse path loses; the following says where its time is spent."
 
-> *After:* "Timing each stage in isolation and charging it with its own arithmetic and traffic corrects an explanation the earlier version of this manuscript offered."
+> *After:* "Low arithmetic intensity in a batched matrix--vector product is the natural explanation for the sparse contraction's slowness, and it is not the right one."
 
 **Opaque identifiers.**
 
-> *Before:* "P1, P3, P6 and P7 are instrumentation errors: they inflate or flatten a measurement and they leave traces. P2 is a design error that lets a shared environment leak into a comparison. P4 and P5 are specification errors about *what is being compared to what*, and they are the dangerous ones."
+> *Before:* "P1, P3, P6 and P7 are instrumentation errors ... P2 is a design error ... P4 and P5 are specification errors about *what is being compared to what*, and they are the dangerous ones."
 
-> *After:* "A diagnostic that synchronises the device inside the timed region measures the synchronisation. ... Synchronising without naming the device is the complementary error. ... The two most dangerous errors are of a different kind, because the resulting numbers are internally consistent, reproducible, and stable under every check the others would fail. They answer a different question from the one being asked."
+> *After:* "A diagnostic that synchronises the device inside the timed region measures the synchronisation. ... The two most dangerous errors are of a different kind, because the resulting numbers are internally consistent, reproducible, and stable under every check the others would fail. They answer a different question from the one being asked."
 
-**Experiment codes in the training study.**
+**Experiment codes.**
 
 > *Before:* "C1 is the contrast the design exists for: \texttt{gathered} and \texttt{random-}$k$ are matched on $k$, on executed FLOPs and on every hyperparameter."
 
@@ -69,7 +73,7 @@ about 700 words in the body, and the seven-pitfall table's supporting prose from
 
 > *Before:* "We should be direct that this was a design choice rather than a hard constraint ... and a reader is entitled to weigh them accordingly."
 
-> *After:* "That was a budget allocation rather than an unaffordable experiment: the whole 60-run study consumed 31.9 GPU-hours and a properly powered primary contrast would have cost about 37.9 more."
+> *After:* "That was a budget allocation and not an unaffordable experiment: the 60-run study consumed 31.9 GPU-hours and a properly powered primary comparison would have cost about 37.9 more."
 
 **Lab-diary framing.**
 
@@ -77,21 +81,50 @@ about 700 words in the body, and the seven-pitfall table's supporting prose from
 
 > *After:* "This paper is about the second. It asks what a particular and natural restriction — keeping, for each agent, the peers with the highest attention scores — saves in local computation, and whether the saving appears as elapsed time."
 
-## Mechanical announcements removed
+## The second writing pass
 
-Fifteen sentences whose entire content was a pointer to a float were deleted and
-their references folded into the substantive sentence they supported. Five of
-them were the sole prose in an appendix subsection; those subsections are gone,
-their floats absorbed into topic-based appendices. The remaining seven
-float-first sentences in the revision are cross-references directing a reader to
-detail that was deliberately moved out of the main text, which is the pattern
-the brief asks for rather than the one it bans.
+After the scientific rewrite the manuscript was read by an independent editor
+who was told only to find what still sounded machine-made. Their three
+strongest findings were acted on.
 
-## What the rewrite deliberately preserved
+**Nineteen references to the manuscript's own earlier version.** The revision
+narrated its own history — "the archival version of this work observed…", "which
+the earlier version could only attribute to…", "we report the correction rather
+than the claim". A reader of the accepted paper reads only the accepted paper,
+and naming a previous version is a double-blind risk besides. All nineteen are
+gone. Three technical statements survive where the earlier state is a fact about
+the artifact rather than about the manuscript: the buffer-initialisation defect
+in the bandwidth probe, the summation-order disagreement in an early kernel, and
+the correction logged against the released pre-registration.
 
-The archival manuscript's habit of stating exactly what a measurement does and
-does not support is its principal strength. Every scoping qualification, every
-refusal to convert a null into an equivalence claim, and every acknowledgement
-of a confound is retained. What was removed is the frame that announces those
-qualities — the sentences asserting the authors' candour rather than
-demonstrating it — not the qualities themselves.
+**One sentence written four times.** "Two limits bound the model's use." / "Two
+limits of the environment bound what the study can say." / "Two properties of
+this host bound what any of it can mean." / "Two properties bound what it can
+support." — one per section, nouns swapped. The editor's judgement was that a
+writer working over weeks does not converge on this and a per-paragraph
+optimiser does. All four are rewritten and the wider family of enumerative
+announcers is thinned.
+
+**Virtue-marking.** Eleven clauses whose only function was to certify the
+authors' own conduct: *we report the correction rather than the claim*, *we
+report it as the null it is*, *the deviation is recorded rather than the artifact
+silently edited*, *wrong in the direction that flattered the argument*. Every
+underlying qualification is kept; the clause announcing it is gone.
+
+Also acted on: "rather than" reduced from 49 to 33 by giving genuinely different
+relations different constructions; eight sentences over 55 words split; the
+`no_comm` / `dense_sdpa` code identifiers in Table 5 replaced with the names used
+in every other table; and the paragraph-final epigram removed from roughly two of
+every three paragraphs that carried one.
+
+## Regression protection
+
+`scripts/check_revision_numbers.py` fails the build on any of the banned phrases
+above, on any table that regenerating would change, on any implementation whose
+deviation from the reference exceeds floating-point tolerance, on mathematical
+notation appearing in the abstract, on harness vocabulary appearing more than
+twice in the main text, and on the absence of the three scoping phrases the
+paper's claims depend on. It also re-derives the prose numbers that generation
+cannot reach. It is not a style checker: ordinary uses of "first" or "Table" are
+untouched, and the purpose is regression protection against text that was
+already removed once.
