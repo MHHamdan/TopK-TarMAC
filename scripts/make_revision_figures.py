@@ -410,6 +410,19 @@ def fig_prescore() -> None:
                 [p["t_total_ms"] / p.get("t_dense_best_ms",
                                         p["t_dense_fused_ms"]) for p in pts],
                 markersize=4.0, **st)
+    # The attention stage alone, with the selector charged to nothing. This is
+    # the quantity the operation count is about, so it belongs on the plot the
+    # count is compared against.
+    pts = [r for r in rows if r["selector"] == "morton_window"
+           and r["k"] == k_show]
+    pts.sort(key=lambda r: r["n_agents"])
+    if pts:
+        ax.plot([p["n_agents"] for p in pts],
+                [p["t_attention_ms"] / p.get("t_dense_best_ms",
+                                             p["t_dense_fused_ms"])
+                 for p in pts], color="#444444", linestyle=(0, (1, 1)),
+                marker="o", markersize=3.6, markerfacecolor="white",
+                label="attention only, selector free")
     pts = [r for r in rows if r["selector"] == "radius_knn" and r["k"] == k_show]
     pts.sort(key=lambda r: r["n_agents"])
     if pts:
