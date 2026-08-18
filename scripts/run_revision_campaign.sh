@@ -35,8 +35,10 @@ run core_dsweep scripts/bench_attention_core.py --device "$DEV" \
 # Batch, over two orders of magnitude.
 run core_batch scripts/bench_attention_core.py --device "$DEV" \
     --n-list 96 192 512 --k-list 1 2 4 8 16 --d-list 16 \
-    --batch-list 32 1024 4096 --reps 40 --runs 3 \
-    --out results/attention_core_batch.json
+    --batch-list 32 1024 \
+    --impls dense_unfused dense_fused dense_triton topk_gather \
+            topk_fused_gather \
+    --reps 40 --runs 3 --out results/attention_core_batch.json
 
 # Per-stage arithmetic, traffic, intensity and attainment.
 run stages scripts/stage_accounting.py --device "$DEV" \
@@ -50,12 +52,29 @@ run prescore scripts/bench_prescore.py --device "$DEV" \
 
 # What a whole training iteration spends its time on.
 run training_step scripts/bench_training_step.py --device "$DEV" \
-    --n-agents 6 12 24 --iterations 5 \
+    --n-agents 6 12 24 --iterations 5 --warmup 2 \
     --out results/training_step_timing.json
 
 # Machine balance, with the bandwidth probe reading a buffer that has been
-# written rather than an untouched allocation.
+# written and device work timed with device events.
 run roofline scripts/roofline.py --devices "$DEV" cpu \
     --out results/roofline.json
 
+# Both kernels over the same tiling space, with what each attains of the
+# machine. This is what decides whether the crossover is about the algorithm.
+run autotune scripts/autotune_kernels.py --device "$DEV" \
+    --n-list 192 384 512 --k-list 1 2 4 8 16 --d-list 16 32 64 128 \
+    --reps 30 --out results/autotune.json
+
+# The headline sweep again, hours later, to establish which agent counts
+# reproduce. No claim in the paper is read off one that does not.
+run core_repeat scripts/bench_attention_core.py --device "$DEV" \
+    --n-list 96 192 384 512 --k-list 1 2 4 8 16 32 64 128 \
+    --d-list 16 --batch-list 256 --reps 60 --runs 3 \
+    --out results/attention_core_d16_repeat.json
+
 echo "=== campaign complete $(date -Is)"
+echo "regenerate the manuscript's tables and figures with:"
+echo "  $PY scripts/make_revision_tables.py"
+echo "  $PY scripts/make_revision_figures.py"
+echo "  $PY scripts/check_revision_numbers.py"
