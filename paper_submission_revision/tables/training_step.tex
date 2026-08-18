@@ -1,0 +1,23 @@
+\begin{tabular}{ll rrrrr rrr}
+\toprule
+& & \multicolumn{5}{c}{\textbf{share of the iteration (\%)}} & & & \\
+\cmidrule(lr){3-7}
+$N$ & communication & environment & acting & update fwd & update bwd & optimiser & s/iter & $\div$ dense & spread \\
+\midrule
+6 & \texttt{no\_comm} & 48 & 30 & 11 & 6 & 4 & 2.07 & 1.536 & 4.6 \\
+6 & \texttt{dense} & 49 & 29 & 11 & 6 & 4 & 2.16 & 1.596 & 6.6 \\
+6 & \texttt{dense\_sdpa} & 75 & 7 & 4 & 11 & 2 & 1.35 & 1.000 & 31.5 \\
+6 & \texttt{topk\_masked} & 71 & 7 & 6 & 13 & 3 & 1.42 & 1.049 & 7.8 \\
+6 & \texttt{topk\_gather} & 78 & 8 & 4 & 8 & 2 & 1.31 & 0.967 & 25.5 \\
+12 & \texttt{no\_comm} & 84 & 9 & 3 & 3 & 1 & 3.93 & 1.000 & 12.9 \\
+12 & \texttt{dense} & 85 & 11 & 2 & 2 & 1 & 3.95 & 1.005 & 8.9 \\
+12 & \texttt{dense\_sdpa} & 85 & 9 & 2 & 3 & 1 & 3.93 & 1.000 & 11.1 \\
+12 & \texttt{topk\_masked} & 76 & 14 & 6 & 2 & 2 & 4.48 & 1.138 & 29.8 \\
+12 & \texttt{topk\_gather} & 75 & 14 & 5 & 3 & 2 & 4.58 & 1.165 & 1.7 \\
+24 & \texttt{no\_comm} & 92 & 5 & 2 & 1 & 1 & 13.37 & 1.011 & 3.3 \\
+24 & \texttt{dense} & 92 & 5 & 2 & 1 & 1 & 13.37 & 1.011 & 2.5 \\
+24 & \texttt{dense\_sdpa} & 91 & 5 & 2 & 1 & 1 & 13.23 & 1.000 & 1.7 \\
+24 & \texttt{topk\_masked} & 91 & 5 & 2 & 1 & 1 & 13.44 & 1.016 & 2.1 \\
+24 & \texttt{topk\_gather} & 91 & 5 & 2 & 1 & 1 & 13.26 & 1.003 & 3.6 \\
+\bottomrule
+\end{tabular}%

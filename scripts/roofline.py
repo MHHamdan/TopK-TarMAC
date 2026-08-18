@@ -92,24 +92,46 @@ def path_ai(stages: list[dict[str, Any]]) -> dict[str, float]:
 # measured machine balance
 # ---------------------------------------------------------------------------
 
+def _time_min_s(fn, device: str, reps: int) -> float:
+    """Minimum seconds per call, on the instrument appropriate to the device.
+
+    Host wall-clock around a device call measures launch and synchronisation as
+    well as the work. For a copy that takes a fraction of a millisecond that
+    overhead dominates, and an earlier version of this probe underreported GPU
+    bandwidth by up to a factor of four because of it.
+    """
+    on_cuda = device.startswith("cuda")
+    for _ in range(5):
+        fn()
+    if on_cuda:
+        torch.cuda.synchronize(device)
+        ts = []
+        for _ in range(reps):
+            s, e = (torch.cuda.Event(enable_timing=True) for _ in range(2))
+            s.record()
+            fn()
+            e.record()
+            torch.cuda.synchronize(device)
+            ts.append(s.elapsed_time(e) * 1e-3)
+        return min(ts)
+    ts = []
+    for _ in range(reps):
+        t0 = time.perf_counter()
+        fn()
+        ts.append(time.perf_counter() - t0)
+    return min(ts)
+
+
 def measure_peak_flops(device: str, reps: int = 30) -> float:
     """Achievable fp32 GEMM throughput, FLOP/s."""
     n = 8192 if device.startswith("cuda") else 2048
     a = torch.randn(n, n, device=device)
     b = torch.randn(n, n, device=device)
-    on_cuda = device.startswith("cuda")
-    for _ in range(5):
-        a @ b
-    if on_cuda:
-        torch.cuda.synchronize(device)
-    ts = []
-    for _ in range(reps):
-        t0 = time.perf_counter()
-        a @ b
-        if on_cuda:
-            torch.cuda.synchronize(device)
-        ts.append(time.perf_counter() - t0)
-    return 2.0 * n ** 3 / min(ts)
+    t = _time_min_s(lambda: a @ b, device, reps)
+    del a, b
+    if device.startswith("cuda"):
+        torch.cuda.empty_cache()
+    return 2.0 * n ** 3 / t
 
 
 def measure_peak_bandwidth(device: str, reps: int = 30,
@@ -127,19 +149,11 @@ def measure_peak_bandwidth(device: str, reps: int = 30,
     elems = mib * 1024 * 1024 // F32
     src = torch.rand(elems, device=device, dtype=torch.float32)
     dst = torch.rand(elems, device=device, dtype=torch.float32)
-    on_cuda = device.startswith("cuda")
-    for _ in range(5):
-        dst.copy_(src)
-    if on_cuda:
-        torch.cuda.synchronize(device)
-    ts = []
-    for _ in range(reps):
-        t0 = time.perf_counter()
-        dst.copy_(src)
-        if on_cuda:
-            torch.cuda.synchronize(device)
-        ts.append(time.perf_counter() - t0)
-    return 2.0 * elems * F32 / min(ts)
+    t = _time_min_s(lambda: dst.copy_(src), device, reps)
+    del src, dst
+    if device.startswith("cuda"):
+        torch.cuda.empty_cache()
+    return 2.0 * elems * F32 / t
 
 
 def main() -> int:

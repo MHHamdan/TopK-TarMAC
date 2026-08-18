@@ -1,0 +1,168 @@
+\subsection{Communication sparsity in multi-agent reinforcement learning}
+
+Learned inter-agent communication has converged on attention as the mechanism
+for deciding whose message matters. CommNet \citep{sukhbaatar2016commnet}
+broadcasts mean-pooled hidden states; TarMAC \citep{das2019tarmac} introduces
+signature-based targeting so that receivers weight senders; MAT
+\citep{wen2022mat} casts the joint policy as a sequence model. Applied systems
+inherit the pattern, pairing heterogeneous learners with attention-based message
+aggregators \citep{hamdan2026marliotp}. Since attention over $N$ agents is
+pairwise, a large part of this literature also restricts who talks to whom, and
+the restriction is usually motivated by cost. DGN observes that receiving a
+large amount of information ``requires high bandwidth and incurs high
+computational complexity'' \citep{jiang2018dgn}, a claim about transmitted bytes
+and about local compute, of which only the second is what we measure.
+
+Proposition~\ref{prop:escape} organises these restriction mechanisms by what
+their selector costs, and the resulting three groups behave differently. The
+first fixes the retained set from structure that is available before any score
+exists: DGN restricts attention to each agent's $k$ nearest neighbours by
+Euclidean distance \citep{jiang2018dgn}, ATOC's initiator forms a group from its
+nearest collaborators within a communication field \citep{jiang2018atoc}, and
+mean-field methods replace the peer set with a single averaged interaction
+\citep{yang2018meanfield}. Their selectors are free or nearly so, which places
+them in case~(i) of the proposition. The second group scores something cheaper
+than the full pairwise interaction: IC3Net gates whether an agent speaks at all
+\citep{singh2018ic3net}, and SchedNet ranks agents by a scalar importance weight
+and schedules the $k$ largest \citep{kim2019schednet}. These are top-$k$ rules,
+but over an $O(N)$ vector rather than an $N \times N$ matrix, so
+Proposition~\ref{prop:ceiling} does not bind them. The third group runs a
+pairwise selector before running pairwise attention: G2ANet decides which of all
+$N^2$ edges survive with a hard-attention network and then applies soft
+attention to the survivors \citep{liu2020g2anet}, and MAGIC builds a hard or
+soft adjacency from an all-pairs interaction before its graph attention
+\citep{niu2021magic}. Their arithmetic saving is real in the aggregation and
+paid for in the selector, at the same order as the score matrix they avoid.
+
+The mechanism this paper analyses --- selecting peers by the attention score
+itself, after computing all of them --- is the limiting case of that third
+group, and it is rare in multi-agent communication rather than absent. The
+closest published relative is the adaptive sparse communication graph of
+\citet{sun2020sparsecomm}, which replaces softmax with a generalisation of
+sparsemax so that the normalisation itself emits exact zeros. It motivates the
+design partly through scalability, stating that the resulting sparsity ``can
+reduce the complexity of both the forward pass and the back-propagation of the
+policy and value networks'', and it explicitly considers and rejects hard
+top-$k$ thresholding as non-differentiable. Because the sparsity-inducing map is
+applied to logits already formed for every pair, its selection is post-score and
+sits inside the class Proposition~\ref{prop:ceiling} constrains. That is a
+statement about where the method lands in our accounting rather than a
+contradiction of its claims: its reported gains are in sample efficiency at up
+to $30$ agents and it reports no measured runtime. Handshake-style mechanisms
+that match a requester's query against every candidate key and then select
+\citep{liu2020who2com} are score-then-select in the same sense.
+
+Two consequences for scope. The design we analyse is one we proposed and built,
+so the ceiling constrains our own design and the structural selectors above are
+outside it. And the agent counts at which these methods operate are small:
+between two and roughly thirty agents for the attention-based communication
+methods above, with DGN reaching the low hundreds in grid worlds. Our sweep runs
+to $N{=}512$ so that the trend is visible, but the regime the argument is about
+is $N \lesssim 10^2$, and beyond it the field has already abandoned all-pairs
+interaction in favour of neighbourhoods and mean fields --- which is to say, in
+favour of Proposition~\ref{prop:escape}.
+
+\subsection{Sparse and efficient attention}
+
+The efficient-attention literature is where the operation-count argument for
+sparsity is most developed, and its mechanisms separate along the same axis.
+Longformer \citep{beltagy2020longformer} and BigBird \citep{zaheer2020bigbird}
+fix which pairs interact in advance through sliding windows, global tokens and
+random edges, so the score computation itself becomes sparse and the saving is
+asymptotic; their selector is essentially free. Reformer
+\citep{kitaev2020reformer} restricts candidate interactions by a
+locality-sensitive hash and Routing Transformer \citep{roy2021routing} by online
+$k$-means clustering; both are content-dependent, both evaluate scores only for
+candidate pairs, and together they are why the escape proposition carries a
+selector term at all. Performer \citep{choromanski2021performers} falls outside
+the premise entirely: it keeps every interaction and reorders the algebra
+through a kernel factorisation.
+
+Top-$k$ attention in the sequence setting is the closest external analogue of
+the mechanism we build, and the comparison turns on which efficiency is being
+claimed. \citet{gupta2021topk} process queries in chunks and, for each query,
+compute its $k$ largest scores against all keys exactly --- a score-then-select
+rule in our sense --- and their stated benefit is memory: chunking reduces peak
+attention memory from $\Omega(L_Q L_K)$ to $O(C L_K)$ for chunk size $C$ while
+remaining a drop-in replacement in pretrained models. Memory efficiency,
+operation-count efficiency and wall-clock efficiency are distinct quantities,
+and a mechanism can improve one at the expense of another; ours is a question
+about the second and the third.
+
+A related body of work asks how much of the attention function survives
+truncation, bounding the approximation error of keeping only the largest
+entries. That question is orthogonal to ours. We hold the function fixed --- our
+gathered, masked and fused top-$k$ implementations agree to floating-point
+tolerance --- and ask whether the sparsification reduces executed computation
+and elapsed time. A method could be exact and slow, or approximate and fast, and
+the two literatures answer different halves of the design question.
+
+Sparsemax \citep{martins2016sparsemax} and $\alpha$-entmax
+\citep{peters2019entmax} obtain exact zeros from the normalisation rather than a
+hard cutoff, and make no claim about attention cost; that their zeros arrive
+after the scores exist, and are therefore subject to our ceiling, is an
+inference we draw rather than a claim they make. Gumbel-softmax
+\citep{jang2017gumbel} supplies the relaxation used by learned discrete gates,
+and constrained-RL formulations \citep{achiam2017cpo,stooke2020pidlagrangian}
+the machinery for optimising under a communication budget. We implement entmax
+and a Lagrangian budget as arms in Section~\ref{sec:training}.
+
+Score-then-select is used at scale in sparse mixture-of-experts, where a router
+scores every expert and dispatches each token to the best $k$
+\citep{shazeer2017moe,fedus2022switch}. The structure of the argument is the one
+we examine, and so is the exemption: these architectures are designed so that
+the router is small relative to the expert computation it gates, so the analogue
+of our $N^2 d$ score term is a minor cost rather than an equal one, and the
+saving is real. Whether score-then-select pays therefore depends on the ratio
+between the cost of scoring all candidates and the cost of the work being
+skipped --- large in mixture-of-experts, and equal to one in single-head
+attention, which is Proposition~\ref{prop:ceiling}.
+
+\subsection{Hardware-aware sparse execution}
+
+That operation counts, memory traffic, kernel fusion and realised latency are
+distinct quantities is established in the systems literature. The roofline model
+\citep{williams2009roofline} formalises when arithmetic ceases to govern
+runtime. FlashAttention \citep{dao2022flashattention} and memory-efficient
+attention \citep{rabe2021selfattention} make the point from the other direction:
+the winning implementations of dense attention reduce memory traffic without
+changing the operation count at all, which is precisely the axis a FLOPs-based
+argument cannot see. Longformer anticipates the distinction this paper turns on,
+reporting runtime and memory for three implementations of one attention pattern
+--- a loop version, a vectorised chunked version and a custom CUDA kernel --- and
+noting that the chunked variant consumes roughly twice the optimal memory
+because it computes some zero values.
+
+Recent systems work establishes where sparse attention does pay, and it bounds
+our conclusion from the other side. Native Sparse Attention \citep{yuan2025nsa}
+ranks compressed key--value blocks and attends within only the selected blocks,
+with kernels written for the resulting access pattern, reporting large forward,
+backward and decoding speedups at $64$k context; MiniMax Sparse Attention
+\citep{lai2026msa} co-designs blockwise selection with its GPU execution path
+and reports comparable prefill and decoding gains at $1$M context. Three
+properties separate that regime from ours, and all three are load-bearing.
+Selection is amortised over blocks rather than performed per pair, so the
+selector cost falls by the block size. Block structure preserves the dense
+matrix-multiply shape inside each selected tile, so the arithmetic that remains
+still runs on the hardware path built for it --- which per-pair gather, whose
+aggregation degenerates into a matrix--vector product, does not. And at
+$10^5$--$10^6$ tokens the skipped computation is enormous, where at
+$N \lesssim 10^2$ it is bounded by Proposition~\ref{prop:ceiling} at a factor of
+two. We take these results at face value and make no claim of comparability
+across four orders of magnitude in sequence length; what they identify is what a
+successor design in our regime would have to change.
+
+\paragraph{Measurement practice.} Our training protocol follows the
+recommendations of \citet{papoudakis2021epymarl} for systematic MARL
+benchmarking, and we report effect sizes and intervals rather than bare means
+\citep{agarwal2021rliable}. Environments come from the PettingZoo/MPE family
+\citep{terry2020pettingzoo} and the learner is MAPPO \citep{yu2022mappo}.
+Motivated by Longformer's precedent, we also checked whether the efficiency
+claims in the papers we drew on are accompanied by a measurement: among the
+multi-agent papers making such a claim, one of five reports a measured temporal
+quantity attributable to its mechanism, against five of six among the
+efficient-attention and mixture-of-experts papers. Twelve papers support no
+conclusion about either field, and we report the asymmetry only because it
+characterises the evidence base from which we ourselves adopted the
+operation-count argument. Appendix~\ref{app:audit} gives the protocol, the
+completed sheet and its scope caveats.

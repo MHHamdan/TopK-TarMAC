@@ -1,0 +1,13 @@
+\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{stage} & GFLOP & GB & FLOP/byte & ms & TFLOP/s & GB/s & \% of limit \\
+\midrule
+score product & 2.15 & 0.29 & 7.53 & 0.549 & 3.91 & 520 & 35 \\
+softmax over $N$ & 0.34 & 0.54 & 0.62 & 0.336 & 1.00 & 1598 & 107 \\
+dense aggregation & 2.15 & 0.29 & 7.53 & 0.235 & 9.13 & 1213 & 81 \\
+top-$k$ selection & 0.00 & 0.47 & --- & 3.271 & --- & 143 & 10 \\
+softmax over $k$ & 0.08 & 0.13 & 0.62 & 0.059 & 1.42 & 2268 & 151 \\
+gather of $V$ & 0.00 & 1.21 & --- & 0.954 & --- & 1265 & 84 \\
+sparse aggregation & 0.53 & 1.14 & 0.47 & 0.816 & 0.65 & 1398 & 93 \\
+\bottomrule
+\end{tabular}%

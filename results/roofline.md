@@ -4,8 +4,8 @@
 
 | Device | Achievable fp32 GEMM | Achievable bandwidth | Ridge point (FLOP/byte) |
 |---|---|---|---|
-| `cuda:0` NVIDIA RTX PRO 6000 Blackwell Server Edition | 75.29 TFLOP/s | 1444 GB/s | **52.1** |
-| `cpu` x86_64 CPU | 1.75 TFLOP/s | 1300 GB/s | **1.3** |
+| `cuda:1` NVIDIA RTX PRO 6000 Blackwell Server Edition | 76.72 TFLOP/s | 1461 GB/s | **52.5** |
+| `cpu` x86_64 CPU | 1.77 TFLOP/s | 63 GB/s | **28.2** |
 
 ## Path arithmetic intensity (batch 256, d=16, k=25% of peers)
 

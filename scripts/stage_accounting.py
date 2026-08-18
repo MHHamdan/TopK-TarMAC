@@ -61,8 +61,11 @@ def measure_peaks(device: str, reps: int = 30) -> dict[str, float]:
     peak_flops = gemm_flops / (min(ts) * 1e-3)
 
     m = 1 << 27                                    # 512 MB source buffer
-    src = torch.empty(m, device=device, dtype=torch.float32)
-    dst = torch.empty_like(src)
+    # Written, not merely allocated: an untouched host allocation reads the
+    # shared zero page, and the same habit on the device leaves the contents
+    # undefined for no benefit.
+    src = torch.rand(m, device=device, dtype=torch.float32)
+    dst = torch.rand(m, device=device, dtype=torch.float32)
     for _ in range(5):
         dst.copy_(src)
     torch.cuda.synchronize(device)

@@ -1,0 +1,226 @@
+\begin{thebibliography}{35}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Achiam et~al.(2017)Achiam, Held, Tamar, and Abbeel]{achiam2017cpo}
+Joshua Achiam, David Held, Aviv Tamar, and Pieter Abbeel.
+\newblock Constrained policy optimization.
+\newblock \emph{International Conference on Machine Learning ({ICML})}, pp.\  22--31, 2017.
+\newblock URL \url{https://proceedings.mlr.press/v70/achiam17a.html}.
+
+\bibitem[Agarwal et~al.(2021)Agarwal, Schwarzer, Castro, Courville, and Bellemare]{agarwal2021rliable}
+Rishabh Agarwal, Max Schwarzer, Pablo~Samuel Castro, Aaron Courville, and Marc~G. Bellemare.
+\newblock Deep reinforcement learning at the edge of the statistical precipice.
+\newblock \emph{Advances in Neural Information Processing Systems ({NeurIPS})}, 2021.
+\newblock URL \url{https://arxiv.org/abs/2108.13264}.
+
+\bibitem[Beltagy et~al.(2020)Beltagy, Peters, and Cohan]{beltagy2020longformer}
+Iz~Beltagy, Matthew~E. Peters, and Arman Cohan.
+\newblock {L}ongformer: The long-document {T}ransformer.
+\newblock \emph{arXiv preprint}, 2020.
+\newblock URL \url{https://arxiv.org/abs/2004.05150}.
+
+\bibitem[Choromanski et~al.(2021)Choromanski, Likhosherstov, Dohan, Song, Gane, Sarlos, Hawkins, Davis, Mohiuddin, Kaiser, Belanger, Colwell, and Weller]{choromanski2021performers}
+Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamas Sarlos, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, David Belanger, Lucy Colwell, and Adrian Weller.
+\newblock Rethinking attention with {P}erformers.
+\newblock \emph{International Conference on Learning Representations ({ICLR})}, 2021.
+\newblock URL \url{https://arxiv.org/abs/2009.14794}.
+
+\bibitem[Dao et~al.(2022)Dao, Fu, Ermon, Rudra, and R{\'e}]{dao2022flashattention}
+Tri Dao, Daniel~Y. Fu, Stefano Ermon, Atri Rudra, and Christopher R{\'e}.
+\newblock {FlashAttention}: Fast and memory-efficient exact attention with {IO}-{A}wareness.
+\newblock \emph{Advances in Neural Information Processing Systems ({NeurIPS})}, 2022.
+\newblock URL \url{https://proceedings.neurips.cc/paper_files/paper/2022/hash/67d57c32e20fd0a7a302cb81d36e40d5-Abstract-Conference.html}.
+
+\bibitem[Das et~al.(2019)Das, Gervet, Romoff, Batra, Parikh, Rabbat, and Pineau]{das2019tarmac}
+Abhishek Das, Th{\'e}ophile Gervet, Joshua Romoff, Dhruv Batra, Devi Parikh, Michael Rabbat, and Joelle Pineau.
+\newblock {T}ar{MAC}: Targeted multi-agent communication.
+\newblock \emph{International Conference on Machine Learning ({ICML})}, 2019.
+\newblock URL \url{https://arxiv.org/abs/1810.11187}.
+
+\bibitem[Fedus et~al.(2022)Fedus, Zoph, and Shazeer]{fedus2022switch}
+William Fedus, Barret Zoph, and Noam Shazeer.
+\newblock Switch {T}ransformers: Scaling to trillion parameter models with simple and efficient sparsity.
+\newblock \emph{Journal of Machine Learning Research}, 23\penalty0 (120):\penalty0 1--39, 2022.
+\newblock URL \url{https://jmlr.org/papers/v23/21-0998.html}.
+
+\bibitem[Gupta et~al.(2021)Gupta, Dar, Goodman, Ciprut, and Berant]{gupta2021topk}
+Ankit Gupta, Guy Dar, Shaya Goodman, David Ciprut, and Jonathan Berant.
+\newblock Memory-efficient {T}ransformers via top-$k$ attention.
+\newblock In \emph{Proceedings of the Second Workshop on Simple and Efficient Natural Language Processing ({S}ustai{NLP})}, pp.\  39--52. Association for Computational Linguistics, November 2021.
+\newblock \doi{10.18653/v1/2021.sustainlp-1.5}.
+\newblock URL \url{https://aclanthology.org/2021.sustainlp-1.5/}.
+
+\bibitem[Hamdan et~al.(2026)Hamdan, Ghaleb, Bali, and Cheriet]{hamdan2026marliotp}
+Mohammed Hamdan, Fares Ghaleb, Ahmed Bali, and Mohamed Cheriet.
+\newblock {MARL}-{I}o{TP}: Heterogeneous multi-agent learning for perception-aware edge orchestration.
+\newblock In \emph{Fifth International Conference on Pattern Recognition and Artificial Intelligence ({PRAI})}, 2026.
+\newblock \doi{10.2139/ssrn.6517702}.
+\newblock URL \url{https://ssrn.com/abstract=6517702}.
+\newblock Accepted.
+
+\bibitem[Jang et~al.(2017)Jang, Gu, and Poole]{jang2017gumbel}
+Eric Jang, Shixiang Gu, and Ben Poole.
+\newblock Categorical reparameterization with {G}umbel-{S}oftmax.
+\newblock \emph{International Conference on Learning Representations ({ICLR})}, 2017.
+\newblock URL \url{https://arxiv.org/abs/1611.01144}.
+
+\bibitem[Jiang \& Lu(2018)Jiang and Lu]{jiang2018atoc}
+Jiechuan Jiang and Zongqing Lu.
+\newblock Learning attentional communication for multi-agent cooperation.
+\newblock \emph{Advances in Neural Information Processing Systems ({NeurIPS})}, 2018.
+\newblock URL \url{https://arxiv.org/abs/1805.07733}.
+
+\bibitem[Jiang et~al.(2020)Jiang, Dun, Huang, and Lu]{jiang2018dgn}
+Jiechuan Jiang, Chen Dun, Tiejun Huang, and Zongqing Lu.
+\newblock Graph convolutional reinforcement learning.
+\newblock \emph{International Conference on Learning Representations ({ICLR})}, 2020.
+\newblock URL \url{https://arxiv.org/abs/1810.09202}.
+
+\bibitem[Kim et~al.(2019)Kim, Moon, Hostallero, Kang, Lee, Son, and Yi]{kim2019schednet}
+Daewoo Kim, Sangwoo Moon, David Hostallero, Wan~Ju Kang, Taeyoung Lee, Kyunghwan Son, and Yung Yi.
+\newblock Learning to schedule communication in multi-agent reinforcement learning.
+\newblock In \emph{International Conference on Learning Representations ({ICLR})}, 2019.
+\newblock URL \url{https://openreview.net/forum?id=SJxu5iR9KQ}.
+
+\bibitem[Kitaev et~al.(2020)Kitaev, Kaiser, and Levskaya]{kitaev2020reformer}
+Nikita Kitaev, {\L}ukasz Kaiser, and Anselm Levskaya.
+\newblock {R}eformer: The efficient {T}ransformer.
+\newblock \emph{International Conference on Learning Representations ({ICLR})}, 2020.
+\newblock URL \url{https://arxiv.org/abs/2001.04451}.
+
+\bibitem[Lai et~al.(2026)Lai, Xu, Yang, Chen, Xu, Zeng, Li, Sun, Zhu, Zhang, Hu, Li, Gao, Li, Zhu, Zhou, and Zhao]{lai2026msa}
+Xunhao Lai, Weiqi Xu, Yufeng Yang, Qiaorui Chen, Yang Xu, Lunbin Zeng, Xiaolong Li, Haohai Sun, Haichao Zhu, Vito Zhang, Jinkai Hu, Jiayao Li, Rui Gao, Zekun Li, Songquan Zhu, Jingkai Zhou, and Pengyu Zhao.
+\newblock {M}ini{M}ax sparse attention.
+\newblock \emph{arXiv preprint}, 2026.
+\newblock \doi{10.48550/arXiv.2606.13392}.
+\newblock URL \url{https://arxiv.org/abs/2606.13392}.
+
+\bibitem[Liu et~al.(2020{\natexlab{a}})Liu, Tian, Ma, Glaser, Kuo, and Kira]{liu2020who2com}
+Yen-Cheng Liu, Junjiao Tian, Chih-Yao Ma, Nathan Glaser, Chia-Wen Kuo, and Zsolt Kira.
+\newblock {Who2com}: Collaborative perception via learnable handshake communication.
+\newblock In \emph{{IEEE} International Conference on Robotics and Automation ({ICRA})}, pp.\  6876--6883, 2020{\natexlab{a}}.
+\newblock \doi{10.1109/ICRA40945.2020.9197364}.
+
+\bibitem[Liu et~al.(2020{\natexlab{b}})Liu, Wang, Hu, Hao, Chen, and Gao]{liu2020g2anet}
+Yong Liu, Weixun Wang, Yujing Hu, Jianye Hao, Xingguo Chen, and Yang Gao.
+\newblock Multi-agent game abstraction via graph attention neural network.
+\newblock In \emph{Proceedings of the {AAAI} Conference on Artificial Intelligence}, volume~34, pp.\  7211--7218, 2020{\natexlab{b}}.
+\newblock \doi{10.1609/aaai.v34i05.6211}.
+
+\bibitem[Martins \& Astudillo(2016)Martins and Astudillo]{martins2016sparsemax}
+Andr{\'e} F.~T. Martins and Ram{\'o}n~Fernandez Astudillo.
+\newblock From softmax to sparsemax: A sparse model of attention and multi-label classification.
+\newblock \emph{International Conference on Machine Learning ({ICML})}, 2016.
+\newblock URL \url{https://arxiv.org/abs/1602.02068}.
+
+\bibitem[Niu et~al.(2021)Niu, Paleja, and Gombolay]{niu2021magic}
+Yaru Niu, Rohan~R. Paleja, and Matthew~C. Gombolay.
+\newblock Multi-agent graph-attention communication and teaming.
+\newblock In \emph{Proceedings of the 20th International Conference on Autonomous Agents and MultiAgent Systems ({AAMAS})}, pp.\  964--973, 2021.
+\newblock URL \url{https://www.ifaamas.org/Proceedings/aamas2021/pdfs/p964.pdf}.
+
+\bibitem[Papoudakis et~al.(2021)Papoudakis, Christianos, Sch{\"a}fer, and Albrecht]{papoudakis2021epymarl}
+Georgios Papoudakis, Filippos Christianos, Lukas Sch{\"a}fer, and Stefano~V. Albrecht.
+\newblock Benchmarking multi-agent deep reinforcement learning algorithms in cooperative tasks.
+\newblock \emph{Advances in Neural Information Processing Systems Datasets and Benchmarks Track ({NeurIPS})}, 2021.
+\newblock URL \url{https://arxiv.org/abs/2006.07869}.
+
+\bibitem[Peters et~al.(2019)Peters, Niculae, and Martins]{peters2019entmax}
+Ben Peters, Vlad Niculae, and Andr{\'e} F.~T. Martins.
+\newblock Sparse sequence-to-sequence models.
+\newblock \emph{Annual Meeting of the Association for Computational Linguistics ({ACL})}, pp.\  1504--1519, 2019.
+\newblock \doi{10.18653/v1/P19-1146}.
+\newblock URL \url{https://aclanthology.org/P19-1146/}.
+
+\bibitem[Rabe \& Staats(2021)Rabe and Staats]{rabe2021selfattention}
+Markus~N. Rabe and Charles Staats.
+\newblock Self-attention does not need {$O(n^2)$} memory.
+\newblock \emph{arXiv preprint}, 2021.
+\newblock URL \url{https://arxiv.org/abs/2112.05682}.
+
+\bibitem[Roy et~al.(2021)Roy, Saffar, Vaswani, and Grangier]{roy2021routing}
+Aurko Roy, Mohammad Saffar, Ashish Vaswani, and David Grangier.
+\newblock Efficient content-based sparse attention with {R}outing {T}ransformers.
+\newblock \emph{Transactions of the Association for Computational Linguistics ({TACL})}, 9:\penalty0 53--68, 2021.
+\newblock \doi{10.1162/tacl_a_00353}.
+\newblock URL \url{https://aclanthology.org/2021.tacl-1.4/}.
+
+\bibitem[Shazeer et~al.(2017)Shazeer, Mirhoseini, Maziarz, Davis, Le, Hinton, and Dean]{shazeer2017moe}
+Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le, Geoffrey Hinton, and Jeff Dean.
+\newblock Outrageously large neural networks: The sparsely-gated mixture-of-experts layer.
+\newblock \emph{International Conference on Learning Representations ({ICLR})}, 2017.
+\newblock URL \url{https://arxiv.org/abs/1701.06538}.
+
+\bibitem[Singh et~al.(2019)Singh, Jain, and Sukhbaatar]{singh2018ic3net}
+Amanpreet Singh, Tushar Jain, and Sainbayar Sukhbaatar.
+\newblock Learning when to communicate at scale in multiagent cooperative and competitive tasks.
+\newblock \emph{International Conference on Learning Representations ({ICLR})}, 2019.
+\newblock URL \url{https://arxiv.org/abs/1812.09755}.
+
+\bibitem[Stooke et~al.(2020)Stooke, Achiam, and Abbeel]{stooke2020pidlagrangian}
+Adam Stooke, Joshua Achiam, and Pieter Abbeel.
+\newblock Responsive safety in reinforcement learning by {PID} {L}agrangian methods.
+\newblock \emph{International Conference on Machine Learning ({ICML})}, pp.\  9133--9143, 2020.
+\newblock URL \url{https://proceedings.mlr.press/v119/stooke20a.html}.
+
+\bibitem[Sukhbaatar et~al.(2016)Sukhbaatar, Szlam, and Fergus]{sukhbaatar2016commnet}
+Sainbayar Sukhbaatar, Arthur Szlam, and Rob Fergus.
+\newblock Learning multiagent communication with backpropagation.
+\newblock \emph{Advances in Neural Information Processing Systems ({NeurIPS})}, 2016.
+\newblock URL \url{https://arxiv.org/abs/1605.07736}.
+
+\bibitem[Sun et~al.(2020)Sun, Shen, and How]{sun2020sparsecomm}
+Chuangchuang Sun, Macheng Shen, and Jonathan~P. How.
+\newblock Scaling up multiagent reinforcement learning for robotic systems: Learn an adaptive sparse communication graph.
+\newblock In \emph{2020 {IEEE}/{RSJ} International Conference on Intelligent Robots and Systems ({IROS})}, pp.\  11755--11762, 2020.
+\newblock \doi{10.1109/IROS45743.2020.9341303}.
+\newblock URL \url{https://arxiv.org/abs/2003.01040}.
+
+\bibitem[Terry et~al.(2021)Terry, Black, Grammel, Jayakumar, Hari, Sullivan, Santos, Dieffendahl, Horsch, Perez-Vicente, Williams, Lokesh, and Ravi]{terry2020pettingzoo}
+J.~K. Terry, Benjamin Black, Nathaniel Grammel, Mario Jayakumar, Ananth Hari, Ryan Sullivan, Luis Santos, Clemens Dieffendahl, Caroline Horsch, Rodrigo Perez-Vicente, Niall~L. Williams, Yashas Lokesh, and Praveen Ravi.
+\newblock {P}etting{Z}oo: {G}ym for multi-agent reinforcement learning.
+\newblock \emph{Advances in Neural Information Processing Systems ({NeurIPS})}, 2021.
+\newblock URL \url{https://arxiv.org/abs/2009.14471}.
+
+\bibitem[Wen et~al.(2022)Wen, Kuba, Lin, Zhang, Wen, Wang, and Yang]{wen2022mat}
+Muning Wen, Jakub~Grudzien Kuba, Runji Lin, Weinan Zhang, Ying Wen, Jun Wang, and Yaodong Yang.
+\newblock Multi-agent reinforcement learning is a sequence modeling problem.
+\newblock \emph{Advances in Neural Information Processing Systems ({NeurIPS})}, 2022.
+\newblock URL \url{https://arxiv.org/abs/2205.14953}.
+
+\bibitem[Williams et~al.(2009)Williams, Waterman, and Patterson]{williams2009roofline}
+Samuel Williams, Andrew Waterman, and David Patterson.
+\newblock {R}oofline: An insightful visual performance model for multicore architectures.
+\newblock \emph{Communications of the {ACM}}, 52\penalty0 (4):\penalty0 65--76, 2009.
+\newblock \doi{10.1145/1498765.1498785}.
+\newblock URL \url{https://doi.org/10.1145/1498765.1498785}.
+
+\bibitem[Yang et~al.(2018)Yang, Luo, Li, Zhou, Zhang, and Wang]{yang2018meanfield}
+Yaodong Yang, Rui Luo, Minne Li, Ming Zhou, Weinan Zhang, and Jun Wang.
+\newblock Mean field multi-agent reinforcement learning.
+\newblock \emph{International Conference on Machine Learning ({ICML})}, 2018.
+\newblock URL \url{https://arxiv.org/abs/1802.05438}.
+
+\bibitem[Yu et~al.(2022)Yu, Velu, Vinitsky, Gao, Wang, Bayen, and Wu]{yu2022mappo}
+Chao Yu, Akash Velu, Eugene Vinitsky, Jiaxuan Gao, Yu~Wang, Alexandre Bayen, and Yi~Wu.
+\newblock The surprising effectiveness of {PPO} in cooperative, multi-agent games.
+\newblock \emph{Advances in Neural Information Processing Systems Datasets and Benchmarks Track ({NeurIPS})}, 2022.
+\newblock URL \url{https://arxiv.org/abs/2103.01955}.
+
+\bibitem[Yuan et~al.(2025)Yuan, Gao, Dai, Luo, Zhao, Zhang, Xie, Wei, Wang, Xiao, Wang, Ruan, Zhang, Liang, and Zeng]{yuan2025nsa}
+Jingyang Yuan, Huazuo Gao, Damai Dai, Junyu Luo, Liang Zhao, Zhengyan Zhang, Zhenda Xie, Y.~X. Wei, Lean Wang, Zhiping Xiao, Yuqing Wang, Chong Ruan, Ming Zhang, Wenfeng Liang, and Wangding Zeng.
+\newblock Native sparse attention: Hardware-aligned and natively trainable sparse attention.
+\newblock In \emph{Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)}, pp.\  23078--23097. Association for Computational Linguistics, 2025.
+\newblock URL \url{https://aclanthology.org/2025.acl-long.1126/}.
+
+\bibitem[Zaheer et~al.(2020)Zaheer, Guruganesh, Dubey, Ainslie, Alberti, Ontanon, Pham, Ravula, Wang, Yang, and Ahmed]{zaheer2020bigbird}
+Manzil Zaheer, Guru Guruganesh, Kumar~Avinava Dubey, Joshua Ainslie, Chris Alberti, Santiago Ontanon, Philip Pham, Anirudh Ravula, Qifan Wang, Li~Yang, and Amr Ahmed.
+\newblock {B}ig {B}ird: {T}ransformers for longer sequences.
+\newblock \emph{Advances in Neural Information Processing Systems ({NeurIPS})}, 2020.
+\newblock URL \url{https://arxiv.org/abs/2007.14062}.
+
+\end{thebibliography}

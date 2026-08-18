@@ -176,8 +176,8 @@ def fig_ksweep() -> None:
           if any(r["n_agents"] == n for r in rows)]
     impls = ["topk_gather", "topk_fused_gather", "topk_fused_masked"]
 
-    fig, axes = plt.subplots(1, len(ns), figsize=(W, 2.5), sharey=True,
-                             gridspec_kw={"wspace": 0.08})
+    fig, axes = plt.subplots(1, len(ns), figsize=(W, 2.6), sharey=True,
+                             gridspec_kw={"wspace": 0.10})
     for ax, N in zip(np.atleast_1d(axes), ns):
         dense = _best_dense(rows, N)
         for impl in impls:
@@ -197,13 +197,15 @@ def fig_ksweep() -> None:
                     linestyle=(0, (1, 1.5)), linewidth=1.2, marker=None,
                     label="operation count predicts")
         fs.parity_line(ax)
-        fs.log2_ticks(ax, [int(x) for x in ks])
+        # Thin the ticks so the widest two values do not collide.
+        shown = [int(x) for x in ks if x in (1, 2, 4, 8, 16, 32, 64, 128)]
+        fs.log2_ticks(ax, shown)
         ax.set_yscale("log")
         ax.set_title(f"$N = {N}$", pad=4)
         ax.set_xlabel("peers retained, $k$")
-        ax.tick_params(axis="x", labelsize=fs.MIN_PT - 0.5)
+        ax.tick_params(axis="x", labelsize=fs.MIN_PT)
     ax0 = np.atleast_1d(axes)[0]
-    ax0.set_ylabel("latency $\\div$ best dense")
+    ax0.set_ylabel("latency / best dense")
     for ax in np.atleast_1d(axes):
         lo, hi = ax.get_ylim()
         ax.set_ylim(min(lo, 0.25), hi)
@@ -223,10 +225,19 @@ def fig_ksweep() -> None:
 
 STAGE_ORDER = ["scores", "softmax_N", "aggregate_dense",
                "topk_select", "softmax_k", "gather_v", "aggregate_sparse"]
-STAGE_LABEL = {"scores": "scores", "softmax_N": "softmax over $N$",
-               "aggregate_dense": "dense aggregate",
-               "topk_select": "select", "softmax_k": "softmax over $k$",
-               "gather_v": "gather", "aggregate_sparse": "sparse aggregate"}
+STAGE_LABEL = {"scores": "scores", "softmax_N": "softmax",
+               "aggregate_dense": "aggregate",
+               "topk_select": "select", "softmax_k": "softmax",
+               "gather_v": "gather", "aggregate_sparse": "aggregate"}
+#: Colour by the role a stage plays, not by its name, so that the dense and
+#: sparse aggregations share a colour and the hatch distinguishes the path.
+STAGE_RAMP = {"scores": 0, "topk_select": 1, "aggregate_dense": 2,
+              "aggregate_sparse": 2, "gather_v": 3, "softmax_N": 4,
+              "softmax_k": 4}
+
+
+def _stage_color(s: str) -> str:
+    return fs.STACK_RAMP[STAGE_RAMP[s]]
 
 
 def fig_stages() -> None:
@@ -234,64 +245,73 @@ def fig_stages() -> None:
     rows = payload["rows"]
     ns = sorted({r["n_agents"] for r in rows})
 
-    fig, axes = plt.subplots(1, 2, figsize=(W, 2.7),
-                             gridspec_kw={"wspace": 0.28,
-                                          "width_ratios": [1.25, 1.0]})
+    fig, axes = plt.subplots(1, 2, figsize=(W, 2.8),
+                             gridspec_kw={"wspace": 0.30,
+                                          "width_ratios": [1.15, 1.0]})
 
-    # left: composition of each path's time, as a share
     ax = axes[0]
     dense_stages = ["scores", "softmax_N", "aggregate_dense"]
     sparse_stages = ["scores", "topk_select", "softmax_k", "gather_v",
                      "aggregate_sparse"]
     xs = np.arange(len(ns), dtype=float)
-    width = 0.36
-    for off, (name, stages, hatch) in enumerate(
-            [("dense", dense_stages, ""), ("gathered", sparse_stages, "///")]):
+    width = 0.38
+    for off, (stages, hatch) in enumerate([(dense_stages, ""),
+                                           (sparse_stages, "///")]):
         bottoms = np.zeros(len(ns))
         totals = np.array([sum(pick(rows, n_agents=n, stage=s)["time_ms"]
                                for s in stages) for n in ns])
-        for si, s in enumerate(stages):
+        for s in stages:
             vals = np.array([pick(rows, n_agents=n, stage=s)["time_ms"]
                              for n in ns]) / totals * 100
-            ax.bar(xs + (off - 0.5) * width, vals, width * 0.9, bottom=bottoms,
-                   color=fs.STACK_RAMP[STAGE_ORDER.index(s)],
-                   edgecolor="white", linewidth=0.4, hatch=hatch)
+            ax.bar(xs + (off - 0.5) * width, vals, width * 0.88, bottom=bottoms,
+                   color=_stage_color(s), edgecolor="white", linewidth=0.5,
+                   hatch=hatch)
             bottoms += vals
         for x, t in zip(xs + (off - 0.5) * width, totals):
-            ax.text(x, 101.5, f"{t:.2f}", ha="center", fontsize=fs.MIN_PT,
+            ax.text(x, 102, f"{t:.2f}", ha="center", fontsize=fs.MIN_PT,
                     color=fs.MUTED_COLOR, rotation=90, va="bottom")
     ax.set_xticks(xs)
     ax.set_xticklabels([str(n) for n in ns])
-    ax.set_xlabel("agents $N$      (left bar dense, right bar gathered)")
+    ax.set_xlabel("agents $N$   (left bar dense, right bar gathered)")
     ax.set_ylabel("share of the path (%)")
-    ax.set_ylim(0, 118)
+    ax.set_ylim(0, 128)
     ax.set_yticks([0, 25, 50, 75, 100])
     ax.grid(axis="x", visible=False)
-    handles = [mpl.patches.Patch(facecolor=fs.STACK_RAMP[STAGE_ORDER.index(s)],
-                                 edgecolor="white", label=STAGE_LABEL[s])
-               for s in STAGE_ORDER]
-    ax.legend(handles=handles, loc="upper center", ncol=4,
-              bbox_to_anchor=(0.62, -0.30), fontsize=fs.MIN_PT,
-              handlelength=1.4, columnspacing=1.0)
+    handles = [mpl.patches.Patch(facecolor=_stage_color(s), edgecolor="white",
+                                 label=STAGE_LABEL[s])
+               for s in ("scores", "topk_select", "aggregate_dense",
+                         "gather_v", "softmax_N")]
+    handles.append(mpl.patches.Patch(facecolor="white", edgecolor="#888888",
+                                     hatch="///", label="gathered path"))
+    ax.legend(handles=handles, loc="upper center", ncol=3,
+              bbox_to_anchor=(0.5, -0.28), fontsize=fs.MIN_PT,
+              handlelength=1.5, columnspacing=1.0, handletextpad=0.5)
 
-    # right: how close each stage runs to whichever machine limit binds it
     ax = axes[1]
-    for s in ["aggregate_dense", "aggregate_sparse", "gather_v", "topk_select"]:
+    for s, mk in (("aggregate_dense", "o"), ("aggregate_sparse", "s"),
+                  ("gather_v", "^"), ("topk_select", "v")):
         ys = [100 * pick(rows, n_agents=n, stage=s)["frac_of_binding_roof"]
               for n in ns]
-        ax.plot(ns, ys, marker="os^v"[["aggregate_dense", "aggregate_sparse",
-                                      "gather_v", "topk_select"].index(s)],
-                color=fs.STACK_RAMP[STAGE_ORDER.index(s)],
-                label=STAGE_LABEL[s], markersize=4.0)
+        lbl = {"aggregate_dense": "dense aggregate",
+               "aggregate_sparse": "sparse aggregate",
+               "gather_v": "gather", "topk_select": "select"}[s]
+        ax.plot(ns, ys, marker=mk, color=_stage_color(s), label=lbl,
+                markersize=4.2,
+                markeredgecolor="#FFFFFF", markeredgewidth=0.5)
+    ax.axhline(100, color=fs.RULE_COLOR, linestyle=(0, (3, 2)), linewidth=1.0)
+    ax.annotate("machine limit", xy=(0.98, 100), xycoords=("axes fraction",
+                                                           "data"),
+                ha="right", va="bottom", fontsize=fs.MIN_PT,
+                color=fs.RULE_COLOR)
     ax.set_xscale("log", base=2)
-    ax.set_xticks(ns)
-    ax.set_xticklabels([str(n) for n in ns])
+    ax.set_xticks(ns[::2] + [ns[-1]])
+    ax.set_xticklabels([str(n) for n in ns[::2] + [ns[-1]]])
     ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.set_xlabel("agents $N$")
-    ax.set_ylabel("% of the binding machine limit")
-    ax.set_ylim(0, 105)
-    ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.62),
-              fontsize=fs.MIN_PT, handlelength=1.6)
+    ax.set_ylabel("% of the binding limit")
+    ax.set_ylim(0, 135)
+    ax.legend(loc="upper center", ncol=2, bbox_to_anchor=(0.5, -0.28),
+              fontsize=fs.MIN_PT, handlelength=1.8, columnspacing=1.0)
     fs.savefig(fig, OUT / "fig3_stages.pdf", W)
     plt.close(fig)
 
@@ -313,10 +333,13 @@ def fig_roofline() -> None:
             linewidth=1.2, zorder=3, marker=None)
     ax.axvline(ridge, color=fs.RULE_COLOR, linestyle=(0, (3, 2)),
                linewidth=0.9)
-    ax.annotate(f"ridge {ridge:.0f} FLOP/byte", xy=(ridge, peak_f * 0.055),
-                xytext=(-4, 0), textcoords="offset points", rotation=90,
-                ha="right", va="bottom", fontsize=fs.MIN_PT,
+    ax.axvspan(0.06, ridge, color="#F2F6FA", zorder=0)
+    ax.annotate(f"ridge {ridge:.0f}", xy=(ridge, peak_f * 1.35),
+                xytext=(-3, 0), textcoords="offset points",
+                ha="right", va="top", fontsize=fs.MIN_PT,
                 color=fs.RULE_COLOR)
+    ax.annotate("memory-bound", xy=(0.09, peak_f * 1.35), ha="left", va="top",
+                fontsize=fs.MIN_PT, color=fs.MUTED_COLOR)
 
     marks = {"scores": ("o", "#123a63"), "aggregate_dense": ("D", "#0072B2"),
              "aggregate_sparse": ("s", "#009E73"), "gather_v": ("^", "#5FBFA8"),
@@ -328,11 +351,6 @@ def fig_roofline() -> None:
         ax.scatter([p["ai"] for p in pts], [p["gflops"] / 1e3 for p in pts],
                    marker=mk, s=22, facecolor=col, edgecolor="white",
                    linewidth=0.4, zorder=4, label=STAGE_LABEL[stage])
-    # selection performs comparisons rather than multiply-adds, so it has no
-    # meaningful arithmetic rate; its bandwidth is shown instead.
-    sel = [r for r in rows if r["stage"] == "topk_select"]
-    if sel:
-        ax.scatter([peaks["ridge_flop_per_byte"] * 0] + [], [])
     ax.set_xscale("log"); ax.set_yscale("log")
     ax.set_xlabel("arithmetic intensity (FLOP/byte)")
     ax.set_ylabel("achieved rate (TFLOP/s)")
@@ -379,7 +397,7 @@ def fig_prescore() -> None:
     ax.set_xlabel("agents $N$")
     ax.set_ylabel("operations saved ($\\times$)")
     ax.set_title(f"what the count promises ($k={k_show}$)", pad=4)
-    ax.legend(fontsize=fs.MIN_PT, loc="upper left")
+    ax.legend(fontsize=fs.MIN_PT, loc="lower right", handlelength=2.2)
 
     ax = axes[1]
     for sel in ("radius_knn", "morton_window"):
@@ -404,9 +422,12 @@ def fig_prescore() -> None:
     ax.set_xticks(ns); ax.set_xticklabels([str(n) for n in ns])
     ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.set_xlabel("agents $N$")
-    ax.set_ylabel("latency $\\div$ fused dense")
+    ax.set_ylabel("latency / fused dense")
     ax.set_title("what the clock delivers", pad=4)
-    ax.legend(fontsize=fs.MIN_PT, loc="upper left")
+    ax.set_ylim(top=ax.get_ylim()[1] * 3.2)
+    ax.legend(fontsize=fs.MIN_PT, loc="upper center", ncol=1,
+              handlelength=2.2, borderpad=0.1, labelspacing=0.22)
+    fs.parity_line(ax, label="dense")
     fs.savefig(fig, OUT / "fig5_prescore.pdf", W)
     plt.close(fig)
 

@@ -1,0 +1,113 @@
+Cooperative multi-agent systems increasingly pass learned messages between
+agents, and attention is the mechanism they use to decide whose message matters
+\citep{das2019tarmac,jiang2018atoc,jiang2018dgn}. It is a natural choice: the
+weighting is learned, it adapts to the situation, and it needs no hand-designed
+communication topology. It is also pairwise, so the channel costs quadratically
+in the number of agents, and a large part of the literature on learned
+communication is concerned with restricting who talks to whom.
+
+Restricting communication can mean two different things, and the difference is
+easy to lose. In a distributed deployment the objective is to reduce the
+messages physically transmitted, and any restriction achieves that in proportion
+to the links it removes. In the centralised inference that most of this
+literature actually runs, the objective is to reduce the computation performed
+on one device, and there the proportionality does not follow. This paper is
+about the second. It asks what a particular and natural restriction --- keeping,
+for each agent, the peers with the highest attention scores --- saves in local
+computation, and whether the saving appears as elapsed time.
+
+The efficiency case for that restriction is easy to state and easy to accept. If
+dense aggregation combines messages from every peer and sparse aggregation
+combines only a handful, then almost all of the aggregation disappears. What the
+statement omits is where the handful comes from. Selecting peers by attention
+score requires the scores, so by the time the selection can be made, every
+pairwise interaction has been evaluated. Attention has two matrix products of
+equal size, one producing the scores and one aggregating the values; sparsity of
+this kind reaches only the second. The arithmetic that can be removed is
+therefore at most half, whatever the sparsity, and the familiar fraction that
+describes the aggregation term alone overstates the achievable saving by a
+factor approaching two.
+
+An operation count is a model of cost, and it can fail in more than one way. It
+can describe a computation the implementation does not perform: applying the
+selection as a mask on the dense attention matrix materialises the discarded
+entries as zeros and multiplies them anyway, so the executed aggregation is
+unchanged while a count based on the retained fraction reports a large saving.
+And the quantity it describes may not govern the outcome: on hardware where time
+tracks bytes moved rather than arithmetic performed, removing arithmetic from a
+kernel that is already waiting on memory changes nothing. Both failures occur
+here, and the second is the one that survives every correction we could make to
+the first.
+
+The question this paper answers empirically is therefore whether genuinely
+executing the reduced aggregation makes score-then-select communication faster
+in the agent-count regime multi-agent communication occupies. We answer it by
+measuring six implementations of one function, verified equivalent at every
+configuration whose latency we report, against dense attention through both a
+library kernel and one we wrote ourselves.
+
+The answer is conditional, and the condition is the contribution. Assembled from
+general-purpose tensor operations, the sparse path is slower than dense
+attention everywhere we measure, by up to an order of magnitude, and it moves
+several times more memory traffic while performing less arithmetic. A fused
+kernel that keeps the score row in registers and writes no intermediate removes
+most of that penalty; at the very sparsest settings it makes the sparse path
+genuinely faster than the best dense implementation available to us, by a margin
+that stays inside the analytic ceiling. The advantage does not survive an
+increase in the number of retained peers, because ranking candidates costs more
+than aggregating over survivors saves, and it is gone well before the sparsity
+levels this literature uses. A kernel can make selection cheap in the number
+retained only by abandoning the compaction that made the aggregation sparse in
+the first place, so on this hardware a score-then-select kernel can have sparse
+arithmetic or cheap selection but not both.
+
+What follows constructively is the mechanism the negative result identifies.
+Selection that fixes the retained set before any score exists is not subject to
+the ceiling, and its operation-count saving is unbounded in principle. Whether
+it converts into time is a separate question, and we answer it for two selectors
+the count treats similarly: choosing the nearest peers by distance, which is
+what neighbourhood-based communication already does, and ordering agents along a
+space-filling curve, which is asymptotically cheaper. They behave oppositely as
+the agent count grows. The first saves an order of magnitude of arithmetic and
+loses an order of magnitude of time, because it ranks a pairwise matrix of its
+own; the second makes attention over the retained peers genuinely faster than
+dense attention, and is held above parity only by the fixed cost of its own
+sort. Escaping the operation-count bound is necessary, is not sufficient, and
+does not by itself say which of two escaping selectors will be faster.
+
+\paragraph{Contributions.}
+\begin{itemize}
+  \item We show that any rule selecting communication partners by their
+    attention scores can remove at most half of attention's arithmetic, however
+    sparse it is, and that the bound is the special case of a general accounting
+    in which a selection rule is charged for what it costs to run. That
+    accounting places existing multi-agent restriction mechanisms on one axis
+    and separates those that escape the bound from those that inherit it
+    (Section~\ref{sec:analysis}).
+  \item We measure what is actually executed, distinguishing masked, gathered
+    and fused implementations of the same function, and find that the composed
+    sparse path is slower than dense attention throughout the regime by a margin
+    its operation count cannot predict, with memory traffic rather than
+    arithmetic as the cause (Section~\ref{sec:measurement}).
+  \item We write fused sparse kernels and a matched fused dense baseline, and
+    thereby separate what the algorithm costs from what the implementation
+    costs. Sparsity does become faster than dense attention, but only when one
+    or two peers are retained, by less than the analytic ceiling permits, and
+    never at the sparsity multi-agent communication uses
+    (Section~\ref{sec:fused}).
+  \item We instantiate the constructive half of the analysis with two selectors
+    that fix the retained set before scoring, and show that removing the
+    operation-count bound is necessary but not sufficient. A selector can save
+    the arithmetic the accounting promises and cost an order of magnitude in
+    time if it reaches its decision through a structure of the size it meant to
+    avoid; and a selector that avoids that can make the attention itself faster
+    than dense and still lose on its own fixed cost, which at these agent counts
+    is comparable to the attention it displaces (Section~\ref{sec:prescore}).
+\end{itemize}
+
+A secondary pre-registered training study establishes that the architecture
+being sparsified improves return, so that the sparsification comparisons are not
+vacuous, and reports six under-powered null contrasts as what they are
+(Section~\ref{sec:training}). Every computational claim concerns centralised
+inference on a single device, not bandwidth-constrained distributed deployment;
+Section~\ref{sec:limitations} states the full envelope.

@@ -1,0 +1,235 @@
+\section{Additional benchmark results}
+\label{app:grid}
+
+\subsection{The full parameter grid}
+
+Table~\ref{tab:grid} gives the best-over-implementations sparse latency divided
+by the best-over-implementations dense latency, across head width and across
+batch, at each agent count and at the most favourable sparsity available. Head
+width is swept to $512$, which resolves a trend the earlier version of this
+manuscript left open at $256$; batch is swept from $32$ to $1024$. The largest
+batch we attempted, $4096$ at $512$ agents, could not be measured: the score
+matrix alone runs to several gigabytes and the device is shared, so that
+configuration is absent rather than reported.
+
+\begin{table}[ht]
+\centering\small
+\caption{Best sparse divided by best dense, over head width (upper block) and
+batch (lower block). Values below one would indicate sparsity winning.}
+\label{tab:grid}
+\input{tables/grid}
+\end{table}
+
+\subsection{Dispersion behind the headline numbers}
+\label{app:dispersion}
+
+The primary statistic is the minimum over interleaved samples, on the modelling
+assumption that contention can only add time. That statistic is trustworthy only
+if the underlying sample was not wildly dispersed, so the harness records the
+median, the interquartile range and the spread of per-run medians for every
+configuration, and the released artifacts carry all of them. Two properties of
+this host bound what any of it can mean. Both GPUs carried between 30 and 80~GiB
+of other tenants' allocations and near-continuous utilisation throughout the
+campaign, and clocks could not be locked. We therefore report the spread of
+per-run medians beside every configuration rather than a confidence interval: a
+ratio of minima has no sampling distribution, and treating it as though it did
+would be the same error the rest of this paper is about.
+
+\subsection{Drift control}
+\label{app:drift}
+
+The identical sweep was repeated on the same device, once with the device as
+idle as we could obtain it and once under a concurrent load. With the device
+idle the ratios reproduce closely; under load absolute latency moves by more
+than $100\%$ while paired ratios move by roughly half as much, and every ratio
+moves against the sparse path. Pairing removes the typical drift rather than the
+tail. This is a same-device repeat, so it establishes stability across runs and
+hours, not independence from one physical card.
+
+\section{Implementation and measurement validation}
+\label{app:verification}
+
+\subsection{Functional equivalence}
+
+Every implementation is checked against the reference at every configuration
+whose latency is reported. The check matters more than it looks: exact top-$k$
+is discontinuous in the scores, so two implementations that accumulate the score
+product in different orders can rank a near-tied pair differently and aggregate
+over different peers, producing a large output difference from a rounding-level
+score difference. An earlier version of our per-query fused kernel computed the
+score row as a reduction rather than through the matrix-multiply units, and
+disagreed with the reference at a small number of configurations for exactly
+that reason; the kernels reported here use the same product as the reference.
+
+The fused kernel that selects by threshold retains every peer at or above the
+$k$-th largest score, so an exact tie at that boundary retains $k+1$ peers where
+a rank-based selection retains $k$. Measured incidence at $N{=}512$, $k{=}64$,
+$d{=}64$ over twelve seeds: one query row in $196{,}608$. Every other row agrees
+with the reference to \texttt{fp32} tolerance.
+
+\subsection{What each implementation executes}
+
+The masked and gathered implementations compute the same function while
+executing different work, which is the distinction the paper turns on, so it is
+pinned by regression tests rather than asserted. Maximum absolute deviation
+between the two paths is below $10^{-10}$ in \texttt{float64}. A FLOP counter
+attached to the running program reports identical totals for dense and masked
+--- the counter scores matrix products, and masked issues the same two as dense
+--- against a smaller total for gathered, the difference being exactly the
+aggregation term. Tracing every matrix product confirms that the gathered path
+issues no dense aggregation product and does issue the compacted one, and that
+every top-$k$ variant still issues the full score product, which is assumption
+A2 made mechanical.
+
+\subsection{Which backend serves the fused dense baseline}
+
+A probe forces each scaled-dot-product backend in turn, at both dtypes and at
+three agent counts, under no mask, an additive float mask and a Boolean mask,
+and the profiler records which kernel the default dispatcher launches. The
+FlashAttention backend is rejected under any non-null mask in either form, and
+in \texttt{fp32} under any input, so the library dense baseline runs the
+memory-efficient CUTLASS kernel. Forcing FlashAttention on the same unmasked
+\texttt{bf16} shape is faster than the kernel we do get, so a baseline able to
+reach it would widen rather than narrow the gap we report --- which is part of
+why the dense baseline in this revision is the better of the library path and a
+kernel we wrote.
+
+\subsection{The host allocator control}
+\label{app:cpu}
+
+Dense, masked and gathered each allocate and free several multi-MiB score
+matrices per forward. The default allocator returns those pages to the kernel
+and they are re-faulted on the next call, which at $N{=}192$ adds roughly
+$37{,}000$ minor page faults per forward and inflates latency by up to
+$8.8\times$. The tax is proportional to the bytes of large temporaries each
+implementation churns, so it differs per implementation and does not cancel in a
+ratio; in an un-pinned run it inverted the ordering at one configuration. We
+raise the allocator's retention threshold so that freed temporaries are kept,
+and count minor faults per forward from the process's own resource usage across
+the timed region. The harness records the allocator environment, the thread
+counts, the affinity mask and the fault totals in each run's metadata, and the
+superseded un-pinned run is retained beside the pinned one.
+
+\subsection{Machine balance}
+\label{app:roofline}
+
+Peak arithmetic rate is measured with a large matrix multiply and peak bandwidth
+with a large copy, in the same process as the measurements they normalise. The
+copy source is written before it is read: an untouched allocation on this
+operating system is backed by the shared zero page, so a host-side copy from it
+re-reads one cache line and reports a bandwidth several times the machine's
+real figure. An earlier version of this probe made that error, and every CPU
+ridge point derived from it was wrong in the direction that flattered the
+argument. The corrected probe reports two ridge points per device, one with a
+cache-resident buffer and one with a buffer larger than the last-level cache,
+because the two differ by a factor of two on the host and a claim that holds for
+one need not hold for the other.
+
+\section{Additional training analysis}
+\label{app:training}
+
+\subsection{Pre-registration chronology}
+\label{app:prereg}
+
+The analysis plan was committed when eight of the forty runs in the
+pre-registered family had produced a final evaluation and before any of their
+returns had been inspected. Commit history establishes the ordering: the
+positive-control artifacts at 12:18, the plan at 12:56, and the remaining
+artifacts at 19:11 the same day. The plan has two commits, the second appending
+to its deviations log; the endpoint, comparisons, test, effect sizes, interval
+and correction are byte-identical to the pre-unblinding version. Timestamps
+establish ordering and nothing more, so the plan's independence is a claim about
+our conduct rather than something the artifact proves, and data generation had
+demonstrably already begun.
+
+One correction is logged against the released plan. It asserts that at most one
+comparison in the family can reach corrected significance. That is false: Holm
+is a step-down procedure, so once a first rejection is obtained its later
+thresholds are looser and further rejections remain possible. The manuscript
+states the corrected version; the deviation is recorded rather than the artifact
+silently edited.
+
+\subsection{The remaining comparisons}
+
+Five further comparisons were registered and all are Holm-adjusted nulls. Two
+deserve a note rather than an interpretation. The comparison at twelve agents
+has the one sign opposite to its registered direction and should be set aside
+for a reason independent of its $p$-value: neither variant learns the task
+there. A uniform-random policy scores $-758.9$ under a forty-episode evaluation,
+against $-864.9$ for the dense variant, which is worse, and $-717.9$ for the
+sparse variant, which is better but barely learning; the comparison is between a
+diverged run and a struggling one. Separately, for two comparisons the bootstrap
+interval excludes zero while the permutation test does not. The registration
+named the permutation test, so it governs; the disagreement is unsurprising at
+five seeds, where the interval is coarse, discrete and of uncertain coverage. We
+report both so that the estimated effect and the strength of evidence for it are
+both visible.
+
+Descriptively, and supporting no claim: the budgeted variant meets its budget
+but not by the intended route, its gate collapsing to an expected support near
+one within the first tenth of training while the dual multiplier decays to zero;
+the entmax variant settles at a support of $1.64$ of five peers; and attention
+entropy falls from $0.35$ nats over five peers to $0.12$ over two. The three sit
+on different supports and are reported only as an instrumentation check.
+
+\subsection{The partially observable environment}
+\label{app:env}
+
+The variant modifies the standard cooperative task in one respect: a peer's
+relative-position entry is zeroed when the peer is farther than a fixed radius.
+Reward, action space, landmark observations, episode length and observation
+dimension are unchanged. Two properties bound what it can support. The mask is a
+zeroing rather than an explicit visibility flag, so a peer at relative position
+exactly zero is not distinguishable from an absent one; measured under a uniform
+random policy, this affects at most $0.15\%$ of visible peers. And the visible
+fraction falls with the number of agents while the absolute number visible
+rises, because the world size is fixed, which is a difficulty confound that
+rules out across-agent-count return comparisons.
+
+The communicating variants carry between $7.2\%$ and $19.0\%$ more trainable
+parameters than the communication-free baseline, since the attention module adds
+parameters the baseline has no analogue for. The positive controls therefore
+establish that the communicating architecture outperforms the baseline, not that
+the channel alone accounts for the difference.
+
+\section{Literature audit}
+\label{app:audit}
+
+For each audited paper we read the full text, including appendices and the
+official supplement where one exists, searched it for seven temporal keywords,
+and recorded whether it makes a computational-efficiency or complexity claim
+about its mechanism, whether it reports any measured temporal quantity
+attributable to that mechanism, and the figure, table or sentence that settled
+the decision. A statement such as ``training took a few days'' does not qualify,
+since it is not attributable to the mechanism. Scope matters for at least one
+entry, whose affirmative verdict rests on a wall-clock figure in an appendix and
+would be negative on the main body alone. This is an audit of reporting practice
+in a small, deliberately selected set --- the papers we ourselves relied on ---
+and not a sample of either literature; a negative verdict means the argument
+rests on operation counts or asymptotics, not that it is wrong.
+
+\input{tables/audit_placeholder}
+
+\section{Reproduction and provenance}
+\label{app:repro}
+
+The measurement campaign is training-free and completes in under an hour on one
+device. \texttt{scripts/run\_revision\_campaign.sh} regenerates every artifact
+in the order the manuscript reports them;
+\texttt{scripts/make\_revision\_tables.py} and
+\texttt{scripts/make\_revision\_figures.py} regenerate every table and figure
+from those artifacts, so no tabular number in the manuscript is transcribed by
+hand; and \texttt{scripts/check\_paper\_numbers.py} re-derives the numbers that
+appear in prose and fails on any disagreement.
+
+Three provenance caveats. The hardware description and the aggregate provenance
+record were written before this project's environment was upgraded and describe
+a superseded software stack and a host that is no longer available; both have
+been corrected, and the run-level provenance for the training variants lives in
+the per-run configuration files rather than in the aggregate record. The GPUs
+used for every measurement in this paper are shared with other tenants, so
+absolute latencies are not reproducible to better than the drift reported in
+Appendix~\ref{app:drift} and only ratios between implementations timed in the
+same interleaved sweep should be compared. And the activation-memory measurement
+is reported from a run with the card otherwise free, since a shared-host repeat
+exhausts memory one agent count earlier.

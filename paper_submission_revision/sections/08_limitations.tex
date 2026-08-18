@@ -1,0 +1,73 @@
+Every cost result here concerns centralised inference on a single device: the
+latency and memory of executing the communication module in one process that
+holds all agents' observations. It is not a claim about bandwidth-constrained
+distributed deployment, where the objective is to reduce messages physically
+transmitted and top-$k$ sparsification may well be correct even though it does
+not reduce local computation. Proposition~\ref{prop:ceiling} says nothing about
+transmitted bytes, and neither do the measurements. The analysis is also
+single-round: assumptions A1 and A3 show that the operation-count \emph{ratio}
+is unchanged by additional rounds or heads, but the measurements are of one
+round of one head, and at the smaller agent counts we find cost governed by
+kernel launches and cache residency, both of which multi-round communication
+changes.
+
+The measured envelope is one GPU architecture (NVIDIA Blackwell, sm\_120), one
+x86\_64 CPU, PyTorch 2.11 with CUDA 12.8 and Triton 3.6, scaled dot-product
+attention through the fused backends that build provides, input embedding width
+$64$, head width $d \in \{16,\dots,512\}$, $N \le 512$, batch $32$--$1024$,
+\texttt{fp32} and \texttt{bf16}, and eager, compiled and CUDA-graph execution.
+We were unable to replicate on a different GPU generation: the host has two
+cards of the same model, and the older hardware that produced this project's
+earlier runs is no longer available. The arithmetic-intensity argument of
+Section~\ref{sec:roofline} predicts the same qualitative behaviour wherever the
+relevant machine balance is similar, but an argument that is device-independent
+by construction cannot itself establish device-independence, so generality
+across GPU generations is untested. Both cards were shared with other tenants
+throughout, which is why every claim is stated as a ratio between implementations
+timed in the same interleaved sweep, and why the drift control is a same-device
+repeat rather than a second card.
+
+Our sparse implementations are not optimal and we can bound by how much in two
+directions rather than one. The composed PyTorch path leaves substantial
+performance on the table: removing an unnecessary sort was worth $5$--$24\%$,
+and the remaining selection kernel runs at roughly $9\%$ of copy-equivalent
+bandwidth. The fused kernels remove most of what remains, and they are the
+reason the manuscript's earlier unconditional statement --- that the sparse path
+is slower in every measured configuration --- does not survive. They are in turn
+not the last word: they are written in Triton rather than tuned assembly, their
+selection strategies are argmax rounds and threshold bisection rather than a
+radix or bitonic select, they hold the whole score row in registers and so are
+capped at $N \le 1024$, and they are forward-only, which is why the backward
+comparison covers the composed implementations alone. A better kernel would
+narrow the remaining gap further. What no kernel can remove is the requirement
+to form and rank the full score matrix, which is assumption A2, and the
+operation-count ceiling that follows from it.
+
+The learning study is secondary and bounded by its power. Five seeds per
+implementation gives a minimum attainable two-sided permutation $p$ of $0.0079$
+against a first Holm threshold of $0.0083$, so any rejection in the
+pre-registered family requires the smallest $p$ to sit at the discrete floor.
+Resolving the $d \approx 0.6$ effect the primary contrast suggests would need
+roughly $45$ seeds per implementation, or $70$ at the family-corrected level,
+both from a normal-approximation formula that guides order of magnitude rather
+than describing the exact permutation test we run. That was a budget allocation
+rather than an unaffordable experiment: the whole $60$-run study consumed $31.9$
+GPU-hours and a properly powered primary contrast would have cost about $37.9$
+more. The positive controls establish that the communicating architecture
+improves return rather than isolating the learned channel, since the
+communicating variants carry $7$--$19\%$ more trainable parameters and one of
+the two control tasks supplies a communication channel of its own; a
+parameter-matched sham-communication variant would be needed for the
+channel-specific causal claim, and we do not make it. Our partially observable
+environment carries a difficulty confound across agent counts that we measure
+and publish, which is why no across-$N$ return comparison appears, and its
+centralised critic sees the same masked observations as the actors rather than a
+privileged global state, which departs from standard practice and is a plausible
+contributor to the failure of both variants to learn well at twelve agents.
+
+Finally, the pre-score selectors of Section~\ref{sec:prescore} demonstrate a
+cost structure, not a method. They attend to a different peer set than top-$k$
+does, so the comparison against it is a comparison of cost and not of quality,
+and we make no claim that spatial neighbours carry the information attention
+would have selected. Whether a pre-score selector preserves task performance is
+the obvious next question and one this paper does not answer.

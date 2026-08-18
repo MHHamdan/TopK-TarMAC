@@ -1,0 +1,18 @@
+\begin{tabular}{rlrrrrrr}
+\toprule
+& & \textbf{operations} & \multicolumn{3}{c}{\textbf{measured (ms)}} & &  \\
+\cmidrule(lr){4-6}
+$N$ & selector & saved ($\times$) & select & attend & total & dense & ratio \\
+\midrule
+48 & nearest neighbours & 7.7 & 0.049 & 0.030 & 0.078 & 0.011 & 7.17 \\
+48 & Z-order window & 10.0 & 0.162 & 0.030 & 0.197 & 0.011 & 18.19 \\
+96 & nearest neighbours & 11.3 & 0.098 & 0.046 & 0.144 & 0.027 & 5.29 \\
+96 & Z-order window & 19.8 & 0.174 & 0.046 & 0.226 & 0.027 & 8.32 \\
+192 & nearest neighbours & 14.8 & 0.317 & 0.087 & 0.397 & 0.066 & 6.01 \\
+192 & Z-order window & 39.4 & 0.176 & 0.087 & 0.271 & 0.066 & 4.10 \\
+384 & nearest neighbours & 17.5 & 1.812 & 0.166 & 1.984 & 0.216 & 9.20 \\
+384 & Z-order window & 78.3 & 0.189 & 0.165 & 0.353 & 0.216 & 1.64 \\
+512 & nearest neighbours & 18.3 & 5.224 & 0.221 & 5.514 & 0.345 & 16.00 \\
+512 & Z-order window & 103.7 & 0.197 & 0.221 & 0.437 & 0.345 & 1.27 \\
+\bottomrule
+\end{tabular}%

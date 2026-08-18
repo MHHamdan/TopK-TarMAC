@@ -86,7 +86,10 @@ def table_crossover() -> str:
     """The k at which the best sparse implementation stops being faster."""
     pay = load("attention_core_d16.json")
     rows = live(pay)
-    ns = sorted({r["n_agents"] for r in rows})
+    # Below 96 agents the cost of every implementation is governed by how many
+    # kernels it launches rather than by arithmetic or bandwidth, so a crossover
+    # read off those configurations would be a fact about launch counts.
+    ns = [n for n in sorted({r["n_agents"] for r in rows}) if n >= 96]
     body = []
     for N in ns:
         bd = min(x for x in (ms(at(rows, "dense_fused", N)),
@@ -227,15 +230,55 @@ $N$ & selector & saved ($\times$) & select & attend & total & dense & ratio \\
 \end{tabular}""", k
 
 
+def table_grid() -> str:
+    """Best sparse over best dense across head width and batch, per agent count."""
+    blocks = []
+    for fname, axis, label in (("attention_core_dsweep.json", "head_dim",
+                                "head width $d$"),
+                               ("attention_core_batch.json", "batch",
+                                "batch $B$")):
+        try:
+            pay = load(fname)
+        except SystemExit:
+            continue
+        rows = live(pay)
+        ns = sorted({r["n_agents"] for r in rows})
+        vals = sorted({r[axis] for r in rows})
+        body = []
+        for v in vals:
+            cells = []
+            for N in ns:
+                sub = [r for r in rows if r[axis] == v and r["n_agents"] == N]
+                dense = [ms(r) for r in sub if r["impl"] in
+                         ("dense_fused", "dense_triton")]
+                sparse = [ms(r) for r in sub if r["impl"].startswith("topk")]
+                dense = [x for x in dense if x is not None]
+                sparse = [x for x in sparse if x is not None]
+                cells.append(f"{min(sparse) / min(dense):.2f}"
+                             if dense and sparse else "n/m")
+            body.append(f"{v} & " + " & ".join(cells) + r" \\")
+        cols = "r" * (len(ns) + 1)
+        head = " & ".join(f"$N{{=}}{n}$" for n in ns)
+        blocks.append(f"\\begin{{tabular}}{{{cols}}}\n\\toprule\n"
+                      f"{label} & {head} \\\\\n\\midrule\n"
+                      + "\n".join(body)
+                      + "\n\\bottomrule\n\\end{tabular}")
+    if not blocks:
+        return r"\emph{[grid pending]}"
+    return "\n\n\\vspace{1em}\n\n".join(blocks)
+
+
 def table_training_step() -> str:
     """Where a training iteration spends its time."""
     pay = load("training_step_timing.json")
     rows = pay["rows"]
     ns = sorted({r["n_agents"] for r in rows})
-    order = ["environment", "policy_forward", "advantage", "update_forward",
+    # The advantage computation is below 0.5% of every iteration and is folded
+    # into the optimiser column rather than given one of its own.
+    order = ["environment", "policy_forward", "update_forward",
              "update_backward", "optimiser"]
     label = {"environment": "environment", "policy_forward": "acting",
-             "advantage": "advantage", "update_forward": "update fwd",
+             "update_forward": "update fwd",
              "update_backward": "update bwd", "optimiser": "optimiser"}
     body = []
     for N in ns:
@@ -251,10 +294,10 @@ def table_training_step() -> str:
                         f" & {shares} & {r['iteration_ms'] / 1e3:.2f} & {rel} & "
                         f"{r['iteration_ms_spread_pct']:.1f} \\\\")
     head = " & ".join(label[s] for s in order)
-    return r"""\begin{tabular}{ll rrrrrr rrr}
+    return r"""\begin{tabular}{ll rrrrr rrr}
 \toprule
-& & \multicolumn{6}{c}{\textbf{share of the iteration (\%)}} & & & \\
-\cmidrule(lr){3-8}
+& & \multicolumn{5}{c}{\textbf{share of the iteration (\%)}} & & & \\
+\cmidrule(lr){3-7}
 $N$ & communication & """ + head + r""" & s/iter & $\div$ dense & spread \\
 \midrule
 """ + "\n".join(body) + r"""
@@ -267,23 +310,36 @@ def main() -> int:
     written = []
 
     def put(name: str, body: str) -> None:
-        (OUT / f"{name}.tex").write_text(body + "\n")
+        # Trailing "%" suppresses the space \input would otherwise insert, which
+        # matters for the fragments that appear inline inside a caption.
+        (OUT / f"{name}.tex").write_text(body + "%\n")
         written.append(name)
+
+    # Values that appear inside captions are emitted as macros rather than as
+    # \input, because hyperref expands a caption when it builds the bookmark and
+    # an \input inside one breaks that expansion.
+    macros: dict[str, str] = {}
 
     put("headline", table_headline())
     put("crossover", table_crossover())
     put("backward", table_backward())
     stages, cap, N = table_stages()
     put("stages", stages)
-    put("stages_caption", cap)
-    put("stages_n", str(N))
+    macros["StagesCaption"] = cap
+    macros["StagesN"] = str(N)
     pre, k = table_prescore()
     put("prescore", pre)
-    put("prescore_k", str(k))
-    try:
-        put("training_step", table_training_step())
-    except SystemExit as exc:
-        print(f"  (skipped training_step: {exc})")
+    macros["PrescoreK"] = str(k)
+    for name, fn in (("training_step", table_training_step),
+                     ("grid", table_grid)):
+        try:
+            put(name, fn())
+        except SystemExit as exc:
+            print(f"  (skipped {name}: {exc})")
+    (OUT / "macros.tex").write_text(
+        "\n".join(f"\\newcommand{{\\{n}}}{{{v}}}"
+                  for n, v in sorted(macros.items())) + "\n")
+    written.append("macros")
     print("wrote:", ", ".join(written))
     return 0
 

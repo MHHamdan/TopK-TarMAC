@@ -1,0 +1,89 @@
+\documentclass[10pt]{article} % For LaTeX2e
+\usepackage{tmlr}
+% If accepted, instead use the following line for the camera-ready submission:
+%\usepackage[accepted]{tmlr}
+% To de-anonymize for a preprint server, instead use:
+%\usepackage[preprint]{tmlr}
+
+\usepackage{amsmath, amssymb, amsfonts, amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{url}
+
+\newtheorem{proposition}{Proposition}
+
+% Values quoted inside captions, generated from the artifacts.
+\input{tables/macros}
+
+\title{The FLOPs You Save Are Not the Time You Spend:\\
+Sparse Attention in Multi-Agent Communication}
+
+% Authors must not appear in the submitted version. They are hidden as long as
+% the tmlr package is used without the [accepted] or [preprint] options.
+\author{\name Anonymous \email anonymous@example.com \\
+      \addr Anonymous Institution}
+
+\def\month{08}  % Insert correct month for camera-ready version
+\def\year{2026} % Insert correct year for camera-ready version
+\def\openreview{\url{https://openreview.net/forum?id=XXXX}} % Insert correct link
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/00_abstract.tex}
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+\input{sections/01_intro.tex}
+
+\section{Related Work}
+\label{sec:related}
+\input{sections/02_related.tex}
+
+\section{Computational Limits of Score-Then-Select Attention}
+\label{sec:analysis}
+\input{sections/03_analysis.tex}
+
+\section{Measured Cost}
+\label{sec:measurement}
+\input{sections/04_measurement.tex}
+
+\section{Selecting Before Scoring}
+\label{sec:prescore}
+\input{sections/06_prescore.tex}
+
+\section{Learning Study}
+\label{sec:training}
+\input{sections/05_training.tex}
+
+\section{Sources of Measurement Error}
+\label{sec:pitfalls}
+\input{sections/07_pitfalls.tex}
+
+\section{Limitations}
+\label{sec:limitations}
+\input{sections/08_limitations.tex}
+
+\section{Conclusion}
+\label{sec:conclusion}
+\input{sections/09_conclusion.tex}
+
+\subsubsection*{Broader Impact Statement}
+This work is a measurement and correction study of a computational-efficiency
+claim. It introduces no new capability and no new data. Its intended effect is
+to reduce wasted compute in the design of multi-agent communication
+architectures by discouraging optimisation against an operation count that does
+not predict runtime.
+
+\bibliographystyle{tmlr}
+\bibliography{references}
+
+\appendix
+\input{sections/10_appendix.tex}
+
+\end{document}

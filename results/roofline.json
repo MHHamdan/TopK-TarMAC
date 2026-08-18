@@ -1,16 +1,26 @@
 {
   "machines": {
-    "cuda:0": {
+    "cuda:1": {
       "name": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
-      "achievable_gflops": 75293.92298711285,
-      "achievable_gbytes_per_s": 1444.1701964691792,
-      "machine_balance_flops_per_byte": 52.13646090412151
+      "achievable_gflops": 76717.59326758595,
+      "achievable_gbytes_per_s": 1461.4936509088607,
+      "cache_resident_gbytes_per_s": 3371.6268936756596,
+      "dram_resident_gbytes_per_s": 1461.4936509088607,
+      "machine_balance_flops_per_byte": 52.49259428522149,
+      "ridge_cache_resident": 22.753879858856635,
+      "ridge_dram_resident": 52.49259428522149,
+      "probe": "torch.rand source and destination; an untouched buffer reads the shared zero page and overstates host bandwidth"
     },
     "cpu": {
       "name": "x86_64 CPU",
-      "achievable_gflops": 1750.4667381757688,
-      "achievable_gbytes_per_s": 1299.6463826190018,
-      "machine_balance_flops_per_byte": 1.3468792446821494
+      "achievable_gflops": 1770.4787762468986,
+      "achievable_gbytes_per_s": 62.85478186307535,
+      "cache_resident_gbytes_per_s": 219.63689522527687,
+      "dram_resident_gbytes_per_s": 62.85478186307535,
+      "machine_balance_flops_per_byte": 28.167765820964267,
+      "ridge_cache_resident": 8.060935183184757,
+      "ridge_dram_resident": 28.167765820964267,
+      "probe": "torch.rand source and destination; an untouched buffer reads the shared zero page and overstates host bandwidth"
     }
   },
   "rows": [

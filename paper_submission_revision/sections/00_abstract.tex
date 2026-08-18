@@ -1,0 +1,24 @@
+Attention-based communication between agents is routinely sparsified on the
+grounds that attending to a few peers rather than to all of them removes most of
+the work, and the case is almost always made by counting operations rather than
+by measuring execution. We show that the count is smaller than it appears, and
+that what it buys in time is smaller still. When an agent's partners are chosen
+by their attention scores, every score has already been computed before any can
+be discarded, so only the aggregation is removable and no choice of sparsity can
+remove more than half the arithmetic of attention. Whether even that half
+becomes time depends on the implementation to a degree an operation count cannot
+see. Applying the selection as a mask leaves the dense aggregation in place and
+executes no saving at all; a genuinely sparse implementation assembled from
+general-purpose tensor operations moves several times more data than dense
+attention despite performing less arithmetic, and runs an order of magnitude
+slower. Writing a fused kernel that keeps every intermediate on chip removes
+most of that penalty, and at the very sparsest settings it makes attention over
+selected peers faster than the best dense kernel we could write, by a margin
+within the analytic ceiling and confined to retaining one or two peers. At the
+sparsity levels multi-agent communication actually uses, the fastest sparse
+implementation we could construct is still far slower, because ranking the
+candidates costs more than aggregating over the survivors saves. Genuine savings
+therefore have to come from deciding what to attend to before the scores exist,
+and from executing that decision in a kernel written for it; we measure two such
+selectors, and the difference between them shows that escaping the operation
+count is necessary but not sufficient.

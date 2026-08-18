@@ -109,3 +109,18 @@ _(append here; empty at time of writing)_
   and both contrasts are reported as not separated. This tension is recorded
   rather than resolved in favour of whichever statistic reads better; it is a
   direct consequence of n=5 and is exactly what §4 anticipated.
+
+- 2026-08-18, correction to this document (not a deviation from the analysis):
+  §4 of this plan asserts that at most one contrast in the family can reach
+  Holm-corrected significance. That is false. Holm is a step-down procedure: its
+  thresholds loosen after each rejection, so a second and further rejections
+  remain possible once a first is obtained at the discrete permutation floor.
+  What the design actually forecloses is obtaining the *first* rejection on
+  anything short of complete separation of one arm's seeds from the other's,
+  because the smallest attainable two-sided p (2/252 = 0.0079) is the only
+  attainable value below the first Holm threshold (0.05/6 = 0.0083), the next
+  attainable value being 4/252 = 0.0159. The manuscript states the corrected
+  version. No analysis was rerun and no reported number changes: every contrast
+  in this family is a null under either reading. The error is recorded here
+  rather than edited out of §4, because a pre-registration that is silently
+  corrected after unblinding is not a pre-registration.

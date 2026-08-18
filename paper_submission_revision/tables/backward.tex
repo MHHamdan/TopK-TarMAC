@@ -1,0 +1,15 @@
+\begin{tabular}{rr rrr rrr rrr rrr r}
+\toprule
+& & \multicolumn{3}{c}{dense, unfused} & \multicolumn{3}{c}{dense, fused}
+& \multicolumn{3}{c}{top-$k$ masked} & \multicolumn{3}{c}{top-$k$ gathered} & \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(lr){9-11}\cmidrule(lr){12-14}
+$N$ & $k$ & f & b & f+b & f & b & f+b & f & b & f+b & f & b & f+b
+& \begin{tabular}[b]{@{}c@{}}gathered f+b\\$\div$ fused f+b\end{tabular} \\
+\midrule
+48 & 8 & 0.069 & 0.172 & 0.241 & 0.039 & 0.166 & 0.205 & 0.093 & 0.277 & 0.370 & 0.073 & 0.222 & 0.294 & 1.4 \\
+96 & 16 & 0.045 & 0.058 & 0.102 & 0.031 & 0.106 & 0.138 & 0.129 & 0.111 & 0.240 & 0.121 & 0.067 & 0.188 & 1.4 \\
+192 & 32 & 0.136 & 0.171 & 0.307 & 0.071 & 0.219 & 0.290 & 0.454 & 0.462 & 0.916 & 0.424 & 0.201 & 0.625 & 2.2 \\
+384 & 64 & 1.082 & 1.490 & 2.572 & 0.219 & 0.727 & 0.945 & 3.069 & 3.245 & 6.313 & 2.405 & 1.500 & 3.906 & 4.1 \\
+512 & 128 & 1.895 & 3.044 & 4.940 & 0.347 & 1.203 & 1.550 & 6.959 & 7.691 & 14.650 & 6.408 & 3.425 & 9.832 & 6.3 \\
+\bottomrule
+\end{tabular}%
