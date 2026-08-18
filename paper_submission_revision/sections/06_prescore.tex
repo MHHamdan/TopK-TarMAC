@@ -36,8 +36,8 @@ total is timed as one call, so the components need not sum exactly.}
 \includegraphics[width=\linewidth]{figures/fig5_prescore.pdf}
 \caption{\textbf{Left:} the operation-count saving Proposition~\ref{prop:escape}
 promises, which for the sub-quadratic selector tracks $N/k$. \textbf{Right:}
-what the same configurations cost. Neither reaches parity, and the two selectors that the count treats
-similarly diverge by an order of magnitude.}
+what the same configurations cost. Neither reaches parity, and the two
+selectors that the count treats similarly diverge by an order of magnitude.}
 \label{fig:prescore}
 \end{figure}
 
@@ -45,7 +45,8 @@ The operation-count saving is exactly what the proposition predicts. At $512$
 agents retaining four peers, the Z-order path performs $104$ times fewer
 operations than dense attention and the nearest-neighbour path $18$ times fewer,
 the difference between them being the cost of their selectors. Neither is faster
-than dense attention at any agent count we measure.
+than dense attention at any agent count we measure, and the best either comes is
+$1.8$ times dense.
 
 Two separate things go wrong, and only the first is the one we expected.
 
@@ -65,13 +66,14 @@ Section~\ref{sec:composed} its constant is an upper bound rather than a property
 of the design.
 
 The second failure is the one that matters, because no better selector can
-repair it. Setting the selector aside entirely and timing only the attention
-over an already-chosen peer set --- scoring $Nk$ pairs instead of $N^2$, then
-aggregating over $k$ --- that stage is \emph{still} not faster than dense
-attention. It runs between $1.01$ and $1.85$ times dense across the range, worst
-at the smallest agent count and converging towards parity from above, and it
-never crosses. An operation count says this stage should be one or two orders of
-magnitude cheaper. It is not cheaper at all.
+repair it. Set the selector aside entirely and time only the attention over an
+already-chosen peer set --- scoring $Nk$ pairs instead of $N^2$, then aggregating
+over $k$. That stage is barely cheaper than dense attention anywhere and is
+usually dearer. Its best case over the whole grid is $0.85$ times dense, at
+$384$ agents retaining two peers, where the operation count promises a factor of
+$132$; at four retained peers it never falls below $1.01$, and at the smallest
+agent count it costs $1.7$ to $1.9$ times dense. Two orders of magnitude of
+arithmetic buy, at the very best, fifteen per cent.
 
 The reason is the one Section~\ref{sec:composed} identifies for the
 score-then-select path, and it survives the change of selector because it was
@@ -79,9 +81,15 @@ never about selection. Scoring $Nk$ chosen pairs requires gathering $k$ keys and
 $k$ values per query, so the operand is $2kd$ elements per query where dense
 attention reads a contiguous $N$-row block and multiplies it as a matrix
 product. At $512$ agents, four retained peers and head width $16$ that is $128$
-gathered elements per query against a $512$-wide contiguous row, and the
-gathered form loses the matrix-multiply shape as well. The arithmetic falls by
-two orders of magnitude and the traffic does not fall at all.
+gathered elements per query against a $512$-wide contiguous row, and the gathered
+form loses the matrix-multiply shape as well. The arithmetic falls by two orders
+of magnitude and the traffic does not. We did not fuse this stage, and by the
+standard Section~
+ef{sec:fused} sets that makes its constant an upper bound
+rather than a property of the design: a fused pre-score attention kernel is the
+obvious next measurement, and until it exists the explanation above is an
+inference from the accounting and from the score-then-select case rather than an
+independently controlled result.
 
 What this leaves of Proposition~\ref{prop:escape} is worth being exact about,
 because the proposition is not wrong. Removing the full score matrix genuinely

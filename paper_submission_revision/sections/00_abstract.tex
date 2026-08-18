@@ -21,7 +21,8 @@ sparse implementation we could construct remains an order of magnitude slower,
 because ranking the candidates costs more than aggregating over the survivors
 saves. Deciding what to attend to before the scores exist removes the bound
 entirely, and we measure two selectors that do so: they reduce the operation
-count by up to two orders of magnitude and neither is faster, because attention
-over a handful of gathered peers is not a shape this hardware is quick at. The
+count by up to two orders of magnitude and buy at best fifteen per cent,
+because attention over a handful of gathered peers is not a shape this hardware
+is quick at. The
 design target is therefore not the arithmetic but the shape the remaining work
 is executed in.

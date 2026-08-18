@@ -124,3 +124,19 @@ _(append here; empty at time of writing)_
   in this family is a null under either reading. The error is recorded here
   rather than edited out of §4, because a pre-registration that is silently
   corrected after unblinding is not a pre-registration.
+
+- 2026-08-18, deviation (recorded on review): the manuscript sets aside the
+  twelve-agent contrast (C4) on the ground that neither variant learns the task
+  there, evidenced against a uniform-random baseline. That criterion was not
+  registered. It was applied after unblinding, it is post hoc, and it removes
+  the family's largest observed effect (d = +1.27, bootstrap CI excluding zero,
+  exact p = 0.0635) — an effect whose sign favours sparsification. It is
+  therefore a deviation and not a note, and it is recorded as one.
+
+  What the manuscript claims is unchanged either way: under the registered
+  analysis C4 is a Holm-adjusted null (p_Holm = 0.381) and supports no
+  conclusion, and the manuscript draws none from it. The exclusion affects only
+  the interpretation offered alongside the number, and a reader who rejects the
+  exclusion should read C4 as an under-powered null with a large point estimate
+  in an environment where, by the released evaluation, the dense variant scores
+  below a uniform-random policy and the sparse variant just above it.

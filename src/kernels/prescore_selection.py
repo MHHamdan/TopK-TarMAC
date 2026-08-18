@@ -133,11 +133,19 @@ def analytic_flops(selector: str, B: int, N: int, d: int, kk: int) -> dict:
     instead, which is the substitution Proposition 2 describes.
     """
     if selector == "radius_knn":
-        # squared euclidean over 2-D positions: 3 ops per pair, plus the top-k
-        sel = 3 * B * N * N
+        # Euclidean distance over 2-D positions is 3 operations per pair, and
+        # the selection is a top-k over the resulting N x N matrix. The top-k
+        # performs comparisons rather than multiply-adds, so counting it in the
+        # same total is a convention; we charge one comparison per candidate,
+        # which is a lower bound for any selection algorithm and keeps the
+        # selector from being credited with work it does not do.
+        sel = 3 * B * N * N + B * N * N
     elif selector == "morton_window":
-        # quantise and interleave 10 bit-pairs, then sort: O(N log N) compares
-        sel = B * N * (40 + 2 * max(1, N.bit_length()))
+        # Quantise, interleave ten bit-pairs with five shift-and-mask steps,
+        # then sort: O(N log N) comparisons. Comparisons and multiply-adds are
+        # counted in one total here, which is a convention and not a physical
+        # equivalence; the manuscript labels this column as an analytic model.
+        sel = B * N * (30 + 2 * max(1, N.bit_length()))
     else:
         raise ValueError(selector)
     return {"selector": sel,

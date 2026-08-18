@@ -38,12 +38,12 @@ unbound by the ceiling, and the two we measured reduce the operation count by up
 to two orders of magnitude. Neither is faster. One of them ranks a pairwise
 matrix of its own and so reproduces the cost it was introduced to avoid, which
 is the failure the accounting predicts once the selector is charged in the right
-currency. The other does not, and still loses --- and it loses even with its
-selector set aside and only the attention over the already-chosen peers timed.
-Scoring $Nk$ chosen pairs and aggregating over $k$ of them is not cheaper than
-scoring $N^2$ and aggregating over $N$, at these sizes, because the gathered
-operand has lost the shape the hardware multiplies quickly. The arithmetic falls
-by two orders of magnitude and the time does not move.
+currency. The other does not, and still loses --- and it loses even with its selector set
+aside and only the attention over the already-chosen peers timed. That stage's
+best case anywhere is fifteen per cent below dense attention, at a configuration
+whose operation count promises a factor of $132$. The arithmetic falls by two
+orders of magnitude and the time barely moves, because the gathered operand has
+lost the shape the hardware multiplies quickly.
 
 That is the finding we would put in front of a designer. An operation count
 prices work in operations, and on this hardware, at these sizes, the price is

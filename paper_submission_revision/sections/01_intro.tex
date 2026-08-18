@@ -69,16 +69,14 @@ the ceiling, and its operation-count saving is unbounded in principle. Whether
 it converts into time is a separate question, and we answer it for two selectors
 the count treats similarly: choosing the nearest peers by distance, which is
 what neighbourhood-based communication already does, and ordering agents along a
-space-filling curve, which is asymptotically cheaper. They remove between one
-and two orders
-of magnitude of arithmetic and neither is faster. The nearest-neighbour selector
+space-filling curve, which is asymptotically cheaper. They remove between one and two orders of magnitude of arithmetic and buy at
+most fifteen per cent. The nearest-neighbour selector
 ranks a pairwise matrix of its own and reproduces the cost it was introduced to
-avoid. The Z-order selector does not, and still loses --- and it loses even when
-its selector is set aside entirely and only the attention over the
-already-chosen
-peers is timed. Scoring and aggregating a handful of gathered peers is not
-cheaper than scoring and aggregating all of them, whatever the operation count
-says, because the gathered form is not a shape the hardware multiplies quickly.
+avoid. The Z-order selector does not, and still loses --- and it loses even when its
+selector is set aside and only the attention over the already-chosen peers is
+timed. That stage's best case is fifteen per cent below dense attention where
+the count promises a factor of $132$, because the gathered form is not a shape
+the hardware multiplies quickly.
 
 \paragraph{Contributions.}
 \begin{itemize}
@@ -100,10 +98,9 @@ says, because the gathered form is not a shape the hardware multiplies quickly.
     Sparsity does become faster than dense attention, at one retained peer, at
     narrow head widths, and nowhere else (Section~\ref{sec:fused}).
   \item We instantiate the constructive half of the analysis with two selectors
-    that fix the retained set before scoring. Both remove the operation-count
-    bound and neither is faster, and the reason is not the selector: attention
-    over a pre-chosen handful of peers is itself no cheaper than attention over
-    all of them at these sizes. The design target is the shape the remaining
+    that fix the retained set before scoring. Both remove the operation-count bound and neither is faster overall, and the
+    reason is not the selector: attention over a pre-chosen handful of peers is
+    itself barely cheaper than attention over all of them at these sizes. The design target is the shape the remaining
     work is executed in, which an operation count cannot express
     (Section~\ref{sec:prescore}).
 \end{itemize}

@@ -64,8 +64,16 @@ why the crossover of Section~\ref{sec:fused} is reported only from $192$ agents
 upward even though the sweep measures smaller ones.
 
 The repeat is on the same physical card, so it establishes stability across
-runs and hours, not independence from one device. We were not able to obtain a
-second card free of other tenants.
+runs and hours, not independence from one device, and we were not able to
+obtain a second card free of other tenants. It covers the sweep of
+Section~\ref{sec:composed} and Section~\ref{sec:fused}'s figure; the tiling
+search of Table~\ref{tab:autotune} was run once, so the crossover it reports
+carries the reproducibility of a single session rather than of a repeat.
+Measurements were taken on both cards of this host --- the core sweeps, the
+search and the stage accounting on one, the head-width sweep and the
+pre-score measurements on the other --- and no cross-device calibration is
+claimed, which is a further reason no figure from one is divided by a figure
+from the other.
 
 \section{Implementation and measurement validation}
 \label{app:verification}
@@ -73,20 +81,30 @@ second card free of other tenants.
 \subsection{Functional equivalence}
 
 Every implementation is checked against the reference at every configuration
-whose latency is reported. The check matters more than it looks: exact top-$k$
-is discontinuous in the scores, so two implementations that accumulate the score
-product in different orders can rank a near-tied pair differently and aggregate
-over different peers, producing a large output difference from a rounding-level
-score difference. An earlier version of our per-query fused kernel computed the
-score row as a reduction rather than through the matrix-multiply units, and
-disagreed with the reference at a small number of configurations for exactly
-that reason; the kernels reported here use the same product as the reference.
+whose latency any released artifact reports: $158$ combinations of agent count,
+head width and retained-peer count, $136$ of them with $k < N-1$ so that
+selection is actually exercised, over $1.25$ million query rows in total. The
+check matters more than it looks. Exact top-$k$ is discontinuous in the scores,
+so two implementations that accumulate the score product in different orders can
+rank a near-tied pair differently and aggregate over different peers, producing
+a large output difference from a rounding-level score difference. An earlier
+version of our per-query fused kernel computed the score row as a reduction
+instead of through the matrix-multiply units and disagreed with the reference at
+a handful of configurations for exactly that reason; the kernels reported here
+use the same product as the reference.
 
-The fused kernel that selects by threshold retains every peer at or above the
-$k$-th largest score, so an exact tie at that boundary retains $k+1$ peers where
-a rank-based selection retains $k$. Measured incidence at $N{=}512$, $k{=}64$,
-$d{=}64$ over twelve seeds: one query row in $196{,}608$. Every other row agrees
-with the reference to \texttt{fp32} tolerance.
+With that fixed, every implementation agrees with the reference to
+\texttt{fp32} rounding --- maximum deviation $3.2\times10^{-6}$, and zero for
+the two implementations that share the reference's operator sequence exactly ---
+with one attributable exception. The fused kernel that selects by threshold
+retains every peer at or above the $k$-th largest score, so an exact tie at that
+boundary retains $k{+}1$ peers where a rank-based selection retains $k$. Four
+query rows in $1.25$ million have such a tie, at three of the $158$
+configurations, and those four rows are the only place any implementation
+differs from the reference by more than rounding. The check is run by
+\texttt{scripts/verify\_all\_configurations.py}, which classifies a tie
+divergence separately from a failure so that the distinction is in the artifact
+and not only in this paragraph.
 
 \subsection{What each implementation executes}
 
@@ -180,10 +198,15 @@ states the corrected version; the deviation is logged against the released plan.
 \subsection{The remaining comparisons}
 
 Five further comparisons were registered and all are Holm-adjusted nulls. Two
-deserve a note without an interpretation. The comparison at twelve agents
-has the one sign opposite to its registered direction and should be set aside
-for a reason independent of its $p$-value: neither variant learns the task
-there. A uniform-random policy scores $-758.9$ under a forty-episode evaluation,
+deserve a note. The comparison at twelve agents has the one sign opposite to
+its registered direction and carries the family's largest point estimate, and
+we set it aside on the ground that neither variant learns the task there. That
+ground was not registered: it is a post-hoc exclusion of the largest observed
+effect, we have logged it as a deviation against the released plan, and a
+reader who rejects it should read the comparison as an under-powered null with
+a large point estimate, which is what the registered analysis returns either
+way. The evidence for the exclusion is this. A uniform-random policy scores
+$-758.9$ under a forty-episode evaluation,
 against $-864.9$ for the dense variant, which is worse, and $-717.9$ for the
 sparse variant, which is better but barely learning; the comparison is between a
 diverged run and a struggling one. Separately, for two comparisons the bootstrap

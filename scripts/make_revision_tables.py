@@ -157,15 +157,17 @@ def table_autotune() -> str:
             pays = ("$\\le " + str(max(wins)) + "$") if wins else "none"
             src = dn["best"]["name"].split("_")[0]
             body.append(
-                f"{d} & {N} & {src} & "
-                f"{d_ms:.4f} & {d_eff:.0f} & {k} & {s_ms:.4f} & {s_eff:.0f} & "
+                f"{d} & {N} & {src} & {dn['n_ran']} & "
+                f"{d_ms:.4f} & {d_eff:.0f} & {k} & {best['n_ran']} & "
+                f"{s_ms:.4f} & {s_eff:.0f} & "
                 f"{s_ms / d_ms:.2f} & {pays} " + r"\\")
-    return r"""\begin{tabular}{rr lrr rrr r c}
+    return r"""\begin{tabular}{rr lrrr rrrr r c}
 \toprule
-& & \multicolumn{3}{c}{\textbf{best dense}} &
-    \multicolumn{3}{c}{\textbf{best sparse}} & & \\
-\cmidrule(lr){3-5}\cmidrule(lr){6-8}
-$d$ & $N$ & from & ms & \% peak & $k$ & ms & \% peak & ratio & $k$ that pays \\
+& & \multicolumn{4}{c}{\textbf{best dense}} &
+    \multicolumn{4}{c}{\textbf{best sparse}} & & \\
+\cmidrule(lr){3-6}\cmidrule(lr){7-10}
+$d$ & $N$ & from & cfgs & ms & \% peak & $k$ & cfgs & ms & \% peak & ratio
+& $k$ that pays \\
 \midrule
 """ + "\n".join(body) + r"""
 \bottomrule
@@ -176,7 +178,11 @@ def table_backward() -> str:
     """Forward, backward and the two together, for the differentiable paths."""
     pay = load("attention_core_d16.json")
     rows = live(pay)
-    ns = [n for n in sorted({r["n_agents"] for r in rows}) if n >= 48]
+    # Same restriction as the crossover table: below 192 agents the forward and
+    # the forward-plus-backward passes are timed in separate interleaved blocks
+    # and the contention between them exceeds the backward's own cost, which
+    # produces differences a backward pass cannot have.
+    ns = [n for n in sorted({r["n_agents"] for r in rows}) if n >= 192]
     body = []
     for N in ns:
         k = min(sorted({r["k"] for r in rows if r["impl"] == "topk_gather"

@@ -157,9 +157,9 @@ def main() -> int:
         return 100 * c[0]["frac_of_binding_roof"] if c else None
 
     check_num("sparse aggregation attainment", frac("aggregate_sparse"),
-              r"reaches \$(\d+)\\%\$ of the bandwidth", tol=0.03)
+              r"\$(\d+)\\%\$ for the sparse contraction", tol=0.03)
     check_num("dense aggregation attainment", frac("aggregate_dense"),
-              r"against \$(\d+)\\%\$ for the dense multiply", tol=0.03)
+              r"\$(\d+)\\%\$ for the dense multiply", tol=0.03)
     checks += len(nonlocal_checks)
 
     # ---- 4. banned prose ------------------------------------------------
