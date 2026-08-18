@@ -48,8 +48,10 @@ shared with other tenants.
 \caption{Forward latency (ms, minimum over interleaved samples) of one function
 computed six ways, at a quarter of peers retained. The composed sparse path is
 slower than every dense implementation at every agent count, and the gap widens
-with $N$; the fused sparse kernels change that, and Section~\ref{sec:fused}
-reports where.}
+with $N$; the fused kernels change that, and Section~ef{sec:fused} reports
+where. The last column below $N{=}192$ is shown for completeness and supports no
+claim: those agent counts are launch-bound and do not reproduce
+(Appendix~ef{app:drift}).}
 \label{tab:headline}
 \input{tables/headline}
 \end{table}
