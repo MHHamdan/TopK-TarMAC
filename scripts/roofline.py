@@ -112,12 +112,21 @@ def measure_peak_flops(device: str, reps: int = 30) -> float:
     return 2.0 * n ** 3 / min(ts)
 
 
-def measure_peak_bandwidth(device: str, reps: int = 30) -> float:
-    """Achievable copy bandwidth, bytes/s (read + write counted)."""
-    elems = 256 * 1024 * 1024 // F32 if device.startswith("cuda") else \
-        32 * 1024 * 1024 // F32
-    src = torch.empty(elems, device=device, dtype=torch.float32)
-    dst = torch.empty_like(src)
+def measure_peak_bandwidth(device: str, reps: int = 30,
+                           mib: int | None = None) -> float:
+    """Achievable copy bandwidth, bytes/s (read + write counted).
+
+    The source buffer must be written before it is read. An untouched
+    ``torch.empty`` allocation on Linux is backed by the shared zero page, so a
+    host-side copy from it re-reads one cache line and reports a bandwidth
+    several times the machine's real figure -- which is what an earlier version
+    of this probe did on the CPU.
+    """
+    if mib is None:
+        mib = 256 if device.startswith("cuda") else 512
+    elems = mib * 1024 * 1024 // F32
+    src = torch.rand(elems, device=device, dtype=torch.float32)
+    dst = torch.rand(elems, device=device, dtype=torch.float32)
     on_cuda = device.startswith("cuda")
     for _ in range(5):
         dst.copy_(src)
@@ -151,17 +160,30 @@ def main() -> int:
                 continue
             torch.cuda.set_device(dev)
         fl = measure_peak_flops(dev)
-        bw = measure_peak_bandwidth(dev)
+        # Two buffer sizes, because the answer differs by a factor of two and a
+        # single number would hide which one a given working set sees. On this
+        # host 16 MiB is L3-resident and 512 MiB is not.
+        bw_cache = measure_peak_bandwidth(dev, mib=16)
+        bw_dram = measure_peak_bandwidth(dev, mib=512)
+        bw = bw_dram
         machines[dev] = {
             "name": (torch.cuda.get_device_name(dev)
                      if dev.startswith("cuda") else "x86_64 CPU"),
             "achievable_gflops": fl / 1e9,
             "achievable_gbytes_per_s": bw / 1e9,
+            "cache_resident_gbytes_per_s": bw_cache / 1e9,
+            "dram_resident_gbytes_per_s": bw_dram / 1e9,
             "machine_balance_flops_per_byte": fl / bw,
+            "ridge_cache_resident": fl / bw_cache,
+            "ridge_dram_resident": fl / bw_dram,
+            "probe": "torch.rand source and destination; an untouched buffer "
+                     "reads the shared zero page and overstates host bandwidth",
         }
         print(f"{dev:<8} {machines[dev]['name'][:38]:<40} "
-              f"{fl / 1e12:7.2f} TFLOP/s  {bw / 1e9:8.1f} GB/s  "
-              f"ridge point {fl / bw:7.2f} FLOP/byte", flush=True)
+              f"{fl / 1e12:7.2f} TFLOP/s  "
+              f"cache {bw_cache / 1e9:7.1f} GB/s (ridge {fl / bw_cache:6.1f})  "
+              f"DRAM {bw_dram / 1e9:7.1f} GB/s (ridge {fl / bw_dram:6.1f})",
+              flush=True)
 
     rows = []
     for n in args.n_list:
