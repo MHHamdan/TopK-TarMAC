@@ -83,7 +83,7 @@ from the other.
 Every implementation is checked against the reference at every configuration
 whose latency any released artifact reports: $158$ combinations of agent count,
 head width and retained-peer count, $136$ of them with $k < N-1$ so that
-selection is actually exercised, over $1.25$ million query rows in total. The
+selection is actually exercised, over $1.23$ million query rows in total. The
 check matters more than it looks. Exact top-$k$ is discontinuous in the scores,
 so two implementations that accumulate the score product in different orders can
 rank a near-tied pair differently and aggregate over different peers, producing
@@ -96,15 +96,21 @@ use the same product as the reference.
 With that fixed, every implementation agrees with the reference to
 \texttt{fp32} rounding --- maximum deviation $3.2\times10^{-6}$, and zero for
 the two implementations that share the reference's operator sequence exactly ---
-with one attributable exception. The fused kernel that selects by threshold
-retains every peer at or above the $k$-th largest score, so an exact tie at that
-boundary retains $k{+}1$ peers where a rank-based selection retains $k$. Four
-query rows in $1.25$ million have such a tie, at three of the $158$
-configurations, and those four rows are the only place any implementation
-differs from the reference by more than rounding. The check is run by
-\texttt{scripts/verify\_all\_configurations.py}, which classifies a tie
-divergence separately from a failure so that the distinction is in the artifact
-and not only in this paragraph.
+with one attributable exception, which is an ambiguity in the function rather
+than an error in an implementation. Exact top-$k$ is only well defined when the
+$k$-th largest score is unique. The kernel that selects by threshold retains
+every peer at or above that score, so a tie there gives it $k{+}1$ peers; the
+kernel that sorts score--index pairs breaks the same tie by peer index, which is
+not the order a rank-based selection uses. Four query rows in $1.23$ million
+have such a tie, at three of the $158$ configurations, and those rows are the
+only place any implementation differs from the reference by more than rounding.
+The check is run by \texttt{scripts/verify\_all\_configurations.py}, which
+counts how many query rows diverge as well as by how much, and admits a tie as
+the explanation only when no more rows diverge than have a tie. The fused
+kernel for attention over a pre-chosen peer set is checked the same way against
+the composed path it replaces, at all $40$ configurations of
+Section~\ref{sec:prescore} and both selectors, over $315{,}392$ query rows, to
+a maximum deviation of $1.1\times10^{-6}$.
 
 \subsection{What each implementation executes}
 
@@ -119,6 +125,25 @@ aggregation term. Tracing every matrix product confirms that the gathered path
 issues no dense aggregation product and does issue the compacted one, and that
 every top-$k$ variant still issues the full score product, which is assumption
 A2 made mechanical.
+
+The four hand-written kernels differ only in how the retained set is reached,
+and each one is stated here in the terms Section~\ref{sec:measurement} compares
+them in. All four compute the score row through the same matrix-multiply
+sequence as the reference, in \texttt{ieee} precision: computing it as a
+reduction instead changes the summation order, and a rounding-level difference
+in a score is enough to change which peer is retained. The per-query kernel
+takes $k$ argmax rounds over the score row and reads $k$ value rows, so its
+aggregation is sparse and its selection is linear in $k$. The threshold kernel
+bisects on the score's integer bit pattern for $34$ steps to find the $k$-th
+largest value exactly, then weights every peer by an indicator, so its selection
+is independent of $k$ and its aggregation is dense. The sorted kernel maps each
+score to an order-preserving integer, packs it against its own peer index into
+one $64$-bit word, sorts the row once, and reads the $k$ value rows named by the
+top words, so it is independent of $k$ and sparse at the same time. The
+pre-score kernel is given the retained indices and never forms a score row at
+all: one program per tile of queries walks that tile's retained peers, reading
+one key row and one value row per peer and accumulating with a running maximum,
+so nothing of size $(B, N, k, d)$ is ever written.
 
 \subsection{Which backend serves the fused dense baseline}
 

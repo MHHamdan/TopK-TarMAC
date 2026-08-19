@@ -151,31 +151,51 @@ head width 16. Two selectors: k nearest peers by Euclidean distance in a
 two-dimensional position space, and a Z-order window. Selection, attention over
 the retained pairs, and the two together are timed separately.
 
-**Scripts.** `src/kernels/prescore_selection.py`, `scripts/bench_prescore.py`
+**Scripts.** `src/kernels/prescore_selection.py`,
+`src/kernels/fused_prescore_attention.py`, `scripts/bench_prescore.py`
 **Artifact.** `results/prescore.json`
 
-**Result** (four retained peers, every ratio against the better of the two dense
-kernels). The nearest-neighbour selector saves 8 to 18 times the operations and
-costs 4 to 28 times the time, worsening with the agent count because its
-selector is quadratic. The Z-order selector saves 10 to 104 times the operations
-and costs 2.0 to 11.2 times the time. Setting both selectors aside and timing
-only the attention over an already-chosen peer set, that stage is *never* faster
-than dense attention: it runs 1.01 to 1.85 times dense, converging towards
-parity from above and never crossing.
+The attention over the retained peers is measured twice: once composed from
+library operators (gather keys, gather values, contract, softmax, contract), and
+once by a fused kernel that reads one key row and one value row per retained
+peer and accumulates with a running maximum, writing nothing but the result. The
+second exists because the manuscript's own argument about the score-then-select
+path is that a composed constant is an upper bound rather than a property of the
+design, and applying that standard to the mechanism the paper criticises but not
+to the mechanism it proposes would be incoherent.
+
+**Result** (four retained peers unless stated, every ratio against the better of
+the two dense kernels). Composed, the attention stage is slower than dense
+attention at every configuration but one, by 0.97 to 5.11 times. Fused, it is
+faster at every agent count: 0.78, 0.38, 0.24, 0.11 and 0.09 times dense from 48
+to 512 agents, with a best case of 0.055 — eighteen times faster than dense — at
+512 agents and two retained peers. Fusing is worth 3.8 to 17.5 times, and the
+factor grows with the agent count. End to end the selector decides the outcome.
+The Z-order selector costs 0.094 to 0.140 ms across the whole range, so its
+share falls as attention grows, and the whole path costs 13.6, 7.5, 3.7, 1.20
+and 0.80 times dense from 48 to 512 agents: it crosses below dense attention at
+512. The nearest-neighbour selector materialises and ranks an N x N distance
+matrix, so its path rises from 6.7 to 29.1 times dense over the same range.
 
 **How it changes the manuscript.** It supplies the escape case the reviewer
-asked for and inverts the conclusion we expected to draw from it. Escaping the
-operation-count ceiling removes the bound and delivers no time, and the reason
-is not the selector: attention over a pre-chosen handful of peers is itself no
-cheaper than attention over all of them at these sizes, because the gathered
-operand has lost the shape the hardware multiplies quickly. Section 5, Table 7,
-Figure 4, and the fourth paragraph of the conclusion.
+asked for, and it is the paper's constructive result: escaping the
+operation-count ceiling is necessary and not sufficient, and what decides the
+outcome is two things a count cannot see — whether the selector avoids a
+quadratic intermediate, and whether the sparse attention left behind is executed
+by a kernel written for it. Section 5, Table 7, Figure 4, the abstract, the
+introduction and the conclusion.
 
-An earlier version of this measurement quoted every ratio against the vendor
-library rather than against the better of the two dense kernels, and reported
-the Z-order attention stage as roughly twice as fast as dense. That was the
-pitfall this paper's own measurement-error section names, and the claim reversed
-when it was corrected.
+Two earlier versions of this measurement reached the opposite conclusion and
+both were wrong for reasons this paper names elsewhere. The first quoted every
+ratio against the vendor library rather than against the better of the two dense
+kernels, and reported the Z-order attention stage as roughly twice as fast as
+dense; that is the pitfall Section 7 names, and correcting it reversed the sign.
+The second, corrected against the right baseline but still composed from library
+operators, reported that the attention stage is never faster than dense and
+attributed this to the gathered operand having lost the shape the hardware
+multiplies quickly. The fused kernel refutes that explanation: over the same
+gathered peer sets it is up to eighteen times faster than dense attention, so
+what was being measured was the composition and not the shape.
 
 ## 7. Head width to 512, and batch over a thirty-twofold range
 
@@ -256,6 +276,89 @@ every implementation ran between 14% and 394% slower in the second run.
 **How it changes the manuscript.** Every claim is restricted to 192 agents and
 above. A crossover the first run showed at 96 agents is removed. Appendix A.
 
+## 11. A selection kernel that is flat in the retained count and sparse at once
+
+**Question.** The manuscript previously said that a fused score-then-select
+kernel can have sparse aggregation arithmetic *or* a selection cost independent
+of the retained count, and that we could not obtain both — while conceding that
+a radix or bitonic select would narrow the gap and that we had not written one.
+That is a claim about our implementations standing in for a claim about the
+design space, and the reviewer asked for it to be tested rather than asserted.
+
+**What was built.** A third fused kernel, `fused_topk_attention_sort`. Scores
+are computed through the matrix-multiply units exactly as the reference computes
+them, mapped to order-preserving integers by the standard float-key transform,
+packed against their own peer index into one 64-bit word, and sorted once per
+query row with `tl.sort`. The top k words are gathered, unpacked into scores and
+indices, softmaxed, and used to read exactly k value rows. Selection is one
+bitonic sort whose depth is logarithmic in the agent count and independent of k;
+aggregation touches only the retained rows. Both properties at once, which is
+what the manuscript said it could not obtain.
+
+**Configuration.** Agent counts 12 to 512, retained peers 1 to 128, head width
+16, batch 256, 60 repetitions interleaved rep-by-rep, three runs, minimum taken.
+
+**Scripts.** `src/kernels/fused_topk_attention.py`,
+`scripts/bench_attention_core.py`
+**Artifact.** `results/attention_core_sort.json`
+
+**Verification.** Exact against the reference at 123 shapes spanning agent
+counts 12 to 512, retained counts 1 to 128 and head widths 16, 64 and 256,
+maximum deviation 2.15e-06, and at every configuration in
+`scripts/verify_all_configurations.py`. The one class of divergence is an exact
+tie at the k-th score, where a rank rule and an index-ordered sort legitimately
+retain different peers; the verifier counts the diverging query rows and
+classifies the divergence as a tie only when no more rows diverge than have a
+tie.
+
+**Result.** The kernel is flat in k as designed: 0.184 to 0.186 ms from one to
+sixteen retained peers at 192 agents, against 0.026 to 0.206 ms for the argmax
+kernel over the same range. It is also 5.0 times dense attention across that
+whole range. It becomes the faster of the two fused sparse kernels only from
+sixteen retained peers upward, where both already cost more than five times
+dense. At 384 and 512 agents it costs twelve to fifteen times dense at every
+sparsity below thirty-two retained peers, because a row-wide sort needs the
+whole score row resident and the block of queries that can share a program
+shrinks as the row grows.
+
+**How it changes the manuscript.** The claim that we could not obtain both
+properties is withdrawn and replaced by a measurement: both can be obtained, and
+having both does not help. The sort that buys independence from k costs more
+than the argmax rounds it replaces throughout the range in which sparsity would
+otherwise pay. Section 4, Table 3.
+
+## 12. A fused kernel for attention over a pre-chosen peer set
+
+**Question.** Section 5 reported that attention over an already-chosen handful
+of peers is not cheaper than attention over all of them, and attributed this to
+the gathered operand losing the matrix-multiply shape. The reviewer observed
+that the measurement composed the stage from library operators — gather keys,
+gather values, contract, softmax, contract — which writes and re-reads a
+(B, N, k, d) tensor twice, and that the manuscript's own argument elsewhere is
+that such a constant is an upper bound rather than a property of the design.
+
+**What was built.** `fused_prescore_attention`, a Triton kernel in which one
+program per tile of queries walks that tile's retained peers, reading one key
+row and one value row per peer directly out of global memory and accumulating
+the softmax-weighted sum with a running maximum. No gathered tensor exists.
+
+**Configuration.** The same grid as experiment 6, so that the fused and composed
+columns are the same measurement of the same function.
+
+**Scripts.** `src/kernels/fused_prescore_attention.py`,
+`scripts/bench_prescore.py`
+**Artifact.** `results/prescore.json`
+
+**Verification.** Exact against the composed path at every configuration the
+pre-score artifact reports, both selectors, in
+`scripts/verify_all_configurations.py`.
+
+**Result and consequence.** Reported under experiment 6. The negative result was
+an artifact of the composition: fused, the same attention is up to eighteen
+times faster than the best dense implementation, and the Z-order path crosses
+below dense attention end to end at 512 agents. The explanation the manuscript
+gave for the negative result is withdrawn.
+
 ---
 
 ## Not run, and why
@@ -273,4 +376,9 @@ above. A crossover the first run showed at 96 agents is removed. Appendix A.
   pre-score selectors instead.
 - **Task performance for the pre-score selectors.** They are measured for cost.
   Whether spatial neighbours carry the information attention would have selected
-  is the obvious next question and is not answered here.
+  is the obvious next question and is not answered here, and it matters more now
+  that the cost result is positive than it did when it was negative.
+- **A learned or hierarchical pre-score selector.** The two we measure bracket
+  the outcome — one quadratic, one sub-quadratic — which is what the argument
+  needs. Whether a learned selector can be both cheap and useful is a design
+  question this paper does not settle.

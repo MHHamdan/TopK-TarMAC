@@ -49,6 +49,10 @@ def at(rows, impl, N, k=None):
     return c[0] if c else None
 
 
+def ms(r, field="forward"):
+    return r[field]["min_ms"] if r and r.get(field) else None
+
+
 def main() -> int:
     fails: list[str] = []
     checks = 0
@@ -113,8 +117,11 @@ def main() -> int:
     # The manuscript must not claim the sparse path always loses if it does not.
     ever_wins = any(r < 1.0 for b in crossings.values() for r in b.values())
     checks += 1
+    # An explicit exception clause -- "at every configuration but one" -- is a
+    # scoped claim and not the unconditional one this check is about.
     if ever_wins and re.search(r"slower than (the best )?dense.{0,40}"
-                               r"(every|all) (measured )?configuration",
+                               r"(every|all) (measured )?configuration"
+                               r"(?!s? but\b| except\b)",
                                everything, re.I):
         fails.append("a sparse implementation is faster somewhere, so the "
                      "unconditional 'slower everywhere' claim is false")
@@ -170,6 +177,132 @@ def main() -> int:
         check_num("unfused-to-fused dense gap at the largest N", du / df,
                   r"unfused and fused dense paths differ by \$([\d.]+)\\times\$",
                   tol=0.03)
+    # ---- the two kernels written to answer the review ---------------------
+    # Both exist to test a claim the manuscript previously made without one, so
+    # every number they put into prose is re-derived here from their artifacts.
+    srt = load("attention_core_sort.json")
+    srows = live(srt)
+
+    def sms(impl, N, k=None):
+        return ms(at(srows, impl, N, k))
+
+    flat_k = [sms("topk_fused_sort", 192, k) for k in (1, 2, 4, 8, 16)]
+    if all(flat_k):
+        check_num("sorted kernel, flattest cost at 192 agents", min(flat_k),
+                  r"\$([\d.]+)\$ to \$[\d.]+\$\\,ms from one to sixteen")
+        check_num("sorted kernel, widest cost at 192 agents", max(flat_k),
+                  r"\$[\d.]+\$ to \$([\d.]+)\$\\,ms from one to sixteen")
+        checks += 1
+        if max(flat_k) / min(flat_k) > 1.05:
+            fails.append("the sorted kernel is described as flat in k, but its "
+                         f"cost varies by {100 * (max(flat_k) / min(flat_k) - 1):.0f}% "
+                         "from one to sixteen retained peers")
+        bd192 = min(x for x in (sms("dense_fused", 192), sms("dense_triton", 192))
+                    if x is not None)
+        checks += 1
+        if not 4.5 <= max(flat_k) / bd192 <= 5.5:
+            fails.append("the sorted kernel is described as five times dense at "
+                         f"192 agents; measured {max(flat_k) / bd192:.2f}")
+        # Where the sorted kernel overtakes the argmax kernel decides the
+        # sentence that follows it, so it is read off the artifact.
+        cross = [k for k in (1, 2, 4, 8, 16, 32)
+                 if sms("topk_fused_sort", 192, k) is not None
+                 and sms("topk_fused_sort", 192, k) < sms("topk_fused_gather", 192, k)]
+        checks += 1
+        if not cross or min(cross) != 16:
+            fails.append("the manuscript says the sorted kernel becomes the "
+                         "faster of the two below sixteen retained peers; the "
+                         f"artifact puts the crossing at {min(cross) if cross else 'none'}")
+
+    pre = load("prescore.json")["rows"]
+
+    def pat(sel, N, k):
+        c = [r for r in pre if r["selector"] == sel and r["n_agents"] == N
+             and r["k"] == k]
+        return c[0] if c else None
+
+    pns = sorted({r["n_agents"] for r in pre})
+    mz = [pat("morton_window", N, 4) for N in pns]
+    if all(mz):
+        att = [r["t_attention_fused_ms"] / r["t_dense_best_ms"] for r in mz]
+        tot = [r["t_total_fused_ms"] / r["t_dense_best_ms"] for r in mz]
+        check_num("fused pre-score attention at the smallest N", att[0],
+                  r"at four retained peers it costs \$([\d.]+)\$", tol=0.03)
+        check_num("fused pre-score attention at the largest N", att[-1],
+                  r"\$([\d.]+)\$ times dense attention from \$48\$ to \$512\$",
+                  tol=0.06)
+        check_num("fused pre-score total at the largest N", tot[-1],
+                  r"\$([\d.]+)\$ times dense attention from \$48\$ to \$512\$ agents\. At",
+                  tol=0.03)
+        checks += 1
+        if tot[-1] >= 1.0:
+            fails.append("the manuscript says the fused pre-score path is "
+                         f"faster end to end at {pns[-1]} agents; it is "
+                         f"{tot[-1]:.2f} times dense")
+    best = min(r["t_attention_fused_ms"] / r["t_dense_best_ms"] for r in pre)
+    check_num("best fused pre-score attention over the grid", best,
+              r"best case over the grid is \$([\d.]+)\$", tol=0.03)
+    comp = [r["t_attention_ms"] / r["t_dense_best_ms"] for r in pre]
+    check_num("composed pre-score attention, best", min(comp),
+              r"but one, by \$([\d.]+)\$ to", tol=0.03)
+    check_num("composed pre-score attention, worst", max(comp),
+              r"but one, by \$[\d.]+\$ to \$([\d.]+)\$", tol=0.03)
+    fac = [r["t_attention_ms"] / r["t_attention_fused_ms"] for r in pre]
+    check_num("fusing factor, smallest", min(fac),
+              r"fusing it is worth between \$([\d.]+)\$", tol=0.03)
+    check_num("fusing factor, largest", max(fac),
+              r"fusing it is worth between \$[\d.]+\$ and \$([\d.]+)\$", tol=0.03)
+    sel_ms = [r["t_selector_ms"] for r in pre if r["selector"] == "morton_window"]
+    check_num("Z-order selector, cheapest", min(sel_ms),
+              r"agent count --- \$([\d.]+)\$ to", tol=0.03)
+    check_num("Z-order selector, dearest", max(sel_ms),
+              r"agent count --- \$[\d.]+\$ to \$([\d.]+)\$\\,ms", tol=0.03)
+    knn = [pat("radius_knn", N, 4) for N in pns]
+    if all(knn):
+        kt = [r["t_total_fused_ms"] / r["t_dense_best_ms"] for r in knn]
+        check_num("nearest-neighbour path at the largest N", max(kt),
+                  r"from \$[\d.]+\$ to \$([\d.]+)\$ times dense", tol=0.03)
+        checks += 1
+        if kt[-1] < kt[0]:
+            fails.append("the nearest-neighbour path is described as getting "
+                         "worse with scale and it does not")
+
+    # The equivalence appendix quotes the artifact, so the artifact checks it.
+    eq = load("equivalence.json")
+    checks += 1
+    if eq.get("failures"):
+        fails.append(f"{eq['failures']} implementations disagree with the "
+                     "reference; no latency in the paper is a latency for the "
+                     "reference function")
+    check_num("configurations checked", eq["configurations"],
+              r"\$(\d+)\$ combinations of agent count")
+    check_num("configurations exercising selection",
+              eq["configurations_exercising_selection"],
+              r"\$(\d+)\$ of them with \$k < N-1\$")
+    check_num("query rows checked", eq["query_rows_checked"] / 1e6,
+              r"over \$([\d.]+)\$ million query rows", tol=0.01)
+    # Spelled out in the prose, as the house style requires for small counts,
+    # so the check is on the word rather than on a captured number.
+    words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+             7: "seven", 8: "eight", 9: "nine", 10: "ten"}
+    ties_n = eq["query_rows_with_exact_tie_at_k"]
+    checks += 1
+    if f"{words.get(ties_n, ties_n)} query rows in" not in everything.lower():
+        fails.append(f"the appendix does not say that {ties_n} query rows have "
+                     "an exact tie at the k-th score")
+    tie_cfg = eq["configurations_with_tie_divergence"]
+    checks += 1
+    if f"at {words.get(tie_cfg, tie_cfg)} of the" not in everything.lower():
+        fails.append(f"the appendix does not say that the tie divergences fall "
+                     f"at {tie_cfg} configurations")
+    check_num("pre-score configurations checked",
+              eq["prescore"]["configurations"],
+              r"at all \$(\d+)\$ configurations")
+    checks += 1
+    if eq["prescore"]["failures"]:
+        fails.append("the fused pre-score kernel disagrees with the composed "
+                     "path it is compared against")
+
     checks += len(nonlocal_checks)
 
     # ---- 3b. no macro damaged into literal text -------------------------
@@ -221,6 +354,26 @@ def main() -> int:
         ("$4.6\\times$",
          "the 4.6x dense-baseline gap is from the superseded "
          "microbenchmark; this campaign measures 5.4x"),
+        ("could not write a kernel with both",
+         "the sorted kernel has sparse aggregation and k-independent "
+         "selection at once; it is simply not faster"),
+        ("sparse arithmetic and $k$-independent selection",
+         "the sorted kernel obtains both, so this is no longer an open gap"),
+        ("at best fifteen per cent",
+         "fused, the pre-score attention stage is up to 18x faster than the "
+         "best dense implementation"),
+        ("loses the matrix-multiply shape",
+         "the composed gathered form was the cost, not the shape; a fused "
+         "kernel over the same gathered peers is 18x faster than dense"),
+        ("not a shape this hardware is quick at",
+         "refuted by the fused pre-score kernel"),
+        ("not a shape the hardware multiplies quickly",
+         "refuted by the fused pre-score kernel"),
+        ("pre-score attention stage is never faster",
+         "fused, it is faster than the best dense implementation at every "
+         "agent count measured"),
+        ("neither delivers a speedup",
+         "the Z-order path is faster end to end at 512 agents"),
         ("slower than unfused dense in all $46$",
          "the campaign no longer has 46 cells and the claim is now "
          "conditional on k"),

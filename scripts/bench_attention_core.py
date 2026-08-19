@@ -51,7 +51,8 @@ import sys
 sys.path.insert(0, str(ROOT))
 
 from src.kernels.fused_topk_attention import (  # noqa: E402
-    fused_topk_attention_masked, fused_topk_attention_tiled)
+    fused_topk_attention_masked, fused_topk_attention_sort,
+    fused_topk_attention_tiled)
 from src.kernels.fused_dense_attention import fused_dense_attention  # noqa: E402
 
 DTYPES = {"fp32": torch.float32, "bf16": torch.bfloat16}
@@ -104,6 +105,10 @@ def topk_fused_masked(q, k, v, eye, topk):
     return fused_topk_attention_masked(q, k, v, topk)
 
 
+def topk_fused_sort(q, k, v, eye, topk):
+    return fused_topk_attention_sort(q, k, v, topk)
+
+
 def dense_triton(q, k, v, eye, topk):
     return fused_dense_attention(q, k, v)
 
@@ -116,12 +121,14 @@ IMPLS: dict[str, Callable] = {
     "topk_gather": topk_gather,
     "topk_fused_gather": topk_fused_gather,
     "topk_fused_masked": topk_fused_masked,
+    "topk_fused_sort": topk_fused_sort,
 }
 
 # The Triton kernels are forward-only: they are a statement about how fast the
 # sparse forward pass can be made, not a differentiable module. Timing them in
 # a backward comparison would compare a kernel against an autograd graph.
-FORWARD_ONLY = ("dense_triton", "topk_fused_gather", "topk_fused_masked")
+FORWARD_ONLY = ("dense_triton", "topk_fused_gather", "topk_fused_masked",
+                "topk_fused_sort")
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +139,9 @@ FORWARD_ONLY = ("dense_triton", "topk_fused_gather", "topk_fused_masked")
 #: arithmetic is that of dense attention however small k is.
 DENSE_AGGREGATION = ("dense_unfused", "dense_fused", "dense_triton",
                      "topk_masked", "topk_fused_masked")
+
+#: Implementations whose selection cost does not grow with the retained count.
+K_INDEPENDENT_SELECTION = ("topk_fused_masked", "topk_fused_sort")
 
 
 def analytic_flops(impl: str, B: int, N: int, d: int, k: int) -> int:
@@ -170,7 +180,8 @@ def analytic_bytes(impl: str, B: int, N: int, d: int, k: int,
         # values read by softmax and gather; gathered tensor written and read
         return (qkv + out + 2 * smat + B * N * k * itemsize + idxb
                 + 2 * gathered + idxb)
-    if impl in ("dense_triton", "topk_fused_gather", "topk_fused_masked"):
+    if impl in ("dense_triton", "topk_fused_gather", "topk_fused_masked",
+                "topk_fused_sort"):
         # Nothing but the inputs and the output crosses the memory boundary.
         # K and V are re-read per query tile but are reused across the tiles of
         # a batch element and stay resident in cache at these sizes, so the

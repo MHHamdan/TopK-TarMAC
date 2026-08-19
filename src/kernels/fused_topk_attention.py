@@ -393,3 +393,137 @@ def reference_topk_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor,
     idx = top_idx.reshape(B, N * topk, 1).expand(B, N * topk, d)
     v_g = v.gather(1, idx).view(B, N, topk, d)
     return torch.matmul(w.unsqueeze(-2), v_g).squeeze(-2)
+
+
+@triton.jit
+def _fused_topk_sort_kernel(
+    Q, K, V, Out,
+    stride_qb, stride_qn, stride_qd,
+    stride_kb, stride_kn, stride_kd,
+    stride_vb, stride_vn, stride_vd,
+    stride_ob, stride_on, stride_od,
+    N, scale,
+    TOPK: tl.constexpr,
+    BLOCK_M: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_K: tl.constexpr,
+    BLOCK_D: tl.constexpr,
+    BLOCK_DC: tl.constexpr,
+    HEAD_D: tl.constexpr,
+):
+    """Selection by one sort, aggregation over the compacted survivors.
+
+    The two selection strategies above trade against each other: argmax rounds
+    keep the aggregation sparse and cost one row-wide reduction per retained
+    peer, while threshold bisection costs a fixed number of passes and gives up
+    compaction, so it performs the dense aggregation arithmetic. This kernel is
+    the attempt to have both.
+
+    Sorting the score row once, with each score packed against its own index in
+    the low half of a 64-bit word, yields the retained peers *already
+    compacted*: they are the first k entries of the sorted row, and their
+    indices come out of the sort with them. Selection then costs one bitonic
+    sort, whose depth is logarithmic in the agent count and independent of k,
+    and the aggregation reads exactly k value rows. Nothing is written to memory
+    but the result.
+
+    The sort is over the whole row, so its register footprint is
+    BLOCK_M x BLOCK_N 64-bit words; the launcher shrinks the query tile until
+    that fits, which at the largest agent counts leaves a narrow tile.
+    """
+    pid_m = tl.program_id(0)
+    b = tl.program_id(1)
+
+    offs_m = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+    offs_n = tl.arange(0, BLOCK_N)
+    offs_k = tl.arange(0, BLOCK_K)
+    offs_d = tl.arange(0, BLOCK_D)
+    m_mask = offs_m < N
+    n_mask = offs_n < N
+    d_mask = offs_d < HEAD_D
+
+    scores = tl.zeros([BLOCK_M, BLOCK_N], dtype=tl.float32)
+    for dc in tl.static_range(0, BLOCK_D, BLOCK_DC):
+        offs_c = dc + tl.arange(0, BLOCK_DC)
+        c_mask = offs_c < HEAD_D
+        q_c = tl.load(Q + b * stride_qb + offs_m[:, None] * stride_qn
+                      + offs_c[None, :] * stride_qd,
+                      mask=m_mask[:, None] & c_mask[None, :], other=0.0)
+        k_c = tl.load(K + b * stride_kb + offs_n[:, None] * stride_kn
+                      + offs_c[None, :] * stride_kd,
+                      mask=n_mask[:, None] & c_mask[None, :], other=0.0)
+        scores += tl.dot(q_c, tl.trans(k_c), input_precision="ieee")
+    scores = scores * scale
+
+    neg = float("-inf")
+    valid = n_mask[None, :] & (offs_n[None, :] != offs_m[:, None])
+    scores = tl.where(valid, scores, neg)
+
+    # Pack the order-preserving integer key above the peer index, so that one
+    # sort orders by score and carries the index along with it.
+    keys = _float_to_ordered_int(scores).to(tl.int64)
+    packed = (keys << 32) | tl.broadcast_to(
+        offs_n[None, :].to(tl.int64) & 0xFFFFFFFF, (BLOCK_M, BLOCK_N))
+    srt = tl.sort(packed, dim=1, descending=True)
+
+    # The survivors are the leading k entries, already compacted.
+    top = tl.gather(srt, tl.broadcast_to(offs_k[None, :], (BLOCK_M, BLOCK_K)), 1)
+    sel_idx = (top & 0xFFFFFFFF).to(tl.int32)
+    sel_key = (top >> 32).to(tl.int32)
+    sel_scr = (sel_key ^ ((sel_key >> 31) & 0x7FFFFFFF)).to(tl.float32,
+                                                            bitcast=True)
+    keep = offs_k[None, :] < TOPK
+    sel_scr = tl.where(keep, sel_scr, neg)
+
+    row_max = tl.max(sel_scr, axis=1)
+    w = tl.where(keep, tl.exp(sel_scr - row_max[:, None]), 0.0)
+    denom = tl.sum(w, axis=1)
+
+    # Aggregate over exactly the k retained rows. The reductions below are over
+    # the compacted axis, which is k wide, not over the score row.
+    acc = tl.zeros([BLOCK_M, BLOCK_D], dtype=tl.float32)
+    for j in tl.static_range(BLOCK_K):
+        take = offs_k[None, :] == j
+        idx_j = tl.sum(tl.where(take, sel_idx, 0), axis=1)
+        w_j = tl.sum(tl.where(take, w, 0.0), axis=1)
+        v = tl.load(V + b * stride_vb + idx_j[:, None] * stride_vn
+                    + offs_d[None, :] * stride_vd,
+                    mask=m_mask[:, None] & d_mask[None, :], other=0.0)
+        acc += w_j[:, None] * v
+
+    tl.store(Out + b * stride_ob + offs_m[:, None] * stride_on
+             + offs_d[None, :] * stride_od,
+             acc / denom[:, None],
+             mask=m_mask[:, None] & d_mask[None, :])
+
+
+def fused_topk_attention_sort(q: torch.Tensor, k: torch.Tensor,
+                              v: torch.Tensor, topk: int,
+                              block_m: int | None = None) -> torch.Tensor:
+    """Fused top-k with sort-based selection: sparse aggregation, and selection
+    whose cost does not grow with k."""
+    B, N, d = q.shape
+    assert N <= 1024
+    topk = max(1, min(topk, N - 1))
+    q, k, v = q.contiguous(), k.contiguous(), v.contiguous()
+    out = torch.empty_like(q)
+    bn, bd = _next_pow2(N), max(16, _next_pow2(d))
+    bk = max(16, _next_pow2(topk))
+    bdc = max(16, min(bd, 32768 // (bn * 4)))
+    if block_m is None:
+        # The sort holds BLOCK_M x BLOCK_N 64-bit words; keep that near 32 kB.
+        block_m = max(16, min(32, 32768 // (bn * 8)))
+    block_m = min(block_m, bn)
+    grid = (triton.cdiv(N, block_m), B)
+    _fused_topk_sort_kernel[grid](
+        q, k, v, out,
+        q.stride(0), q.stride(1), q.stride(2),
+        k.stride(0), k.stride(1), k.stride(2),
+        v.stride(0), v.stride(1), v.stride(2),
+        out.stride(0), out.stride(1), out.stride(2),
+        N, 1.0 / (d ** 0.5),
+        TOPK=topk, BLOCK_M=block_m, BLOCK_N=bn, BLOCK_K=bk,
+        BLOCK_D=bd, BLOCK_DC=bdc, HEAD_D=d,
+        num_warps=4,
+    )
+    return out

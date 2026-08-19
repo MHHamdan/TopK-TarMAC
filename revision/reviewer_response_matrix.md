@@ -53,16 +53,14 @@ discount, stated because the alternative is for the reviewer to find it.
   over roughly a hundred tilings of a dense kernel of our own. The advantage is
   confined to one retained peer, to the narrow head widths where no
   implementation reaches half the device's arithmetic rate, and it is gone by
-  four retained peers. Two structural obstacles survive: ranking candidates
-  costs more on the units that do the ranking than aggregating over the
-  survivors saves, and the only selection strategy whose cost is independent of
-  the number retained achieves that by abandoning the sparse aggregation.
-- **Remaining limitation.** The kernels are Triton rather than tuned assembly;
-  their selection strategies are argmax rounds and bisection rather than a radix
-  or bitonic select; and they hold the whole score row in registers, which caps
-  them at 1024 agents and limits occupancy at the largest sizes. A better kernel
-  would narrow the remaining gap further without removing the requirement to
-  form and rank the score matrix.
+  four retained peers. The structural obstacle survives: ranking
+  candidates costs more on the units that do the ranking than aggregating over
+  the survivors saves, in all three selection strategies we implemented.
+- **Remaining limitation.** The kernels are Triton rather than tuned assembly,
+  and they hold the whole score row in registers, which caps them at 1024 agents
+  and limits occupancy at the largest sizes. A better kernel would narrow the
+  remaining gap further without removing the requirement to form and rank the
+  score matrix.
 
 ### The dense baseline was not of matched engineering effort
 
@@ -259,11 +257,12 @@ claim that the pre-score attention stage is "roughly twice as fast as dense"
 reversed.
 
 **Action and result.** Re-run against the better of both dense kernels. The
-claim was wrong and is withdrawn: the pre-score attention stage is *never*
-faster than dense, running 1.01–1.85× it. **This makes the paper's argument
-stronger and more coherent**, because it is now the same finding in the escape
-case as in the score-then-select case: the arithmetic falls by two orders of
-magnitude and the time does not move.
+claim as stated was wrong and was withdrawn: composed from library operators the
+pre-score attention stage is slower than dense at every configuration but one,
+running 0.97–5.11× it. A later objection (below) showed that this corrected
+figure was itself measuring the composition rather than the design; the ratios
+in the paper are now fused, and every one of them is still against the better of
+both dense kernels.
 
 ### The pre-score negative result measured an unfused bit loop, not a selector
 
@@ -330,11 +329,61 @@ machine probes explained (peak varies between 53 and 77 TFLOP/s on this shared
 host, so every fraction-of-peak is an upper bound); and the figure panel at 96
 agents labelled as supporting no claim.
 
+### "Sparse arithmetic or cheap selection but not both" was an assertion, not a measurement
+
+**The objection.** The manuscript said it could not write a kernel with both
+sparse aggregation and selection cost independent of the retained count, and
+conceded in the same sentence that a radix or bitonic select would narrow the
+gap and had not been implemented. A claim whose own statement names the
+experiment that would test it should carry that experiment.
+
+**Action.** Wrote a third fused kernel. Scores go through the same
+matrix-multiply units as the reference, are mapped to order-preserving integers,
+packed against their own peer index into one 64-bit word, and sorted once per
+query row; the top k words are unpacked and exactly k value rows are read.
+Selection is one bitonic sort, logarithmic in the agent count and independent of
+k; aggregation is sparse. Verified exact at 123 shapes and at every
+configuration of the equivalence sweep.
+
+**Result. The claim is refuted and replaced by a measurement.** Both properties
+can be had at once: the kernel's cost is flat in k — 0.184 to 0.186 ms from one
+to sixteen retained peers at 192 agents — with genuinely sparse aggregation. It
+is also 5.0× dense attention across that range, and slower than the argmax
+kernel below sixteen retained peers. Having both properties does not help,
+which is a stronger statement than being unable to obtain them. Section 4 and
+Table 3 now report this; `results/attention_core_sort.json`.
+
+### The pre-score negative result was measured on a composed attention stage
+
+**The objection.** Section 5's attention stage was gather-keys, gather-values,
+contract, softmax, contract — a composition writing and re-reading a
+$(B,N,k,d)$ tensor twice. The paper's entire argument about the score-then-select
+path is that such a constant is an upper bound rather than a property of the
+design, so reporting the composed figure as a property of pre-score selection
+applied one standard to the mechanism the paper criticises and another to the
+mechanism it proposes.
+
+**Action.** Wrote `fused_prescore_attention`: one program per tile of queries
+walks that tile's retained peers, reading one key row and one value row per peer
+and accumulating with a running maximum. Nothing intermediate is written.
+Verified exact against the composed path at all 40 configurations and both
+selectors.
+
+**Result. This overturns the section's conclusion.** Fused, attention over a
+pre-chosen peer set is faster than the best dense implementation at every agent
+count — 0.78, 0.38, 0.24, 0.11 and 0.09 times dense from 48 to 512 agents at
+four retained peers, best case 0.055, eighteen times faster than dense. Fusing
+is worth 3.8–17.5×. With the sub-quadratic selector in front of it the whole
+path costs 13.6, 7.5, 3.7, 1.20 and 0.80 times dense: it crosses below dense
+attention at 512 agents. The explanation the manuscript gave for the negative
+result — that the gathered operand loses the matrix-multiply shape — is
+withdrawn. The constructive claim is now that escaping the ceiling is necessary
+and not sufficient, and that what decides the outcome is whether the selector
+avoids a quadratic intermediate and whether the attention left behind is fused.
+Abstract, introduction, Section 5, conclusion; `results/prescore.json`.
+
 ### Raised and not acted on
 
-- **A radix or bitonic select** would beat both of our selection strategies and
-  would sharpen the "not both" question. Not implemented; stated as a
-  limitation.
 - **Moving the learning study wholly to an appendix.** We compressed it and
   removed the non-vacuity claim's stronger form, but kept the design and the
   primary comparison in the body, because a reader deciding whether the

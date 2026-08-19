@@ -95,14 +95,27 @@ not a test, and using it as one contradicts the paper's own thesis. It survives
 only in the measurement-error section as the smoke alarm that caught a real
 error, described as that. The checker bans the phrase.
 
-**A fused score-then-select kernel can have sparse aggregation arithmetic or
-selection cost independent of the number retained, and we could not obtain
-both.**
-Evidence: the two fused kernels. The argmax-rounds kernel keeps the aggregation
-sparse and pays linearly in the retained count; the bisection kernel is flat in
-the retained count and performs dense aggregation arithmetic to achieve that.
-Scope: a statement about the implementations we were able to write, not a
-theorem. Stated that way. **Defensible: yes**, with the scope.
+**WITHDRAWN — "a fused score-then-select kernel can have sparse aggregation
+arithmetic or selection cost independent of the number retained, and we could
+not obtain both."**
+This was scoped as a statement about our implementations rather than a theorem,
+and it was still an assertion standing in for a measurement. A third kernel
+obtains both: it packs each score against its own peer index into one machine
+word, sorts the row once, and reads exactly the retained value rows. Replaced by
+the claim below.
+
+**Both properties can be had at once and having both does not help.**
+Evidence: `results/attention_core_sort.json`, Table 3. The sorted kernel's cost
+is flat in the retained count — 0.184 to 0.186 ms from one to sixteen retained
+peers at 192 agents — and its aggregation reads only the retained rows. It is
+5.0 times dense attention across that range, and it becomes the faster of the
+two fused sparse kernels only from sixteen retained peers upward, where both
+already cost more than five times dense. At 384 and 512 agents it costs twelve
+to fifteen times dense at every sparsity below thirty-two retained peers, since
+a row-wide sort needs the whole row resident. Scope: one architecture, `fp32`,
+head width 16, batch 256, and three implementations rather than a proof about
+all possible ones. **Defensible: yes.** New in this revision, and it replaces an
+assertion with a measurement.
 
 **Exact score-then-select cannot stream keys and values the way dense attention
 can, because the complete score row must exist before it can be ranked.**
@@ -132,7 +145,8 @@ reported as a failure to resolve rather than as an equality.
 ## Escape-case claims
 
 **Both pre-score selectors deliver the operation-count saving the accounting
-promises and neither delivers a speedup.**
+promises; one is an order of magnitude slower than dense attention end to end
+and the other overtakes it.**
 Evidence: `results/prescore.json`, Table 7 and Figure 4. Every ratio is against
 the better of the two dense kernels. Scope: a cost comparison; the selectors
 attend to different peers than a top-$k$ rule, so no quality claim is made.
@@ -140,38 +154,53 @@ attend to different peers than a top-$k$ rule, so no quality claim is made.
 
 **A pre-score selector whose decision is reached through a quadratic structure
 reproduces the cost it was introduced to avoid, and gets worse with scale.**
-Evidence: the nearest-neighbour selector performs 18 times fewer operations than
-dense attention at 512 agents and takes 28 times longer; its selector time grows
-quadratically. **Defensible: yes.**
+Evidence: the nearest-neighbour selector saves 14 times the operations at 512
+agents and its path costs 29.1 times dense attention there, up from 6.7 at 48
+agents. **Defensible: yes.**
 
 **WITHDRAWN — "a sub-quadratic selector makes the attention itself faster than
-dense attention."**
-This was measured against the library dense kernel, which is the pitfall the
-paper's own measurement-error section names. Against the better of the two dense
-kernels the pre-score attention stage is never faster: it runs between 1.01 and
-1.85 times dense across the range. The withdrawal makes the argument more
-coherent, not less, because it is now the same finding in the escape case as in
-the score-then-select case.
+dense attention," as measured against the vendor library.**
+The comparison was against the library dense kernel, which is the pitfall the
+paper's own measurement-error section names. Every ratio in the section is now
+against the better of the library kernel and ours.
 
-**Attention over a pre-chosen peer set is not cheaper than attention over all
-peers, despite up to 104 times fewer operations, because the gathered operand
-loses the matrix-multiply shape.**
-Evidence: `results/prescore.json`, the `attend` column of Table 7. The
-explanation is consistent with the per-stage accounting, where the sparse
-aggregation attains a higher fraction of achievable bandwidth than the dense one
-and is slower because it moves more bytes. Scope: an interpretation of two
-measurements that agree, not an independently controlled experiment.
-**Defensible: yes, as an interpretation.**
+**WITHDRAWN — "attention over a pre-chosen peer set is not cheaper than
+attention over all peers, despite up to 104 times fewer operations, because the
+gathered operand loses the matrix-multiply shape."**
+Measured against the right baseline but composed from library operators, which
+write and re-read a $(B,N,k,d)$ tensor twice. The paper's own argument about the
+score-then-select path is that such a constant is an upper bound and not a
+property of a design, so this applied one standard to the mechanism the paper
+criticises and another to the mechanism it proposes. A fused kernel over the
+same pre-chosen peer sets refutes both the claim and its explanation.
 
-**Escaping the operation-count ceiling is necessary but not sufficient, and a
-successor design is accountable for three things of which a count shows one.**
-Evidence: both selectors satisfy Proposition 2, neither is faster, and the
-failure is not attributable to the selector in either case. **Defensible: yes.**
-This is the revision's main new analytic contribution and it exists only because
-the escape case was measured — and only because it was re-measured against the
-right baseline.
+**Fused, attention over a pre-chosen peer set is faster than the best dense
+implementation at every agent count measured, by up to eighteen times, and a
+sub-quadratic selector in front of it crosses below dense attention end to end
+at 512 agents.**
+Evidence: `results/prescore.json`, Table 7, Figure 4. At four retained peers the
+attention stage costs 0.78, 0.38, 0.24, 0.11 and 0.09 times dense from 48 to 512
+agents; the best case over the grid is 0.055. Composed from library operators
+the same stage is slower than dense at every configuration but one, so fusing is
+worth 3.8 to 17.5 times. The Z-order path's total costs 13.6, 7.5, 3.7, 1.20 and
+0.80 times dense over the same range. Scope: one architecture, `fp32`, head
+width 16, batch 256, centralised inference, and cost only — the selectors attend
+to different peers than a top-$k$ rule and no quality claim is made.
+**Defensible: yes, and provisional in the same way as the negative result**: it
+is what we could build, and the crossover sits at the top of our agent range.
 
----
+**Escaping the operation-count ceiling is necessary and not sufficient, and what
+decides the outcome is two things a count cannot express.**
+Evidence: both selectors satisfy Proposition 2 by between 7 and 107 times in
+operations at four retained peers; the quadratic one ends an order of magnitude
+behind dense attention and the sub-quadratic one overtakes it, and the
+sub-quadratic one overtakes it only once its attention stage is fused. The two
+conditions are whether the selector avoids a quadratic intermediate and whether
+the sparse attention left behind is executed by a kernel written for it.
+**Defensible: yes.** This is the revision's main constructive contribution, and
+it exists only because the escape case was measured — against the right
+baseline, and with the same implementation standard the paper applies to the
+mechanism it criticises.
 
 ## Learning-study claims
 
@@ -205,8 +234,11 @@ without asserting an absence the data contradicts.
   model.
 - No claim about bandwidth-constrained distributed deployment. Every cost result
   is centralised single-device inference.
-- No claim that no implementation can ever cross over at realistic sparsity. We
-  report the best we could write and bound what remains.
+- No claim that no score-then-select implementation can ever cross over at
+  realistic sparsity. We report the best three we could write, including one
+  that has both properties the other two trade off, and bound what remains.
+- No claim that the pre-score crossover extends below or above the agent range
+  measured. It is reported where it was observed, at the top of that range.
 - No equivalence claim anywhere in the learning study.
 - No claim of comparability between our agent-count regime and the long-context
   regime of block-sparse attention, in either direction.

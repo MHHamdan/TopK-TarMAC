@@ -41,6 +41,8 @@ sys.path.insert(0, str(ROOT))
 from src.kernels.prescore_selection import (  # noqa: E402
     SELECTORS, analytic_flops, prescore_attention)
 from src.kernels.fused_dense_attention import fused_dense_attention  # noqa: E402
+from src.kernels.fused_prescore_attention import (  # noqa: E402
+    fused_prescore_attention)
 
 
 def _stats(s: list[float]) -> dict[str, float]:
@@ -154,11 +156,19 @@ def main() -> int:
                 fns[f"total:{sel_name}"] = (
                     lambda s=sel, k=k: prescore_attention(q, kt, v, s(pos, k)))
             # The attention stage alone, with selection hoisted out, isolates
-            # what the sparse attention costs once the set is known.
+            # what the sparse attention costs once the set is known. Timed both
+            # as a composition of library operators and as a fused kernel,
+            # because the manuscript's own argument about the score-then-select
+            # path is that a composed constant is an upper bound.
             for sel_name, sel in SELECTORS.items():
                 idx_fixed = sel(pos, k)
                 fns[f"attn:{sel_name}"] = (
                     lambda i=idx_fixed: prescore_attention(q, kt, v, i))
+                fns[f"fused:{sel_name}"] = (
+                    lambda i=idx_fixed: fused_prescore_attention(q, kt, v, i))
+                fns[f"total_fused:{sel_name}"] = (
+                    lambda s=sel, k=k: fused_prescore_attention(
+                        q, kt, v, s(pos, k)))
 
             timed = time_interleaved(fns, device, args.reps, args.warmup,
                                      args.runs)
@@ -169,7 +179,10 @@ def main() -> int:
                     "selector": sel_name,
                     "t_selector_ms": timed[f"sel:{sel_name}"]["min_ms"],
                     "t_attention_ms": timed[f"attn:{sel_name}"]["min_ms"],
+                    "t_attention_fused_ms": timed[f"fused:{sel_name}"]["min_ms"],
                     "t_total_ms": timed[f"total:{sel_name}"]["min_ms"],
+                    "t_total_fused_ms":
+                        timed[f"total_fused:{sel_name}"]["min_ms"],
                     "t_dense_unfused_ms": timed["dense_unfused"]["min_ms"],
                     "t_dense_fused_ms": timed["dense_fused"]["min_ms"],
                     "t_dense_triton_ms": timed["dense_triton"]["min_ms"],
@@ -189,8 +202,10 @@ def main() -> int:
                 r = rows[-1]
                 print(f"N={N:>4} k={k:<3} {sel_name:<14} "
                       f"sel {r['t_selector_ms']:7.4f} attn "
-                      f"{r['t_attention_ms']:7.4f} total "
-                      f"{r['t_total_ms']:7.4f} ms | dense best "
+                      f"{r['t_attention_ms']:7.4f} (fused "
+                      f"{r['t_attention_fused_ms']:7.4f}) total "
+                      f"{r['t_total_ms']:7.4f} (fused "
+                      f"{r['t_total_fused_ms']:7.4f}) ms | dense best "
                       f"{r['t_dense_best_ms']:7.4f} (lib "
                       f"{r['t_dense_fused_ms']:.4f} ours "
                       f"{r['t_dense_triton_ms']:.4f}) | FLOP ratio "

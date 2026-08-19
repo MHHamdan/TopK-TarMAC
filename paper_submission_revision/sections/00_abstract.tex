@@ -20,9 +20,8 @@ a communication design. At every sparsity the field actually uses, the fastest
 sparse implementation we could construct remains an order of magnitude slower,
 because ranking the candidates costs more than aggregating over the survivors
 saves. Deciding what to attend to before the scores exist removes the bound
-entirely, and we measure two selectors that do so: they reduce the operation
-count by up to two orders of magnitude and buy at best fifteen per cent,
-because attention over a handful of gathered peers is not a shape this hardware
-is quick at. The
-design target is therefore not the arithmetic but the shape the remaining work
-is executed in.
+entirely, and there the picture reverses: with a selector that avoids a
+quadratic intermediate and an attention kernel written for the resulting
+access pattern, attention over pre-chosen peers is up to eighteen times faster
+than dense attention and the whole path overtakes it at a few hundred agents.
+Neither condition suffices alone, and an operation count expresses neither.

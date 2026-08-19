@@ -15,109 +15,91 @@ that order, at $O(N \log N)$, which satisfies the $o(Nkd)$ condition of
 case~(i). Both then evaluate attention scores for the retained pairs only, so
 the score term falls from $N^2d$ to $Nkd$ and the ceiling does not apply.
 
-The two selectors attend to different peers than a top-$k$ rule would, so what
-follows compares cost and not quality. Selection and attention are timed
-separately as well as together, so that the selector is charged and not assumed
-away. Every ratio is against the faster of the library dense kernel and our
-own, for the reason Section~\ref{sec:pitfalls} gives.
+The attention over the retained peers is measured twice: once composed from
+library operators, and once as a fused kernel that reads one key row and one
+value row per retained peer and accumulates with a running maximum, writing
+nothing but the result. Section~\ref{sec:fused} establishes that a composed
+constant is an upper bound and not a property of a design, and it would be
+incoherent to apply that standard to the mechanism this paper criticises and not
+to the one it proposes. The two selectors attend to different peers than a
+top-$k$ rule would, so what follows compares cost and not quality, and every
+ratio is against the faster of the library dense kernel and our own.
 
 \begin{table}[t]
 \centering\small
-\caption{Selecting before scoring, at \PrescoreK{} retained peers. The
-operation-count saving reaches two orders of magnitude and the elapsed time does
-not follow it anywhere. Selection and attention are timed separately and the
-total is timed as one call, so the components need not sum exactly.}
+\caption{Selecting before scoring, at \PrescoreK{} retained peers. Composing the
+attention stage from library operators costs an order of magnitude more than
+fusing it, and the difference decides the conclusion: composed, the attention is
+slower than dense attention; fused, it is up to eleven times faster.}
 \label{tab:prescore}
-\input{tables/prescore}
+\resizebox{\linewidth}{!}{\input{tables/prescore}}
 \end{table}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig5_prescore.pdf}
 \caption{\textbf{Left:} the operation-count saving Proposition~\ref{prop:escape}
-promises, which for the sub-quadratic selector tracks $N/k$. \textbf{Right:} what the same configurations cost. Neither selector reaches
-parity, and the two that the count treats similarly diverge by an order of
-magnitude. The dotted line charges the selector nothing and times only the
-attention over the already-chosen peers: it approaches parity from above and
-barely passes it, against an operation count promising two orders of
-magnitude.}
+promises, which for the sub-quadratic selector tracks $N/k$. \textbf{Right:}
+what the same configurations cost. Fused, the attention over pre-chosen peers is
+several times faster than dense attention and improves with the agent count; the
+total is then governed by the selector, and the two selectors diverge.}
 \label{fig:prescore}
 \end{figure}
 
-The operation-count saving is exactly what the proposition predicts. At $512$
-agents retaining four peers, the Z-order path performs $104$ times fewer
-operations than dense attention and the nearest-neighbour path $18$ times fewer,
-the difference between them being the cost of their selectors. Neither is faster
-than dense attention at any agent count we measure, and the best either comes is
-$1.8$ times dense.
+Fused, the escape delivers. Attention over an already-chosen peer set is faster
+than the best dense implementation at every agent count, and the margin widens
+with scale: at four retained peers it costs $0.78$, $0.38$, $0.24$, $0.11$ and
+$0.09$ times dense attention from $48$ to $512$ agents, and its best case over
+the grid is $0.055$ --- eighteen times faster than dense --- at $512$ agents and
+two retained peers. That is what Proposition~\ref{prop:escape} predicts once the
+score term shrinks with the aggregation, and no score-then-select implementation
+anywhere in this paper comes close to it at any sparsity, because none of them
+can remove the score term.
 
-Two separate things go wrong, and only the first is the one we expected.
+Composed from library operators, the same stage is slower than dense attention
+at every configuration but one, by $0.97$ to $5.11$ times; fusing it is worth
+between $3.8$ and $17.5$ times, and the factor grows with the agent count
+because the gathered tensor the composition writes and re-reads grows with it.
+We report both columns because the composed one is what we measured before
+writing the kernel, and on its own it supports the opposite conclusion.
 
-The selector can cost more than the attention it is choosing for. The
-nearest-neighbour selector materialises an $N \times N$ distance matrix and
-ranks it, which are the same two operations, on the same shape, that
-Proposition~\ref{prop:ceiling} says a score-then-select rule cannot avoid.
-Working in two dimensions rather than in the head dimension buys a factor in the
-arithmetic and nothing in the traffic, and traffic is what governs
-(Section~\ref{sec:stages}); by $512$ agents its selector alone costs $27$ times
-the whole of dense attention. The Z-order selector avoids the quadratic
-structure and its cost does not grow with the agent count, but not growing is
-not being small: it sits between $0.13$ and $0.37$\,ms across our range, which
-is comparable to or larger than the entire dense attention it is displacing at
-every agent count. That range spans a discontinuity we cannot attribute to the
-selector: its cost falls from $0.37$ to $0.13$\,ms partway through the sweep,
-at $384$ agents and sixteen retained peers, and the dense baselines timed in
-that same block fall with it --- the Triton kernel by $29\%$, which has nothing
-to do with Morton codes. The shift is therefore a change in the state of the
-shared device rather than a property of the selector, the inter-run spread
-within every cell being under $1\%$. Ratios are formed inside a block and are
-unaffected, but the low absolute figure should not be read as the selector's
-cost at scale.
-It is also composed from library operators, so like the composed sparse path of
-Section~\ref{sec:composed} its constant is an upper bound rather than a property
-of the design.
+What decides the total is the selector, and the two behave oppositely. The
+Z-order selector's cost is nearly flat in the agent count --- $0.094$ to
+$0.140$\,ms across the range --- so as attention grows more expensive the
+selector's share of the path falls: at four retained peers the whole path costs
+$13.6$, $7.5$, $3.7$, $1.20$ and $0.80$ times dense attention from $48$ to $512$
+agents. At $512$ agents, selecting before scoring and executing both stages in
+kernels written for them is faster end to end than the best dense attention we
+can obtain, and the trend is still improving. The nearest-neighbour selector
+moves the other way. It materialises an $N \times N$ distance matrix and ranks it
+--- the same two operations, on the same shape, that
+Proposition~\ref{prop:ceiling} says a score-then-select rule cannot avoid --- so
+beyond $96$ agents its cost grows quadratically and the path it belongs to rises
+from $6.7$ to $29.1$ times dense, with the fused attention stage making no
+difference to that outcome.
 
-The second failure is the one that matters, because no better selector can
-repair it. Set the selector aside entirely and time only the attention over an
-already-chosen peer set --- scoring $Nk$ pairs instead of $N^2$, then aggregating
-over $k$. That stage is barely cheaper than dense attention anywhere and is
-usually dearer. Its best case over the whole grid is $0.85$ times dense, at
-$384$ agents retaining two peers, where the operation count promises a factor of
-$132$; at four retained peers it never falls below $1.01$, and at the smallest
-agent count it costs $1.7$ to $1.9$ times dense. Two orders of magnitude of
-arithmetic buy, at the very best, fifteen per cent.
+Three things follow, and together they are the paper's constructive result.
 
-The reason is the one Section~\ref{sec:composed} identifies for the
-score-then-select path, and it survives the change of selector because it was
-never about selection. Scoring $Nk$ chosen pairs requires gathering $k$ keys and
-$k$ values per query, so the operand is $2kd$ elements per query where dense
-attention reads a contiguous $N$-row block and multiplies it as a matrix
-product. At $512$ agents, four retained peers and head width $16$ that is $128$
-gathered elements per query against a $512$-wide contiguous row, and the gathered
-form loses the matrix-multiply shape as well. The arithmetic falls by two orders
-of magnitude and the traffic does not. We did not fuse this stage, and by the
-standard Section~\ref{sec:fused} sets that makes its constant an upper bound
-rather than a property of the design: a fused pre-score attention kernel is the
-obvious next measurement, and until it exists the explanation above is an
-inference from the accounting and from the score-then-select case rather than an
-independently controlled result.
+Escaping the operation-count ceiling is necessary and not sufficient. Both
+selectors escape it, by between $7$ and $107$ times in operations at
+four retained peers, and one of
+them is an order of magnitude slower than dense attention while the other is
+faster. What separates them is whether the selector reaches its decision through
+a structure of the size it was introduced to avoid.
+Proposition~\ref{prop:escape} charges for the selector in operations, and
+operations are the wrong currency: the nearest-neighbour selector's arithmetic
+is small and its traffic is exactly the traffic the ceiling is about.
 
-What this leaves of Proposition~\ref{prop:escape} is worth being exact about,
-because the proposition is not wrong. Removing the full score matrix genuinely
-removes the ceiling: the count ratios in Table~\ref{tab:prescore} are far above
-the factor of two that bounds any score-then-select rule, and no implementation
-elsewhere in this paper achieves anything like them. The proposition simply
-turns out to bound the wrong quantity twice over. Its selector term is charged
-in operations, and the nearest-neighbour selector shows that a selector can be
-cheap in operations and ruinous in traffic. And the term it leaves --- attention
-over $Nk$ pairs --- is itself priced in operations, and at these sizes that
-price is not what the hardware charges.
+A cheap selector is not sufficient either. With the attention stage composed
+from library operators the Z-order path is slower than dense at every agent
+count we measure, and only the fused kernel makes the total cross. Both
+conditions are needed, and an operation count expresses neither.
 
-A successor design is therefore accountable for three things rather than one,
-and an operation count shows only the first: what the selector costs to run,
-whether it reaches its decision without materialising a structure of the size it
-meant to avoid, and whether the sparse attention it leaves behind can be
-executed in a shape the hardware is fast at. The third is the one this section
-adds, and it is the reason block-level selection works in long-context attention
-while per-pair selection does not work here. A block of a long sequence is still
-a dense matrix multiply after selection; a handful of gathered peers is not.
+And the regime matters. The crossover arrives at a few hundred agents and
+improves beyond it, which is above the range most of the multi-agent
+communication literature occupies (Section~\ref{sec:related}) and far below the
+range where block-sparse attention operates. Whether a method between the two
+should sparsify its communication is now a question with a checkable answer
+rather than an appeal to an operation count: it depends on whether the selector
+avoids a quadratic intermediate, and on whether the sparse attention it leaves
+behind is executed in a kernel written for it.

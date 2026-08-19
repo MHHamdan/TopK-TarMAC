@@ -32,26 +32,29 @@ where the vendor library does; and it is gone by four retained peers. At the
 sparsity this literature uses, the fastest sparse implementation we could write
 is more than an order of magnitude slower than dense attention.
 
-The constructive half fares no better, and fails in a way we did not anticipate.
-A selector that fixes the retained set before any score exists is genuinely
-unbound by the ceiling, and the two we measured reduce the operation count by up
-to two orders of magnitude. Neither is faster. One of them ranks a pairwise
-matrix of its own and so reproduces the cost it was introduced to avoid, which
-is the failure the accounting predicts once the selector is charged in the right
-currency. The other does not, and still loses --- and it loses even with its selector set
-aside and only the attention over the already-chosen peers timed. That stage's
-best case anywhere is fifteen per cent below dense attention, at a configuration
-whose operation count promises a factor of $132$. The arithmetic falls by two
-orders of magnitude and the time barely moves, because the gathered operand has
-lost the shape the hardware multiplies quickly.
+The constructive half is where the argument turns, and it turns because the
+same discipline was applied to it. A selector that fixes the retained set before
+any score exists is unbound by the ceiling, and the two we measured reduce the
+operation count by up to two orders of magnitude. Composed from library
+operators, both are slower than dense attention and we would have reported the
+escape as a failure. Written as a fused kernel --- one key row and one value row
+read per retained peer, a running maximum, nothing else written --- the same
+attention is up to eighteen times faster than the best dense implementation we
+have, and improves with the agent count exactly as the accounting predicts.
+
+What then decides the outcome is the selector, and the two we tried diverge. One
+reaches its decision by ranking a pairwise matrix of its own, reproducing the
+cost it was introduced to avoid, and its path falls further behind as the agent
+count grows. The other is sub-quadratic and flat in cost, and its path overtakes
+dense attention at a few hundred agents and keeps improving. Neither condition
+is sufficient alone: a cheap selector with a composed attention stage loses, and
+a fused attention stage behind a quadratic selector loses.
 
 That is the finding we would put in front of a designer. An operation count
 prices work in operations, and on this hardware, at these sizes, the price is
 set by the shape the work is executed in. A successor method has to answer for
 what its selector costs, for whether it reaches its decision without
 materialising the structure it meant to avoid, and for whether what it leaves
-behind can still be executed as a dense block. Only the first is visible in a
-count. The third is why block-level selection succeeds at a hundred thousand
-tokens and per-pair selection does not succeed at a few hundred agents: a
-selected block is still a matrix multiply, and a handful of gathered peers is
-not.
+behind is executed by a kernel written for it. Only the first is visible in a
+count, and each of the other two was, in our own measurements, the difference
+between a design that works and one that does not.

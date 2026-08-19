@@ -189,19 +189,47 @@ positive result provisional on a dense kernel we could not write: if one exists
 at narrow head widths that reaches what the library reaches at wide ones, the
 crossover goes. Nothing else in the paper depends on it.
 
-Two structural obstacles are independent of all of this, and they are what a
-successor design has to face. Selection is the first. Ranking $N$ candidates to
-keep $k$ costs $k$ sequential row-wide reductions in the argmax kernel, and a
-reduction of that shape runs at a small fraction of the arithmetic units'
-throughput because each round depends on the one before it and the hardware has
-nothing to overlap it with. That is why the sparse kernel's cost grows almost
-linearly in $k$ while its arithmetic barely does. The bisection kernel removes
-the dependence on $k$, and the only way it can is by expressing the retained set
-as a zero weight instead of by compaction --- so it performs the dense
-aggregation arithmetic whatever $k$ is. We could not write a kernel with both
-sparse arithmetic and $k$-independent selection; a radix or bitonic select would
-narrow the gap and we did not implement one, so this is a statement about the
-implementations we obtained, not about what is possible.
+\begin{table}[t]
+\centering\small
+\caption{Three ways of reaching the same retained set, at the two agent counts
+that carry the crossover. Repeated argmax keeps the aggregation sparse and pays
+linearly in the number retained; bisecting on the score's bit pattern is flat in
+it and pays the dense aggregation; sorting score--index pairs once is flat and
+sparse at the same time, and is not competitive with either at the agent counts
+where a sort no longer fits alongside a useful block of queries.}
+\label{tab:selection}
+\input{tables/selection}
+\end{table}
+
+Selection is what a successor design has to face, and we tried three ways of
+doing it. Ranking $N$ candidates to keep $k$ by repeated argmax costs $k$
+sequential row-wide reductions, and a reduction of that shape runs at a small
+fraction of the arithmetic units' throughput because each round depends on the
+one before it and the hardware has nothing to overlap it with. That is why the
+argmax kernel's cost grows almost linearly in $k$ while its arithmetic barely
+does. Bisecting on the score's bit pattern removes the dependence on $k$, and
+the only way it can is by expressing the retained set as a zero weight instead
+of by compaction --- so it performs the dense aggregation arithmetic whatever
+$k$ is.
+
+Whether both can be had at once is the obvious question, and they can
+(Table~\ref{tab:selection}). Packing
+each score against its own peer index in one machine word and sorting the row
+once yields the retained peers already compacted: the aggregation then reads
+exactly $k$ value rows, while selection costs a single bitonic sort whose depth
+is logarithmic in the agent count and independent of $k$. Measured, that kernel
+is flat in $k$ as intended --- $0.184$ to $0.186$\,ms from one to sixteen
+retained peers at $192$ agents --- and its aggregation is genuinely sparse. It is
+also five times slower than dense attention across that whole range, and slower
+than the argmax kernel below sixteen retained peers; above sixteen it is the
+faster of the two, but by then both cost more than five times dense attention.
+Having both properties does not help. The sort that buys independence from $k$
+costs more than the argmax rounds it replaces throughout the range in which
+sparsity would otherwise pay, and it is worse at larger agent counts: at $384$
+and $512$ agents the sorted kernel costs twelve to fifteen times dense attention
+at every sparsity below thirty-two retained peers, because a row-wide sort needs
+the whole row resident and the block of queries that can hold it shrinks as the
+row grows.
 
 The second obstacle is available to dense attention and not to exact
 score-then-select. Dense attention can stream keys and values in blocks with an

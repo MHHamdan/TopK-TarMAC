@@ -40,6 +40,16 @@ run core_batch scripts/bench_attention_core.py --device "$DEV" \
             topk_fused_gather \
     --reps 40 --runs 3 --out results/attention_core_batch.json
 
+# The three fused selection strategies over the same grid, which is what
+# decides whether sparse arithmetic and selection cost independent of the
+# retained count can be had at the same time.
+run core_sort scripts/bench_attention_core.py --device "$DEV" \
+    --n-list 12 24 48 96 192 384 512 --k-list 1 2 4 8 16 32 64 128 \
+    --d-list 16 --batch-list 256 --reps 60 --runs 3 \
+    --impls dense_fused dense_triton topk_gather topk_fused_gather \
+            topk_fused_masked topk_fused_sort \
+    --out results/attention_core_sort.json
+
 # Per-stage arithmetic, traffic, intensity and attainment.
 run stages scripts/stage_accounting.py --device "$DEV" \
     --n-list 48 96 192 384 512 --reps 50 --runs 3 \

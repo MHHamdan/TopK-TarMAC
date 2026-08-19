@@ -400,39 +400,36 @@ def fig_prescore() -> None:
     ax.legend(fontsize=fs.MIN_PT, loc="lower right", handlelength=2.2)
 
     ax = axes[1]
-    for sel in ("radius_knn", "morton_window"):
+
+    def series(sel, field):
         pts = [r for r in rows if r["selector"] == sel and r["k"] == k_show]
         pts.sort(key=lambda r: r["n_agents"])
-        if not pts:
+        dense = [p.get("t_dense_best_ms", p["t_dense_fused_ms"]) for p in pts]
+        return ([p["n_agents"] for p in pts],
+                [p[field] / d for p, d in zip(pts, dense)])
+
+    # The composed form of the same computation, so that the distance between
+    # the two Z-order curves is the cost of the composition rather than of the
+    # algorithm.
+    x, y = series("morton_window", "t_total_ms")
+    if x:
+        ax.plot(x, y, color=fs.MUTED_COLOR, linestyle=(0, (2, 1.5)),
+                marker="o", markersize=3.2, markerfacecolor="white",
+                linewidth=0.9, label="Z-order, composed")
+    for sel in ("radius_knn", "morton_window"):
+        x, y = series(sel, "t_total_fused_ms")
+        if not x:
             continue
         st = fs.style(sel)
-        ax.plot([p["n_agents"] for p in pts],
-                [p["t_total_ms"] / p.get("t_dense_best_ms",
-                                        p["t_dense_fused_ms"]) for p in pts],
-                markersize=4.0, **st)
+        ax.plot(x, y, markersize=4.0, **st)
     # The attention stage alone, with the selector charged to nothing. This is
     # the quantity the operation count is about, so it belongs on the plot the
     # count is compared against.
-    pts = [r for r in rows if r["selector"] == "morton_window"
-           and r["k"] == k_show]
-    pts.sort(key=lambda r: r["n_agents"])
-    if pts:
-        ax.plot([p["n_agents"] for p in pts],
-                [p["t_attention_ms"] / p.get("t_dense_best_ms",
-                                             p["t_dense_fused_ms"])
-                 for p in pts], color="#444444", linestyle=(0, (1, 1)),
+    x, y = series("morton_window", "t_attention_fused_ms")
+    if x:
+        ax.plot(x, y, color="#444444", linestyle=(0, (1, 1)),
                 marker="o", markersize=3.6, markerfacecolor="white",
                 label="attention only, selector free")
-    pts = [r for r in rows if r["selector"] == "radius_knn" and r["k"] == k_show]
-    pts.sort(key=lambda r: r["n_agents"])
-    if pts:
-        st = fs.style("topk_gather")
-        st["label"] = "score-then-select, gathered"
-        ax.plot([p["n_agents"] for p in pts],
-                [p["t_topk_gather_ms"] / p.get("t_dense_best_ms",
-                                              p["t_dense_fused_ms"])
-                 for p in pts],
-                markersize=4.0, **st)
     fs.parity_line(ax)
     ax.set_xscale("log", base=2); ax.set_yscale("log")
     ax.set_xticks(ns); ax.set_xticklabels([str(n) for n in ns])

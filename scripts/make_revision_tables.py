@@ -252,6 +252,42 @@ def table_stages() -> str:
 \end{tabular}""", cap, N)
 
 
+def table_selection() -> str:
+    """The three fused selection strategies, at the two agent counts that carry
+    the crossover claim. Each column is the same aggregation reached a different
+    way: k argmax rounds over the score row, a bit-pattern bisection that yields
+    a threshold, and one bitonic sort of score-index pairs."""
+    rows = live(load("attention_core_sort.json"))
+    ns = [192, 512]
+    ks = [1, 2, 4, 8, 16, 32]
+    body = []
+    for N in ns:
+        bd = min(x for x in (ms(at(rows, "dense_fused", N)),
+                             ms(at(rows, "dense_triton", N))) if x is not None)
+        for k in ks:
+            cells = []
+            for impl in ("topk_fused_gather", "topk_fused_masked",
+                         "topk_fused_sort"):
+                t = ms(at(rows, impl, N, k))
+                cells.append("--- & ---" if t is None
+                             else f"{t:.3f} & {t / bd:.1f}")
+            body.append(f"{N if k == ks[0] else ''} & {k} & "
+                        + " & ".join(cells) + r" \\")
+        if N != ns[-1]:
+            body.append(r"\midrule")
+    return r"""\begin{tabular}{rr rr rr rr}
+\toprule
+& & \multicolumn{2}{c}{\textbf{$k$ argmax rounds}}
+& \multicolumn{2}{c}{\textbf{bisection}}
+& \multicolumn{2}{c}{\textbf{one sort}} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+$N$ & $k$ & ms & $\div$dense & ms & $\div$dense & ms & $\div$dense \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
 def table_prescore() -> str:
     """What selecting before scoring saves, and what it delivers."""
     pay = load("prescore.json")
@@ -269,18 +305,23 @@ def table_prescore() -> str:
                 continue
             r = r[0]
             d = r.get("t_dense_best_ms", r["t_dense_fused_ms"])
+            af = r.get("t_attention_fused_ms")
+            tf = r.get("t_total_fused_ms")
             body.append(
                 f"{N} & {nm} & {r['flop_ratio_vs_dense']:.0f} & "
                 f"{r['t_selector_ms']:.3f} & {r['t_attention_ms']:.3f} & "
-                f"{r['t_total_ms']:.3f} & {d:.3f} & "
-                f"{r['t_attention_ms'] / d:.2f} & "
-                f"{r['t_total_ms'] / d:.2f} \\\\")
-    return r"""\begin{tabular}{rlr rrr r rr}
+                f"{af:.3f} & {d:.3f} & "
+                f"{r['t_attention_ms'] / d:.2f} & {af / d:.2f} & "
+                f"{tf / d:.2f} \\\\")
+    return r"""\begin{tabular}{rlr rrr r rrr}
 \toprule
 & & \textbf{ops} & \multicolumn{3}{c}{\textbf{measured (ms)}} & \textbf{best}
-& \multicolumn{2}{c}{\textbf{$\div$ best dense}} \\
-\cmidrule(lr){4-6}\cmidrule(lr){8-9}
-$N$ & selector & saved & select & attend & total & dense & attend & total \\
+& \multicolumn{3}{c}{\textbf{$\div$ best dense}} \\
+\cmidrule(lr){4-6}\cmidrule(lr){8-10}
+& & & & \multicolumn{2}{c}{attend} & & \multicolumn{2}{c}{attend} & total \\
+\cmidrule(lr){5-6}\cmidrule(lr){8-9}
+$N$ & selector & saved & select & composed & fused & dense & composed & fused
+& fused \\
 \midrule
 """ + "\n".join(body) + r"""
 \bottomrule
@@ -473,6 +514,7 @@ def main() -> int:
 
     put("headline", table_headline())
     put("crossover", table_crossover())
+    put("selection", table_selection())
     put("backward", table_backward())
     stages, cap, N = table_stages()
     put("stages", stages)

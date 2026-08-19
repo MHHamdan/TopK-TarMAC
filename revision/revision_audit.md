@@ -369,15 +369,31 @@ vendor library does. The claim is kept and labelled provisional.
 ratio in it was quoted against the vendor library rather than the better of the
 two dense kernels — the pitfall the paper's own measurement-error section names,
 committed in the paper that names it. Corrected, the claim that the pre-score
-attention stage is faster than dense reverses: it is never faster. The
-correction makes the paper's argument more coherent, because the escape case now
-fails for the same reason the score-then-select case does.
+attention stage is faster than dense reversed. A second pass then found that the
+corrected measurement still composed that stage from library operators, which is
+the constant the paper's own argument says is an upper bound rather than a
+property of a design; a fused kernel over the same pre-chosen peer sets is up to
+eighteen times faster than the best dense implementation, and the Z-order path
+crosses below dense attention end to end at 512 agents. Both corrections stand
+in the paper: every ratio is against the better of the two dense kernels, and
+both the composed and the fused columns are reported.
 
 **A negative result measured a hundred kernel launches rather than a selector.**
 The pre-score selector's cost, attributed in the text to a sort, was dominated
 by a per-bit Python loop computing Morton codes — the same composition overhead
 the paper wrote fused kernels to remove for the other half of its argument.
 Replaced with a branch-free interleave, verified bit-identical.
+
+**Two claims were asserted where an experiment was available.** The manuscript
+said it could not write a kernel with both sparse aggregation and selection cost
+independent of the retained count, naming in the same sentence the radix or
+bitonic select that would test it; and it explained the pre-score negative
+result by the gathered operand losing the matrix-multiply shape, having measured
+only a composed implementation of it. Both were written. A sort-based kernel has
+both properties and is not faster, so the claim becomes a measurement rather
+than a limitation; a fused pre-score kernel refutes the explanation and reverses
+the section's conclusion. `results/attention_core_sort.json` and
+`results/prescore.json`.
 
 Two further defects were structural rather than substantive and are also fixed:
 the claim that equivalence is checked at every reported configuration was false
