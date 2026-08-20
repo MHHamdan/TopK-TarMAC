@@ -7,7 +7,7 @@ not inflate prose statistics.
 
 | | archival `paper/` | revision `paper_submission_revision/` |
 |---|---|---|
-| Abstract, words | 334 | 301 |
+| Abstract, words | 334 | 300 |
 | Abstract, mathematical notation | 11 symbols and one displayed ratio | none |
 | Prose words | 10,561 | 12,287 |
 | Em dashes | 118 | 50 |

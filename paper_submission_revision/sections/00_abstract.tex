@@ -1,27 +1,25 @@
 Attention-based communication between agents is routinely sparsified on the
-grounds that attending to a few peers rather than to all of them removes most of
-the work, and the case is almost always made by counting operations rather than
-by measuring execution. We show that the count is smaller than it appears, and
-that what it buys in time is smaller still. When an agent's partners are chosen
-by their attention scores, every score has already been computed before any can
-be discarded, so only the aggregation is removable and no choice of sparsity can
-remove more than half the arithmetic of attention. Whether even that half
-becomes time depends on the implementation to a degree an operation count cannot
-see. Applying the selection as a mask leaves the dense aggregation in place and
-executes no saving at all; a genuinely sparse implementation assembled from
-general-purpose tensor operations moves several times more data than dense
-attention despite performing less arithmetic, and runs an order of magnitude
-slower. Writing a fused kernel that keeps every intermediate on chip removes
-most of that penalty, and where a single peer is retained it makes the sparse
-path faster than any dense implementation we could obtain. That is the only
-regime in which it does, it holds only at narrow head widths where nothing we
-tried reaches half the machine's arithmetic rate, and retaining one peer is not
-a communication design. At every sparsity the field actually uses, the fastest
-sparse implementation we could construct remains an order of magnitude slower,
-because ranking the candidates costs more than aggregating over the survivors
-saves. Deciding what to attend to before the scores exist removes the bound
-entirely, and there the picture reverses: with a selector that avoids a
-quadratic intermediate and an attention kernel written for the resulting
-access pattern, attention over pre-chosen peers is up to eighteen times faster
-than dense attention and the whole path overtakes it at a few hundred agents.
-Neither condition suffices alone, and an operation count expresses neither.
+grounds that attending to a few peers removes most of the work, and the case is
+usually made by counting operations rather than by measuring execution. We
+show that the count is smaller than it appears, and that what it buys in time is
+smaller still. When partners are chosen by their attention scores, every score
+has been computed before any can be discarded, so only the aggregation is
+removable and no sparsity can remove more than half of attention's arithmetic.
+Whether even that half becomes time depends on the implementation, to a degree
+no count can see. Applying the selection as a mask leaves the dense
+aggregation in place and saves nothing; a genuinely sparse implementation built
+from general-purpose tensor operations moves several times more data despite
+less arithmetic, and runs an order of magnitude slower. A fused
+kernel that keeps every intermediate on chip removes most of that penalty, and
+at a single retained peer it makes the sparse path faster than any dense
+implementation we could obtain. That is the only regime in which it does, at
+narrow head widths only, and one peer is not a communication design. At
+every sparsity the field actually uses, the fastest sparse implementation we
+could construct is an order of magnitude slower, because ranking candidates
+costs more than aggregating over the survivors saves. Deciding what to attend to
+before the scores exist removes the bound, and there the picture reverses: with
+a selector that avoids a quadratic intermediate and an attention kernel written
+for the resulting access pattern, attention over pre-chosen peers is up to
+eighteen times faster than dense, and the whole path overtakes it at a few
+hundred agents. Neither condition suffices alone, and an operation count
+expresses neither.
