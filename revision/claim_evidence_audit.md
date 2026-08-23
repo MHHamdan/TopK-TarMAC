@@ -105,14 +105,15 @@ word, sorts the row once, and reads exactly the retained value rows. Replaced by
 the claim below.
 
 **Both properties can be had at once and having both does not help.**
-Evidence: `results/attention_core_sort.json`, Table 3. The sorted kernel's cost
-is flat in the retained count — 0.184 to 0.186 ms from one to sixteen retained
-peers at 192 agents — and its aggregation reads only the retained rows. It is
-5.0 times dense attention across that range, and it becomes the faster of the
-two fused sparse kernels only from sixteen retained peers upward, where both
-already cost more than five times dense. At 384 and 512 agents it costs twelve
-to fifteen times dense at every sparsity below thirty-two retained peers, since
-a row-wide sort needs the whole row resident. Scope: one architecture, `fp32`,
+Evidence: `results/attention_core_sort.json`, Table 3. The sorted kernel's
+selection cost does not grow with the retained count and its aggregation reads
+exactly the retained rows: at 192 agents it runs in 0.164 ms at one retained
+peer and 0.186 ms at sixteen, a rise of 14% against an eightfold rise for the
+argmax kernel. It is five times dense attention across that range, overtakes the
+argmax kernel only at sixteen retained peers where both already cost more than
+five times dense, and at 384 and 512 agents is thirteen to sixteen times dense
+at every sparsity below thirty-two retained peers, since a row-wide sort needs
+the whole row resident. Scope: one architecture, `fp32`,
 head width 16, batch 256, and three implementations rather than a proof about
 all possible ones. **Defensible: yes.** New in this revision, and it replaces an
 assertion with a measurement.
@@ -154,8 +155,8 @@ attend to different peers than a top-$k$ rule, so no quality claim is made.
 
 **A pre-score selector whose decision is reached through a quadratic structure
 reproduces the cost it was introduced to avoid, and gets worse with scale.**
-Evidence: the nearest-neighbour selector saves 14 times the operations at 512
-agents and its path costs 29.1 times dense attention there, up from 6.7 at 48
+Evidence: the nearest-neighbour selector saves 15 times the operations at 512
+agents and its path costs 30.8 times dense attention there, up from 9.2 at 48
 agents. **Defensible: yes.**
 
 **WITHDRAWN — "a sub-quadratic selector makes the attention itself faster than
@@ -175,19 +176,26 @@ criticises and another to the mechanism it proposes. A fused kernel over the
 same pre-chosen peer sets refutes both the claim and its explanation.
 
 **Fused, attention over a pre-chosen peer set is faster than the best dense
-implementation at every agent count measured, by up to eighteen times, and a
-sub-quadratic selector in front of it crosses below dense attention end to end
-at 512 agents.**
-Evidence: `results/prescore.json`, Table 7, Figure 4. At four retained peers the
-attention stage costs 0.78, 0.38, 0.24, 0.11 and 0.09 times dense from 48 to 512
-agents; the best case over the grid is 0.055. Composed from library operators
-the same stage is slower than dense at every configuration but one, so fusing is
-worth 3.8 to 17.5 times. The Z-order path's total costs 13.6, 7.5, 3.7, 1.20 and
-0.80 times dense over the same range. Scope: one architecture, `fp32`, head
-width 16, batch 256, centralised inference, and cost only — the selectors attend
-to different peers than a top-$k$ rule and no quality claim is made.
+implementation at every agent count measured when at most four peers are
+retained, by up to nearly seventeen times, and a sub-quadratic selector in front
+of it crosses below dense attention end to end at 512 agents.**
+Evidence: `results/prescore.json`, `results/prescore_repeat.json`, Table 7,
+Figure 4. At two retained peers the attention stage costs 0.67, 0.35, 0.19, 0.08
+and 0.06 times dense from 48 to 512 agents, at four 0.76, 0.43, 0.25, 0.12 and
+0.09; the best case over the grid is 0.060. At sixteen retained peers it is
+slower than dense at the smallest agent count. Composed from library operators
+the same stage is slower than dense at all 40 configurations, so fusing is worth
+3.9 to 17.4 times. The Z-order path's total costs 16.8, 8.8, 4.0, 1.28 and 0.91
+times dense at four retained peers; the crossing holds at two and four retained
+peers, is level at eight and gone at sixteen. Every ratio is against the best of
+the vendor library, our own dense kernel and our own dense kernel at the searched
+tiling. Scope: one architecture, `fp32`, head width 16, batch 256, centralised
+inference, and cost only — the selectors attend to different peers than a
+top-$k$ rule and no quality claim is made.
 **Defensible: yes, and provisional in the same way as the negative result**: it
-is what we could build, and the crossover sits at the top of our agent range.
+is what we could build; the crossing is a ten per cent margin, it sits at the top
+of our agent range, and it holds only at the two sparsest settings. Both runs of
+the sweep put the cells that carry it within 1.5% of each other.
 
 **Escaping the operation-count ceiling is necessary and not sufficient, and what
 decides the outcome is two things a count cannot express.**

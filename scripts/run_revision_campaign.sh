@@ -19,6 +19,17 @@ run() {
     tail -3 "$LOG/$name.log"
 }
 
+# The tiling search runs first: every later sweep times the dense configuration
+# it finds, so that no ratio anywhere in the manuscript is quoted against a
+# dense kernel weaker than the best one the manuscript itself reports.
+run autotune_small scripts/autotune_kernels.py --device "$DEV" \
+    --n-list 48 96 --k-list 1 2 4 8 --d-list 16 --reps 40 \
+    --out results/autotune_small.json
+
+run autotune scripts/autotune_kernels.py --device "$DEV" \
+    --n-list 192 384 512 --k-list 1 2 4 8 16 --d-list 16 32 64 128 \
+    --reps 30 --out results/autotune.json
+
 # Sparsity, agent count, and forward against backward, at the head width the
 # manuscript's headline configuration uses.
 run core_d16 scripts/bench_attention_core.py --device "$DEV" \
@@ -36,7 +47,7 @@ run core_dsweep scripts/bench_attention_core.py --device "$DEV" \
 run core_batch scripts/bench_attention_core.py --device "$DEV" \
     --n-list 96 192 512 --k-list 1 2 4 8 16 --d-list 16 \
     --batch-list 32 1024 \
-    --impls dense_unfused dense_fused dense_triton topk_gather \
+    --impls dense_unfused dense_fused dense_triton dense_tuned topk_gather \
             topk_fused_gather \
     --reps 40 --runs 3 --out results/attention_core_batch.json
 
@@ -46,8 +57,8 @@ run core_batch scripts/bench_attention_core.py --device "$DEV" \
 run core_sort scripts/bench_attention_core.py --device "$DEV" \
     --n-list 12 24 48 96 192 384 512 --k-list 1 2 4 8 16 32 64 128 \
     --d-list 16 --batch-list 256 --reps 60 --runs 3 \
-    --impls dense_fused dense_triton topk_gather topk_fused_gather \
-            topk_fused_masked topk_fused_sort \
+    --impls dense_fused dense_triton dense_tuned topk_gather \
+            topk_fused_gather topk_fused_masked topk_fused_sort \
     --out results/attention_core_sort.json
 
 # Per-stage arithmetic, traffic, intensity and attainment.
@@ -70,11 +81,10 @@ run training_step scripts/bench_training_step.py --device "$DEV" \
 run roofline scripts/roofline.py --devices "$DEV" cpu \
     --out results/roofline.json
 
-# Both kernels over the same tiling space, with what each attains of the
-# machine. This is what decides whether the crossover is about the algorithm.
-run autotune scripts/autotune_kernels.py --device "$DEV" \
-    --n-list 192 384 512 --k-list 1 2 4 8 16 --d-list 16 32 64 128 \
-    --reps 30 --out results/autotune.json
+# The pre-score sweep again, for the same reason.
+run prescore_repeat scripts/bench_prescore.py --device "$DEV" \
+    --n-list 48 96 192 384 512 --k-list 2 4 8 16 --reps 50 --runs 3 \
+    --out results/prescore_repeat.json
 
 # The headline sweep again, hours later, to establish which agent counts
 # reproduce. No claim in the paper is read off one that does not.

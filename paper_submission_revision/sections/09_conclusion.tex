@@ -39,14 +39,17 @@ operation count by up to two orders of magnitude. Composed from library
 operators, both are slower than dense attention and we would have reported the
 escape as a failure. Written as a fused kernel --- one key row and one value row
 read per retained peer, a running maximum, nothing else written --- the same
-attention is up to eighteen times faster than the best dense implementation we
-have, and improves with the agent count exactly as the accounting predicts.
+attention is up to seventeen times faster than the best dense implementation
+we have, and improves with the agent count exactly as the accounting predicts.
 
 What then decides the outcome is the selector, and the two we tried diverge. One
 reaches its decision by ranking a pairwise matrix of its own, reproducing the
 cost it was introduced to avoid, and its path falls further behind as the agent
 count grows. The other is sub-quadratic and flat in cost, and its path overtakes
-dense attention at a few hundred agents and keeps improving. Neither condition
+dense attention at the largest agent count we measure, where retaining two or
+four peers of five hundred is about ten per cent faster end to end than the best
+dense attention we can obtain --- a margin the sweep reproduces, at the edge of
+the range we can measure, and gone by sixteen retained peers. Neither condition
 is sufficient alone: a cheap selector with a composed attention stage loses, and
 a fused attention stage behind a quadratic selector loses.
 

@@ -164,18 +164,28 @@ path is that a composed constant is an upper bound rather than a property of the
 design, and applying that standard to the mechanism the paper criticises but not
 to the mechanism it proposes would be incoherent.
 
-**Result** (four retained peers unless stated, every ratio against the better of
-the two dense kernels). Composed, the attention stage is slower than dense
-attention at every configuration but one, by 0.97 to 5.11 times. Fused, it is
-faster at every agent count: 0.78, 0.38, 0.24, 0.11 and 0.09 times dense from 48
-to 512 agents, with a best case of 0.055 — eighteen times faster than dense — at
-512 agents and two retained peers. Fusing is worth 3.8 to 17.5 times, and the
-factor grows with the agent count. End to end the selector decides the outcome.
-The Z-order selector costs 0.094 to 0.140 ms across the whole range, so its
-share falls as attention grows, and the whole path costs 13.6, 7.5, 3.7, 1.20
-and 0.80 times dense from 48 to 512 agents: it crosses below dense attention at
-512. The nearest-neighbour selector materialises and ranks an N x N distance
-matrix, so its path rises from 6.7 to 29.1 times dense over the same range.
+**Result** (every ratio against the best of the vendor library, our own dense
+kernel, and our own dense kernel at the tiling the search found). Composed, the
+attention stage is slower than dense attention at all 40 configurations, by 1.03
+to 6.25 times. Fused, it is faster at every agent count at the two sparsest
+settings: at two retained peers 0.67, 0.35, 0.19, 0.08 and 0.06 times dense from
+48 to 512 agents, and at four 0.76, 0.43, 0.25, 0.12 and 0.09. Best case 0.060 —
+nearly seventeen times faster — at 512 agents and two retained peers. At sixteen
+retained peers the advantage is gone at the smallest agent count (1.26 behind the
+Z-order selector, 1.58 behind the nearest-neighbour one). Fusing is worth 3.9 to
+17.4 times, and the factor grows with the agent count. End to end the selector
+decides the outcome. The Z-order selector costs 0.096 to 0.140 ms across the
+whole range, so its share falls as attention grows, and at four retained peers
+the whole path costs 16.8, 8.8, 4.0, 1.28 and 0.91 times dense from 48 to 512
+agents: it crosses below dense attention at 512, by about ten per cent, at two
+and four retained peers, is level at eight (1.01) and behind at sixteen (1.17).
+The nearest-neighbour selector materialises and ranks an N x N distance matrix,
+so its path rises to 30.8 times dense.
+
+**Reproducibility.** The sweep was run twice. Median movement in the ratio
+between runs is 0.7%, worst 8.5%; at 512 agents median 0.8% and worst 3.6%, and
+the four cells the crossing is read off agree to within 1.5%. The margin is
+small but it is not noise. `results/prescore_repeat.json`.
 
 **How it changes the manuscript.** It supplies the escape case the reviewer
 asked for, and it is the paper's constructive result: escaping the
@@ -194,7 +204,7 @@ The second, corrected against the right baseline but still composed from library
 operators, reported that the attention stage is never faster than dense and
 attributed this to the gathered operand having lost the shape the hardware
 multiplies quickly. The fused kernel refutes that explanation: over the same
-gathered peer sets it is up to eighteen times faster than dense attention, so
+gathered peer sets it is up to seventeen times faster than dense attention, so
 what was being measured was the composition and not the shape.
 
 ## 7. Head width to 512, and batch over a thirty-twofold range
@@ -311,15 +321,22 @@ retain different peers; the verifier counts the diverging query rows and
 classifies the divergence as a tie only when no more rows diverge than have a
 tie.
 
-**Result.** The kernel is flat in k as designed: 0.184 to 0.186 ms from one to
-sixteen retained peers at 192 agents, against 0.026 to 0.206 ms for the argmax
-kernel over the same range. It is also 5.0 times dense attention across that
-whole range. It becomes the faster of the two fused sparse kernels only from
-sixteen retained peers upward, where both already cost more than five times
-dense. At 384 and 512 agents it costs twelve to fifteen times dense at every
-sparsity below thirty-two retained peers, because a row-wide sort needs the
-whole score row resident and the block of queries that can share a program
-shrinks as the row grows.
+**Result.** Selection is independent of k as designed; what remains of the
+kernel's growth in k is the aggregation, which reads exactly k value rows. At
+192 agents it runs in 0.164 ms at one retained peer and 0.186 ms at sixteen — a
+rise of 14% — against an eightfold rise for the argmax kernel over the same
+range. It is also five times dense attention across that range, and it overtakes
+the argmax kernel only at sixteen retained peers, where both already cost more
+than five times dense. At 384 and 512 agents it is thirteen to sixteen times
+dense at every sparsity below thirty-two retained peers, because a row-wide sort
+needs the whole score row resident and the block of queries that can share a
+program shrinks as the row grows.
+
+An earlier version of this kernel padded the aggregation axis to a floor of 16,
+so for k below 16 it read 16 value rows and its cost was flat in k by
+construction rather than by design. The floor is now the power of two the block
+axis requires and nothing more, which is what makes the sentence above a
+measurement.
 
 **How it changes the manuscript.** The claim that we could not obtain both
 properties is withdrawn and replaced by a measurement: both can be obtained, and
@@ -354,10 +371,43 @@ pre-score artifact reports, both selectors, in
 `scripts/verify_all_configurations.py`.
 
 **Result and consequence.** Reported under experiment 6. The negative result was
-an artifact of the composition: fused, the same attention is up to eighteen
-times faster than the best dense implementation, and the Z-order path crosses
-below dense attention end to end at 512 agents. The explanation the manuscript
+an artifact of the composition: fused, the same attention is up to nearly
+seventeen times faster than the best dense implementation, and the Z-order path
+crosses below dense attention end to end at 512 agents with at most four
+retained peers. The explanation the manuscript
 gave for the negative result is withdrawn.
+
+## 13. Every ratio re-quoted against the searched dense kernel
+
+**Question.** Section 4 commits the paper to quoting each crossover against the
+better of the vendor library and a search over roughly a hundred tilings of our
+own dense kernel. The pre-score and sorted-select sweeps quoted against the
+vendor library and our own kernel at its *default* tiling, which at head width
+16 is 5 to 9 per cent slower than the tiling the search finds. That applies a
+weaker standard to the mechanism the paper proposes than to the one it
+criticises.
+
+**Action.** `dense_tuned` is now an implementation in both benchmark harnesses:
+it reads the winning configuration out of the search artifact and re-times it
+inside the same interleaved group as everything else, so no ratio is a ratio
+between sessions. The tiling search was extended to 48 and 96 agents
+(`results/autotune_small.json`) so that every agent count the pre-score sweep
+reports has a searched configuration. All sweeps were re-run.
+
+**Result.** The negative result is unchanged in substance: at one retained peer
+the fused sparse kernel is still faster than the best dense implementation
+(0.76, 0.94 and 0.80 times it at 192, 384 and 512 agents, against 0.71, 0.86 and
+0.74 before), and it is still slower everywhere else. The escape case is
+weakened and survives: the best pre-score attention stage goes from 18.1 to 16.8
+times faster than dense, and the end-to-end crossing at 512 agents from 0.76 to
+0.90 — about ten per cent rather than about twenty-five.
+
+**Also.** The tiling search was run a second time, on the other card of the same
+host (`results/autotune_repeat.json`). It selects the same configuration at 63
+of 72 shapes, and at head width 16 — where every crossover in the paper lives —
+at every shape. The absolute times differ by up to 70% between the two sessions,
+which is the contention this host carries and the reason no latency is quoted
+from the search's own session.
 
 ---
 

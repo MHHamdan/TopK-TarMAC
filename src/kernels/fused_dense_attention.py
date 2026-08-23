@@ -103,7 +103,9 @@ def _next_pow2(x: int) -> int:
 
 def fused_dense_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor,
                           block_m: int | None = None,
-                          block_kn: int | None = None) -> torch.Tensor:
+                          block_kn: int | None = None,
+                          num_warps: int | None = None,
+                          num_stages: int | None = None) -> torch.Tensor:
     """Streaming dense self-attention with the diagonal masked."""
     B, N, d = q.shape
     q, k, v = q.contiguous(), k.contiguous(), v.contiguous()
@@ -117,7 +119,7 @@ def fused_dense_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor,
     block_m, block_kn = min(block_m, npn), min(block_kn, npn)
     # Shrink the tiles until the key and value blocks and the accumulator fit
     # the SM's shared-memory budget, rather than failing at the widest head.
-    stages = 2
+    stages = 2 if num_stages is None else num_stages
     while (2 * block_kn * bd + block_m * bd) * 4 * stages > 80_000:
         if stages > 1:
             stages = 1
@@ -136,6 +138,7 @@ def fused_dense_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor,
         out.stride(0), out.stride(1), out.stride(2),
         N, 1.0 / (d ** 0.5),
         BLOCK_M=block_m, BLOCK_KN=block_kn, BLOCK_D=bd, HEAD_D=d,
-        num_warps=4, num_stages=stages,
+        num_warps=4 if num_warps is None else num_warps,
+        num_stages=stages,
     )
     return out

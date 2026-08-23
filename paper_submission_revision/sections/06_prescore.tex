@@ -27,10 +27,13 @@ ratio is against the faster of the library dense kernel and our own.
 
 \begin{table}[t]
 \centering\small
-\caption{Selecting before scoring, at \PrescoreK{} retained peers. Composing the
-attention stage from library operators costs an order of magnitude more than
-fusing it, and the difference decides the conclusion: composed, the attention is
-slower than dense attention; fused, it is up to eleven times faster.}
+\caption{Selecting before scoring, at \PrescoreK{} retained peers, every ratio
+against the better of the vendor library and our own dense kernel at the tiling
+the search of Section~\ref{sec:fused} found. Composing the attention stage from
+library operators costs an order of magnitude more than fusing it, and the
+difference decides the conclusion: composed, the attention is slower than dense
+attention at every configuration measured; fused, it is up to seventeen times
+faster.}
 \label{tab:prescore}
 \resizebox{\linewidth}{!}{\input{tables/prescore}}
 \end{table}
@@ -38,45 +41,55 @@ slower than dense attention; fused, it is up to eleven times faster.}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig5_prescore.pdf}
-\caption{\textbf{Left:} the operation-count saving Proposition~\ref{prop:escape}
-promises, which for the sub-quadratic selector tracks $N/k$. \textbf{Right:}
-what the same configurations cost. Fused, the attention over pre-chosen peers is
-several times faster than dense attention and improves with the agent count; the
-total is then governed by the selector, and the two selectors diverge.}
+\caption{\textbf{Left:} the operation-count saving
+Proposition~\ref{prop:escape} promises, which for the sub-quadratic selector
+tracks $N/k$. \textbf{Middle:} what the same configurations cost. Fused, the
+attention over pre-chosen peers is more than an order of magnitude faster than
+dense attention at the largest agent count, and the total is then governed by
+the selector, which is where the two selectors diverge. \textbf{Right:} how far
+the end-to-end crossing extends. It holds at two and four retained peers, is
+level with dense at eight and gone by sixteen.}
 \label{fig:prescore}
 \end{figure}
 
-Fused, the escape delivers. Attention over an already-chosen peer set is faster
-than the best dense implementation at every agent count, and the margin widens
-with scale: at four retained peers it costs $0.78$, $0.38$, $0.24$, $0.11$ and
-$0.09$ times dense attention from $48$ to $512$ agents, and its best case over
-the grid is $0.055$ --- eighteen times faster than dense --- at $512$ agents and
-two retained peers. That is what Proposition~\ref{prop:escape} predicts once the
-score term shrinks with the aggregation, and no score-then-select implementation
+Fused, the escape delivers, and how much of it depends on how many peers are
+kept. At two retained peers the attention stage costs $0.67$, $0.35$, $0.19$,
+$0.08$ and $0.06$ times dense attention from $48$ to $512$ agents; at four,
+$0.76$, $0.43$, $0.25$, $0.12$ and $0.09$. The best case over the grid is
+$0.060$, nearly seventeen times faster than dense, at $512$ agents and two
+retained peers. The advantage narrows as $k$ grows and at sixteen retained peers
+it has gone at the smallest agent count, where the stage costs $1.26$ times
+dense behind the Z-order selector and $1.58$ behind the nearest-neighbour one,
+whose retained rows are scattered rather than adjacent. That shape is what Proposition~\ref{prop:escape} predicts once the score
+term shrinks with the aggregation, and no score-then-select implementation
 anywhere in this paper comes close to it at any sparsity, because none of them
 can remove the score term.
 
 Composed from library operators, the same stage is slower than dense attention
-at every configuration but one, by $0.97$ to $5.11$ times; fusing it is worth
-between $3.8$ and $17.5$ times, and the factor grows with the agent count
-because the gathered tensor the composition writes and re-reads grows with it.
-We report both columns because the composed one is what we measured before
+at every one of the forty configurations, by $1.03$ to $6.25$ times. Fusing it
+is worth between $3.9$ and $17.4$ times, and the factor grows with the agent
+count because the gathered tensor the composition writes and re-reads grows with
+it. We report both columns because the composed one is what we measured before
 writing the kernel, and on its own it supports the opposite conclusion.
 
 What decides the total is the selector, and the two behave oppositely. The
-Z-order selector's cost is nearly flat in the agent count --- $0.094$ to
+Z-order selector's cost is nearly flat in the agent count --- $0.096$ to
 $0.140$\,ms across the range --- so as attention grows more expensive the
 selector's share of the path falls: at four retained peers the whole path costs
-$13.6$, $7.5$, $3.7$, $1.20$ and $0.80$ times dense attention from $48$ to $512$
+$16.8$, $8.8$, $4.0$, $1.28$ and $0.91$ times dense attention from $48$ to $512$
 agents. At $512$ agents, selecting before scoring and executing both stages in
-kernels written for them is faster end to end than the best dense attention we
-can obtain, and the trend is still improving. The nearest-neighbour selector
-moves the other way. It materialises an $N \times N$ distance matrix and ranks it
---- the same two operations, on the same shape, that
-Proposition~\ref{prop:ceiling} says a score-then-select rule cannot avoid --- so
-beyond $96$ agents its cost grows quadratically and the path it belongs to rises
-from $6.7$ to $29.1$ times dense, with the fused attention stage making no
-difference to that outcome.
+kernels written for them is about ten per cent faster end to end than the best
+dense attention we can obtain, and the trend is still improving. That crossing
+is the whole of it: it holds at two and at four retained peers, the path is
+level with dense at eight ($1.01$) and behind it at sixteen ($1.17$), and at
+$384$ agents it is behind at every sparsity. Both runs of the sweep put the
+crossing cells within one and a half per cent of each other, so the margin is
+small but not noise. The nearest-neighbour selector moves the other way. It
+materialises an $N \times N$ distance matrix and ranks it --- the same two
+operations, on the same shape, that Proposition~\ref{prop:ceiling} says a
+score-then-select rule cannot avoid --- so beyond $96$ agents its cost grows
+quadratically and the path it belongs to rises to $30.8$ times dense, with the
+fused attention stage making no difference to that outcome.
 
 Three things follow, and together they are the paper's constructive result.
 

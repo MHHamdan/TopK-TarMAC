@@ -163,7 +163,7 @@ def _matrix(ax, keep, diag, face, show_all: bool, ghost: bool = False,
 def _best_dense(rows, N: int) -> float:
     cands = [r["forward"]["min_ms"] for r in rows
              if r["n_agents"] == N and r["impl"] in
-             ("dense_fused", "dense_triton")]
+             ("dense_fused", "dense_triton", "dense_tuned")]
     return min(cands)
 
 
@@ -370,47 +370,51 @@ def fig_prescore() -> None:
     payload = load("prescore.json")
     rows = payload["rows"]
     ns = sorted({r["n_agents"] for r in rows})
-    k_show = sorted({r["k"] for r in rows})[1]
+    ks = sorted({r["k"] for r in rows})
+    k_show = ks[0]
+    n_show = ns[-1]
 
-    fig, axes = plt.subplots(1, 2, figsize=(W, 2.5),
-                             gridspec_kw={"wspace": 0.30})
+    fig, axes = plt.subplots(1, 3, figsize=(W, 2.5),
+                             gridspec_kw={"wspace": 0.42})
 
+    def dense_of(p):
+        return p.get("t_dense_best_ms", p["t_dense_fused_ms"])
+
+    def series(sel, field, k=k_show):
+        pts = sorted([r for r in rows if r["selector"] == sel and r["k"] == k],
+                     key=lambda r: r["n_agents"])
+        return ([p["n_agents"] for p in pts],
+                [p[field] / dense_of(p) for p in pts])
+
+    # ---- what the count promises -----------------------------------------
     ax = axes[0]
     for sel in ("radius_knn", "morton_window"):
-        pts = [r for r in rows if r["selector"] == sel and r["k"] == k_show]
-        pts.sort(key=lambda r: r["n_agents"])
+        pts = sorted([r for r in rows if r["selector"] == sel
+                      and r["k"] == k_show], key=lambda r: r["n_agents"])
         if not pts:
             continue
-        st = fs.style(sel)
         ax.plot([p["n_agents"] for p in pts],
-                [p["flop_ratio_vs_dense"] for p in pts], markersize=4.0, **st)
-    pts = [r for r in rows if r["selector"] == "morton_window"
-           and r["k"] == k_show]
-    pts.sort(key=lambda r: r["n_agents"])
+                [p["flop_ratio_vs_dense"] for p in pts], markersize=4.0,
+                **fs.style(sel))
+    pts = sorted([r for r in rows if r["selector"] == "morton_window"
+                  and r["k"] == k_show], key=lambda r: r["n_agents"])
     if pts:
         ax.plot([p["n_agents"] for p in pts],
                 [p["n_agents"] / p["k"] for p in pts], color=fs.MUTED_COLOR,
                 linestyle=(0, (1, 1.5)), marker=None, label="$N/k$")
     ax.set_xscale("log", base=2); ax.set_yscale("log")
-    ax.set_xticks(ns); ax.set_xticklabels([str(n) for n in ns])
+    # 384 and 512 are close enough on a log axis that their labels collide, so
+    # the intermediate one keeps its tick and loses its label.
+    ticks = [n for n in ns if n != 384]
+    ax.set_xticks(ticks); ax.set_xticklabels([str(n) for n in ticks])
     ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.set_xlabel("agents $N$")
     ax.set_ylabel("operations saved ($\\times$)")
-    ax.set_title(f"what the count promises ($k={k_show}$)", pad=4)
+    ax.set_title(f"the count promises ($k={k_show}$)", pad=4)
     ax.legend(fontsize=fs.MIN_PT, loc="lower right", handlelength=2.2)
 
+    # ---- what the clock delivers, against N ------------------------------
     ax = axes[1]
-
-    def series(sel, field):
-        pts = [r for r in rows if r["selector"] == sel and r["k"] == k_show]
-        pts.sort(key=lambda r: r["n_agents"])
-        dense = [p.get("t_dense_best_ms", p["t_dense_fused_ms"]) for p in pts]
-        return ([p["n_agents"] for p in pts],
-                [p[field] / d for p, d in zip(pts, dense)])
-
-    # The composed form of the same computation, so that the distance between
-    # the two Z-order curves is the cost of the composition rather than of the
-    # algorithm.
     x, y = series("morton_window", "t_total_ms")
     if x:
         ax.plot(x, y, color=fs.MUTED_COLOR, linestyle=(0, (2, 1.5)),
@@ -418,29 +422,57 @@ def fig_prescore() -> None:
                 linewidth=0.9, label="Z-order, composed")
     for sel in ("radius_knn", "morton_window"):
         x, y = series(sel, "t_total_fused_ms")
-        if not x:
-            continue
-        st = fs.style(sel)
-        ax.plot(x, y, markersize=4.0, **st)
-    # The attention stage alone, with the selector charged to nothing. This is
-    # the quantity the operation count is about, so it belongs on the plot the
-    # count is compared against.
+        if x:
+            ax.plot(x, y, markersize=4.0, **fs.style(sel))
     x, y = series("morton_window", "t_attention_fused_ms")
     if x:
-        ax.plot(x, y, color="#444444", linestyle=(0, (1, 1)),
-                marker="o", markersize=3.6, markerfacecolor="white",
+        ax.plot(x, y, color="#444444", linestyle=(0, (1, 1)), marker="o",
+                markersize=3.6, markerfacecolor="white",
                 label="attention only, selector free")
     fs.parity_line(ax)
     ax.set_xscale("log", base=2); ax.set_yscale("log")
-    ax.set_xticks(ns); ax.set_xticklabels([str(n) for n in ns])
+    ax.set_xticks(ticks); ax.set_xticklabels([str(n) for n in ticks])
     ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.set_xlabel("agents $N$")
     ax.set_ylabel("latency / best dense")
-    ax.set_title("what the clock delivers", pad=4)
-    ax.set_ylim(top=ax.get_ylim()[1] * 3.2)
+    ax.set_title(f"the clock delivers ($k={k_show}$)", pad=4)
+    ax.set_ylim(top=ax.get_ylim()[1] * 3.6)
     ax.legend(fontsize=fs.MIN_PT, loc="upper center", ncol=1,
               handlelength=2.2, borderpad=0.1, labelspacing=0.22)
     fs.parity_line(ax, label="dense")
+
+    # ---- and how far the crossing extends in k ---------------------------
+    # The end-to-end crossing exists only at the sparsest settings, so the
+    # panel that shows how far it extends belongs beside the one that shows it.
+    # The nearest-neighbour path is thirty times dense here and would flatten
+    # everything else against the axis, so this panel carries the selector that
+    # crosses and the stage the crossing is made of.
+    ax = axes[2]
+    pts = sorted([r for r in rows if r["selector"] == "morton_window"
+                  and r["n_agents"] == n_show], key=lambda r: r["k"])
+    if pts:
+        ax.plot([p["k"] for p in pts],
+                [p["t_total_fused_ms"] / dense_of(p) for p in pts],
+                markersize=4.0, **fs.style("morton_window"))
+    pts = sorted([r for r in rows if r["selector"] == "morton_window"
+                  and r["n_agents"] == n_show], key=lambda r: r["k"])
+    if pts:
+        ax.plot([p["k"] for p in pts],
+                [p["t_attention_fused_ms"] / dense_of(p) for p in pts],
+                color="#444444", linestyle=(0, (1, 1)), marker="o",
+                markersize=3.6, markerfacecolor="white",
+                label="attention only, selector free")
+    fs.parity_line(ax, label="dense")
+    ax.set_xscale("log", base=2); ax.set_yscale("log")
+    ax.set_xticks(ks); ax.set_xticklabels([str(k) for k in ks])
+    ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
+    ax.set_xlabel("retained peers $k$")
+    ax.set_ylabel("latency / best dense")
+    ax.set_title(f"extent in $k$ (${n_show}$ agents)", pad=4)
+    ax.set_ylim(0.035, 3.0)
+    ax.legend(fontsize=fs.MIN_PT, loc="lower right", handlelength=2.2,
+              borderpad=0.1, labelspacing=0.22)
+
     fs.savefig(fig, OUT / "fig5_prescore.pdf", W)
     plt.close(fig)
 

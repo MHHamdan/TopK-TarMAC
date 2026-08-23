@@ -45,6 +45,28 @@ from src.kernels.fused_prescore_attention import (  # noqa: E402
     fused_prescore_attention)
 
 
+def tuned_dense(N: int, d: int, batch: int) -> dict[str, int] | None:
+    """The best dense tiling the manuscript's own search found at this shape.
+
+    Section 4 quotes every crossover against the better of the vendor library
+    and a searched dense kernel. Quoting the pre-score results against an
+    untuned dense kernel would apply a weaker standard to the mechanism this
+    paper proposes than to the one it criticises, so the same searched
+    configuration is used here.
+    """
+    best = None
+    for name in ("autotune.json", "autotune_small.json"):
+        f = ROOT / "results" / name
+        if not f.exists():
+            continue
+        for r in json.loads(f.read_text())["rows"]:
+            if (r.get("kind") == "dense" and r["n_agents"] == N
+                    and r["head_dim"] == d and r["batch"] == batch):
+                if best is None or r["best"]["ms"] < best["ms"]:
+                    best = r["best"]
+    return best["cfg"] if best else None
+
+
 def _stats(s: list[float]) -> dict[str, float]:
     s = sorted(s)
     q = statistics.quantiles(s, n=4) if len(s) >= 4 else [s[0]] * 3
@@ -132,6 +154,13 @@ def main() -> int:
         def dense_triton():
             return fused_dense_attention(q, kt, v)
 
+        cfg = tuned_dense(N, d, B)
+
+        def dense_tuned(cfg=cfg):
+            return fused_dense_attention(
+                q, kt, v, block_m=cfg["BLOCK_M"], block_kn=cfg["BLOCK_KN"],
+                num_warps=cfg["num_warps"], num_stages=cfg["num_stages"])
+
         for k in args.k_list:
             if k >= N:
                 continue
@@ -151,6 +180,8 @@ def main() -> int:
                 "dense_triton": dense_triton,
                 "topk_gather": gathered,
             }
+            if cfg is not None:
+                fns["dense_tuned"] = dense_tuned
             for sel_name, sel in SELECTORS.items():
                 fns[f"sel:{sel_name}"] = (lambda s=sel, k=k: s(pos, k))
                 fns[f"total:{sel_name}"] = (
@@ -186,18 +217,43 @@ def main() -> int:
                     "t_dense_unfused_ms": timed["dense_unfused"]["min_ms"],
                     "t_dense_fused_ms": timed["dense_fused"]["min_ms"],
                     "t_dense_triton_ms": timed["dense_triton"]["min_ms"],
+                    "t_dense_tuned_ms": (timed["dense_tuned"]["min_ms"]
+                                         if cfg is not None else None),
+                    "dense_tuned_cfg": cfg,
                     # The baseline every ratio is quoted against: the better of
                     # the library fused path and a dense kernel written in the
                     # same framework as the selectors' attention stage. Quoting
                     # against the library alone would be the pitfall this paper
                     # names in its own measurement-error section.
-                    "t_dense_best_ms": min(timed["dense_fused"]["min_ms"],
-                                           timed["dense_triton"]["min_ms"]),
+                    "t_dense_best_ms": min(
+                        [timed["dense_fused"]["min_ms"],
+                         timed["dense_triton"]["min_ms"]]
+                        + ([timed["dense_tuned"]["min_ms"]]
+                           if cfg is not None else [])),
                     "t_topk_gather_ms": timed["topk_gather"]["min_ms"],
                     "flops": fl,
                     "flop_ratio_vs_dense": fl["dense_total"] / fl["total"],
+                    # Dispersion for every quantity a claim is read off, not
+                    # only for the composed total: the conclusions rest on the
+                    # fused columns, and a margin has to be compared against
+                    # the spread of the number that carries it.
                     "spread_pct": timed[f"total:{sel_name}"][
                         "inter_run_spread_pct"],
+                    "spread_pct_by_series": {
+                        series: timed[f"{series}:{sel_name}"][
+                            "inter_run_spread_pct"]
+                        for series in ("sel", "attn", "fused", "total",
+                                       "total_fused")},
+                    "dispersion": {
+                        series: {kk: timed[f"{series}:{sel_name}"][kk]
+                                 for kk in ("min_ms", "median_ms", "p25_ms",
+                                            "p75_ms")}
+                        for series in ("sel", "attn", "fused", "total",
+                                       "total_fused")},
+                    "dense_spread_pct": {
+                        nm: timed[nm]["inter_run_spread_pct"]
+                        for nm in ("dense_fused", "dense_triton")
+                        + (("dense_tuned",) if cfg is not None else ())},
                 })
                 r = rows[-1]
                 print(f"N={N:>4} k={k:<3} {sel_name:<14} "

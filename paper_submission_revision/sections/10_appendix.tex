@@ -63,17 +63,29 @@ regime on a contended device rather than of anything about attention, and it is
 why the crossover of Section~\ref{sec:fused} is reported only from $192$ agents
 upward even though the sweep measures smaller ones.
 
+The pre-score sweep of Section~\ref{sec:prescore} is repeated in the same way,
+and for a stronger reason: the crossing it reports is a margin of about ten per
+cent rather than a factor, and a margin of that size has to be shown to survive
+a second session before it can be reported at all. It does. The median movement
+in the ratio between the two runs is $0.7\%$ and the worst is $8.5\%$; at the
+agent count that carries the crossing the median is $0.8\%$ and the worst
+$3.6\%$, and the four cells the crossing itself is read off agree to within
+$1.5\%$. Unlike the core sweep, this one reproduces at every agent count it
+measures, which is why the section quotes it from $48$ agents upward.
+
 The repeat is on the same physical card, so it establishes stability across
 runs and hours, not independence from one device, and we were not able to
-obtain a second card free of other tenants. It covers the sweep of
-Section~\ref{sec:composed} and Section~\ref{sec:fused}'s figure; the tiling
-search of Table~\ref{tab:autotune} was run once, so the crossover it reports
-carries the reproducibility of a single session rather than of a repeat.
-Measurements were taken on both cards of this host --- the core sweeps, the
-search and the stage accounting on one, the head-width sweep and the
-pre-score measurements on the other --- and no cross-device calibration is
-claimed, which is a further reason no figure from one is divided by a figure
-from the other.
+obtain a second card free of other tenants. The tiling search of
+Table~\ref{tab:autotune} was run twice, once on each card of the host. The two
+searches select the same configuration at $63$ of the $72$ shapes they share,
+and at head width $16$ --- where every crossover this paper reports lives ---
+at every shape, while their absolute times differ by as much as $70\%$ with the
+contention each session carried. That is why no latency anywhere in the
+manuscript is taken from the search's own session: what the search contributes
+is a configuration, which every sweep then re-times in its own interleaved
+group. All measurements reported here
+were taken on one of the two cards of this host, and no cross-device calibration
+is claimed.
 
 \section{Implementation and measurement validation}
 \label{app:verification}
@@ -83,7 +95,7 @@ from the other.
 Every implementation is checked against the reference at every configuration
 whose latency any released artifact reports: $158$ combinations of agent count,
 head width and retained-peer count, $136$ of them with $k < N-1$ so that
-selection is actually exercised, over $1.23$ million query rows in total. The
+selection is actually exercised, over $1.25$ million query rows in total. The
 check matters more than it looks. Exact top-$k$ is discontinuous in the scores,
 so two implementations that accumulate the score product in different orders can
 rank a near-tied pair differently and aggregate over different peers, producing
@@ -101,16 +113,26 @@ than an error in an implementation. Exact top-$k$ is only well defined when the
 $k$-th largest score is unique. The kernel that selects by threshold retains
 every peer at or above that score, so a tie there gives it $k{+}1$ peers; the
 kernel that sorts score--index pairs breaks the same tie by peer index, which is
-not the order a rank-based selection uses. Four query rows in $1.23$ million
+not the order a rank-based selection uses. Four query rows in $1.25$ million
 have such a tie, at three of the $158$ configurations, and those rows are the
 only place any implementation differs from the reference by more than rounding.
-The check is run by \texttt{scripts/verify\_all\_configurations.py}, which
-counts how many query rows diverge as well as by how much, and admits a tie as
-the explanation only when no more rows diverge than have a tie. The fused
-kernel for attention over a pre-chosen peer set is checked the same way against
-the composed path it replaces, at all $40$ configurations of
+Two further rows appear in the head-width sweep, at $192$ agents and head width
+$128$, where the same two kernels differ from the reference by $1.7$ and $1.1$
+on one query row of $6144$ at each of two retained-peer counts; the $k$-th score
+on those rows is tied to the bit, so the divergence is the ambiguity and not an
+error. The check is run by
+\texttt{scripts/verify\_all\_configurations.py} and by the sweep harness
+itself, both of which count how many query rows diverge as well as by how much,
+and admit a tie as the explanation only when no more rows diverge than have a
+tie.
+
+The fused kernel for attention over a pre-chosen peer set is checked the same
+way against the composed path it replaces, at all $40$ configurations of
 Section~\ref{sec:prescore} and both selectors, over $315{,}392$ query rows, to
-a maximum deviation of $1.1\times10^{-6}$.
+a maximum deviation of $1.1\times10^{-6}$. Its timed call also converts the
+retained indices to the integer width the kernel reads them at, which the
+composed path does not need, so the figure we report for it includes a cost the
+comparison does not require of it.
 
 \subsection{What each implementation executes}
 
@@ -306,7 +328,11 @@ in the order the manuscript reports them;
 \texttt{scripts/make\_revision\_figures.py} regenerate every table and figure
 from those artifacts, so no tabular number in the manuscript is transcribed by
 hand; and \texttt{scripts/check\_revision\_numbers.py} re-derives the numbers
-that appear in prose and fails on any disagreement.
+that appear in prose and fails on any disagreement. The campaign runs the
+tiling search first, because every sweep after it re-times the dense
+configuration the search selects; that is what makes each ratio in this paper a
+ratio against the best dense implementation we have rather than against whichever
+one a given sweep happened to build.
 
 Three provenance caveats. The hardware description and the aggregate provenance
 record were written before this project's environment was upgraded and describe

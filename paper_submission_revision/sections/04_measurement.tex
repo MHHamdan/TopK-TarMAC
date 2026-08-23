@@ -4,7 +4,8 @@
 We time the communication path with the training loop removed. Timing uses
 on-device CUDA events with an explicit synchronisation on the pinned device, and
 any diagnostic that transfers a scalar to the host is disabled, because such a
-transfer synchronises the device inside the timed region. Implementations are timed interleaved repetition by repetition rather than in
+transfer synchronises the device inside the timed region. Implementations are
+timed interleaved repetition by repetition rather than in
 sequential blocks, so that interference from other tenants lands on all of
 them at once and their ratios stay paired; the sequential design produced
 swings above $100\%$ between identical configurations on this shared host. One
@@ -180,7 +181,8 @@ mechanism degenerates to copying the highest-scoring peer's value. The crossover
 is a fact about the cost model, not a recommendation.
 
 Why it is confined to narrow heads we cannot say from these measurements. Dense
-efficiency and head width move together in our data --- $30\%$ at $d{=}16$ rising
+efficiency and head width move together in our data --- $30\%$ at $d{=}16$
+rising
 to $77\%$ at $d{=}128$, as the score product becomes a better-shaped matrix
 multiply --- and no configuration we ran separates them, so ``the crossover
 disappears once dense attention is near the machine'' and ``the crossover
@@ -213,23 +215,25 @@ of by compaction --- so it performs the dense aggregation arithmetic whatever
 $k$ is.
 
 Whether both can be had at once is the obvious question, and they can
-(Table~\ref{tab:selection}). Packing
-each score against its own peer index in one machine word and sorting the row
-once yields the retained peers already compacted: the aggregation then reads
-exactly $k$ value rows, while selection costs a single bitonic sort whose depth
-is logarithmic in the agent count and independent of $k$. Measured, that kernel
-is flat in $k$ as intended --- $0.184$ to $0.186$\,ms from one to sixteen
-retained peers at $192$ agents --- and its aggregation is genuinely sparse. It is
-also five times slower than dense attention across that whole range, and slower
-than the argmax kernel below sixteen retained peers; above sixteen it is the
-faster of the two, but by then both cost more than five times dense attention.
-Having both properties does not help. The sort that buys independence from $k$
-costs more than the argmax rounds it replaces throughout the range in which
-sparsity would otherwise pay, and it is worse at larger agent counts: at $384$
-and $512$ agents the sorted kernel costs twelve to fifteen times dense attention
-at every sparsity below thirty-two retained peers, because a row-wide sort needs
-the whole row resident and the block of queries that can hold it shrinks as the
-row grows.
+(Table~\ref{tab:selection}). Packing each score against its own peer index in
+one machine word and sorting the row once yields the retained peers already
+compacted: the aggregation then reads exactly $k$ value rows, while selection
+costs a single bitonic sort, whose depth grows with the agent count alone and
+not at all with $k$. That is visible in what the kernel costs. At $192$ agents
+it runs in $0.164$\,ms at one retained peer and $0.185$\,ms at sixteen, a rise
+of thirteen per cent, against an eightfold rise for the argmax kernel over the
+same range; what remains of the growth is the aggregation, which is linear in
+$k$ by construction, and not the selection.
+
+It is also five times the cost of dense attention across that whole range, and
+it overtakes the argmax kernel only at sixteen retained peers, where both
+already cost more than five times dense. At $384$ and $512$ agents it is worse
+still, thirteen to sixteen times dense at every sparsity below thirty-two
+retained peers, because a row-wide sort needs the whole score row resident and
+the block of queries that can share a program shrinks as the row grows. Having
+both properties does not help. The sort that buys independence from $k$ costs
+more than the argmax rounds it replaces throughout the range in which sparsity
+would otherwise pay.
 
 The second obstacle is available to dense attention and not to exact
 score-then-select. Dense attention can stream keys and values in blocks with an
@@ -243,7 +247,8 @@ chooses for the sparse kernel is narrower at every size.
 \subsection{Sensitivity to head width and batch}
 \label{sec:sensitivity}
 
-Across head widths to $512$, the crossover exists only at the two narrowest: the best sparse implementation is faster
+Across head widths to $512$, the crossover exists only at the two narrowest:
+the best sparse implementation is faster
 than the best dense one at head widths $16$ and $32$ at every agent count, and
 at no agent count for head width $128$ or above, where it is roughly twice as
 slow (Appendix~\ref{app:grid}). The ratio does not fall monotonically with head
@@ -267,7 +272,12 @@ ratio of per-element costs.
 \caption{Per-stage accounting for both paths at $N{=}\StagesN$. The
 last column is the fraction of whichever machine limit binds the stage, and it
 separates a stage that is badly implemented from one doing the only thing its
-access pattern permits. The byte counts are analytic and count each tensor once, so a figure above $100\%$ marks a stage whose working set is partly served from cache. That happens for the softmax stages here and, at smaller agent counts, for the gather; it bounds the model's error at around $+50$ percentage points, which is larger than several of the gaps in the column and is why we do not read small differences off it.
+access pattern permits. The byte counts are analytic and count each tensor
+once, so a figure above $100\%$ marks a stage whose working set is partly
+served from cache. That happens for the softmax stages here and, at smaller
+agent counts, for the gather; it bounds the model's error at around $+50$
+percentage points, which is larger than several of the gaps in the column and
+is why we do not read small differences off it.
 \StagesCaption}
 \label{tab:stages}
 \input{tables/stages}
@@ -284,10 +294,15 @@ each stage runs to the machine limit that binds it.}
 
 Low arithmetic intensity in a batched matrix--vector product is the natural
 explanation for the sparse contraction's slowness, and it is not the right one.
-Timed in isolation and charged with its own arithmetic and traffic, both aggregations sit near the bandwidth the device attains on a large copy --- $93\%$ for the sparse contraction and $81\%$ for the dense multiply it replaces (Table~\ref{tab:stages}). The gap between them is smaller than the byte model's own
+Timed in isolation and charged with its own arithmetic and traffic, both
+aggregations sit near the bandwidth the device attains on a large copy ---
+$93\%$ for the sparse contraction and $81\%$ for the dense multiply it
+replaces (Table~\ref{tab:stages}). The gap between them is smaller than the
+byte model's own
 error, so the model cannot order the two; what it does establish is that neither
 sits on a worse hardware path. The sparse one is slower because it moves about
-four times the bytes, since the compacted operand carries $kd$ elements per query where the
+four times the bytes, since the compacted operand carries $kd$ elements per
+query where the
 score row carries $N$. The corrected account is simpler, checkable before the
 code is written, and it is the $kd \le N$ criterion of
 Section~\ref{sec:composed}.
@@ -321,7 +336,8 @@ configurations produced a difference a backward pass cannot have.}
 Every latency reported so far is a forward pass, which for a training claim is
 half the question. Timing forward and backward under the same protocol leaves
 the ordering intact and roughly a third of the margin
-(Table~\ref{tab:backward}). The gathered path's backward costs about half its own forward, because the
+(Table~\ref{tab:backward}). The gathered path's backward costs about half its
+own forward, because the
 expensive stage --- selection --- has almost no adjoint: the retained indices
 are recorded in the forward pass and the backward is a scatter of gradients
 into them. Dense attention's backward costs several times its forward. At
@@ -348,7 +364,9 @@ phase, with the communication implementation swapped and everything else fixed,
 puts the environment and per-step action selection at $78\%$ of the iteration at
 six agents and $96\%$ at twenty-four, and leaves all five implementations within
 $2\%$ of one another at every agent count, against an iteration-to-iteration
-spread of $0.8$ to $7.3\%$ (Table~\ref{tab:trainstep}). The ordering among the five is not stable: the communication-free variant, which performs no attention at all, is fourth of five at six agents and at
+spread of $0.8$ to $7.3\%$ (Table~\ref{tab:trainstep}). The ordering among the
+five is not stable: the communication-free variant, which performs no
+attention at all, is fourth of five at six agents and at
 twenty-four, and the gathered sparse implementation is the fastest of the
 five at twenty-four. This does not resolve the implementations as equal; it
 fails to resolve them at all, which is the useful description as well as the

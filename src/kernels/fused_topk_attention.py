@@ -508,7 +508,11 @@ def fused_topk_attention_sort(q: torch.Tensor, k: torch.Tensor,
     q, k, v = q.contiguous(), k.contiguous(), v.contiguous()
     out = torch.empty_like(q)
     bn, bd = _next_pow2(N), max(16, _next_pow2(d))
-    bk = max(16, _next_pow2(topk))
+    # Exactly the retained peers, rounded only to the power of two the block
+    # axis requires. A floor of 16 here would make the aggregation read 16 value
+    # rows whatever k is, which would make the cost flat in k by construction
+    # rather than by design and would misreport what the kernel does.
+    bk = _next_pow2(topk)
     bdc = max(16, min(bd, 32768 // (bn * 4)))
     if block_m is None:
         # The sort holds BLOCK_M x BLOCK_N 64-bit words; keep that near 32 kB.

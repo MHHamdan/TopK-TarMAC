@@ -44,6 +44,19 @@ def ms(r, field="forward"):
     return r[field]["min_ms"] if r and r.get(field) else None
 
 
+#: Every dense implementation a ratio may be quoted against: the library path,
+#: our own kernel at its default tiling, and our own kernel at the tiling the
+#: search found. Taking the minimum is what makes the ratios in this manuscript
+#: statements about sparsity rather than about how hard we tried on each side.
+DENSE_BASELINES = ("dense_fused", "dense_triton", "dense_tuned")
+
+
+def best_dense(rows, N, k=None):
+    c = [ms(at(rows, i, N, k)) for i in DENSE_BASELINES]
+    c = [x for x in c if x is not None]
+    return min(c) if c else None
+
+
 def fmt(x, p=3):
     return "---" if x is None else f"{x:.{p}f}"
 
@@ -94,8 +107,7 @@ def table_crossover() -> str:
     ns = [n for n in sorted({r["n_agents"] for r in rows}) if n >= 192]
     body = []
     for N in ns:
-        bd = min(x for x in (ms(at(rows, "dense_fused", N)),
-                             ms(at(rows, "dense_triton", N))) if x is not None)
+        bd = best_dense(rows, N)
         ks = sorted({r["k"] for r in rows if r["impl"] == "topk_gather"
                      and r["n_agents"] == N})
         ratios = []
@@ -262,8 +274,7 @@ def table_selection() -> str:
     ks = [1, 2, 4, 8, 16, 32]
     body = []
     for N in ns:
-        bd = min(x for x in (ms(at(rows, "dense_fused", N)),
-                             ms(at(rows, "dense_triton", N))) if x is not None)
+        bd = best_dense(rows, N)
         for k in ks:
             cells = []
             for impl in ("topk_fused_gather", "topk_fused_masked",
@@ -293,8 +304,12 @@ def table_prescore() -> str:
     pay = load("prescore.json")
     rows = pay["rows"]
     ns = sorted({r["n_agents"] for r in rows})
+    # The sparsest setting measured, which is where the escape is strongest and
+    # where the number the abstract quotes comes from. The manuscript gives the
+    # next setting up in prose, so both the best and a more conservative case
+    # are on the page.
     ks = sorted({r["k"] for r in rows})
-    k = ks[1] if len(ks) > 1 else ks[0]
+    k = ks[0]
     body = []
     for N in ns:
         for sel, nm in (("radius_knn", "nearest neighbours"),
@@ -394,8 +409,7 @@ def table_grid() -> str:
             cells = []
             for N in ns:
                 sub = [r for r in rows if r[axis] == v and r["n_agents"] == N]
-                dense = [ms(r) for r in sub if r["impl"] in
-                         ("dense_fused", "dense_triton")]
+                dense = [ms(r) for r in sub if r["impl"] in DENSE_BASELINES]
                 sparse = [ms(r) for r in sub if r["impl"].startswith("topk")]
                 dense = [x for x in dense if x is not None]
                 sparse = [x for x in sparse if x is not None]
@@ -434,7 +448,7 @@ def table_drift() -> str:
         # the quantity every claim in the paper is stated in.
         def best_dense(idx):
             return min(idx[k] for k in idx if k[1] == N
-                       and k[0] in ("dense_fused", "dense_triton"))
+                       and k[0] in DENSE_BASELINES)
         da, db = best_dense(ia), best_dense(ib)
         for key in keys:
             if key[0].startswith("topk"):

@@ -43,10 +43,12 @@ and a worse sparse one, which bounds the direction of any residual bias but not
 its size: a dense kernel substantially closer to the machine's limit at this
 head
 width would remove the crossover, and we cannot rule one out. Separately, the
-sparse kernels select by argmax rounds or by bisection rather than by a radix or
-bitonic select, they are forward-only, and they hold the whole score row in
-registers, which caps them at $N \le 1024$ and limits how many queries can be in
-flight at the largest sizes. What no kernel removes is the requirement to form
+sparse kernels are forward-only, and they hold the whole score row in registers,
+which caps them at $N \le 1024$ and limits how many queries can be in flight at
+the largest sizes. That cap binds hardest on the sorted kernel, whose sort needs
+the whole row resident and which is accordingly worst at the largest agent
+counts; a select that does not materialise the whole row would not be subject to
+it, and we did not write one. What no kernel removes is the requirement to form
 and rank the full score matrix.
 
 The learning study is secondary and bounded by its power. Five seeds per
@@ -73,3 +75,14 @@ selected. Their selectors are also composed from library operators, so the
 constant we measure for them is an upper bound in the same way the composed
 sparse path's was before we fused it; how far a fused selector could fall is the
 obvious next measurement and one we did not make.
+
+That section's envelope is narrower than the rest of the paper's. It is one head
+width, one batch and one numerical format --- \texttt{fp32} at head width $16$
+and batch $256$ --- and the same reservation applies as to the crossover of
+Section~\ref{sec:fused}: \texttt{fp32} is the format in which dense attention
+is least advantaged, because our dense kernel forgoes the tensor cores to
+reproduce the reference's summation order while the pre-score kernel's score is
+a reduction with no tensor-core path to lose. A format that returns the tensor
+cores to dense attention would move the crossover, and we did not measure one.
+The crossover is also at the top of the agent range we measure, so it is stated
+where it was observed and not extrapolated in either direction.

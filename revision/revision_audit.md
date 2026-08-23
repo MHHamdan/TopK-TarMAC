@@ -373,8 +373,9 @@ attention stage is faster than dense reversed. A second pass then found that the
 corrected measurement still composed that stage from library operators, which is
 the constant the paper's own argument says is an upper bound rather than a
 property of a design; a fused kernel over the same pre-chosen peer sets is up to
-eighteen times faster than the best dense implementation, and the Z-order path
-crosses below dense attention end to end at 512 agents. Both corrections stand
+nearly seventeen times faster than the best dense implementation, and the
+Z-order path crosses below dense attention end to end at 512 agents with at most
+four peers retained. Both corrections stand
 in the paper: every ratio is against the better of the two dense kernels, and
 both the composed and the fused columns are reported.
 
@@ -394,6 +395,18 @@ both properties and is not faster, so the claim becomes a measurement rather
 than a limitation; a fused pre-score kernel refutes the explanation and reverses
 the section's conclusion. `results/attention_core_sort.json` and
 `results/prescore.json`.
+
+**And the two new experiments were themselves audited before being believed.**
+An adversarial re-read found that the sorted kernel's aggregation axis was
+padded to a floor of sixteen, so its cost was flat below that by construction
+rather than by design; that both new sweeps quoted their ratios against an
+untuned dense kernel while Section 4 commits the paper to a searched one; and
+that neither sweep had a repeat. All three were fixed and everything re-measured.
+The sorted kernel is not flat (it rises fourteen per cent from one to sixteen
+retained peers) and the conclusion drawn from it is unchanged; the escape case
+weakens from eighteen to nearly seventeen times and from a twenty-five per cent
+to a ten per cent end-to-end margin, and is now stated with the retained counts
+it holds at.
 
 Two further defects were structural rather than substantive and are also fixed:
 the claim that equivalence is checked at every reported configuration was false

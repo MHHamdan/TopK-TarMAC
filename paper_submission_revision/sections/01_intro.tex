@@ -59,9 +59,10 @@ softmax is identically one and no weighting is being learned. It exists only at
 the narrow head widths where nothing we tried reaches half the device's
 arithmetic rate, and vanishes at the widths where the vendor library does. And
 it does not survive an increase in the number of retained peers, because ranking
-candidates costs more than aggregating over survivors saves; a kernel can make
-selection cheap in the number retained only by abandoning the compaction that
-made the aggregation sparse.
+candidates costs more than aggregating over survivors saves. We wrote three
+selection strategies to test whether that is a property of the ranking or of our
+implementations of it, including one whose cost is independent of the retained
+count and whose aggregation is still sparse; none of them changes the outcome.
 
 What follows constructively is the mechanism the negative result identifies.
 Selection that fixes the retained set before any score exists is not subject to
@@ -76,8 +77,9 @@ pairwise matrix of its own and reproduces the cost it was introduced to avoid,
 ending an order of magnitude behind dense attention. The Z-order selector
 avoids that, and once the attention over its chosen peers is executed by a
 kernel written for it rather than composed from library operators --- worth
-five to seventeen times --- that attention is up to eighteen times faster than
-dense, and the whole path overtakes dense attention at a few hundred agents.
+four to seventeen times --- that attention is up to seventeen times faster
+than dense, and at the largest agent count we measure, with a handful of peers
+retained, the whole path overtakes dense attention.
 
 \paragraph{Contributions.}
 \begin{itemize}

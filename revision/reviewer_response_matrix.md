@@ -346,12 +346,14 @@ k; aggregation is sparse. Verified exact at 123 shapes and at every
 configuration of the equivalence sweep.
 
 **Result. The claim is refuted and replaced by a measurement.** Both properties
-can be had at once: the kernel's cost is flat in k — 0.184 to 0.186 ms from one
-to sixteen retained peers at 192 agents — with genuinely sparse aggregation. It
-is also 5.0× dense attention across that range, and slower than the argmax
-kernel below sixteen retained peers. Having both properties does not help,
-which is a stronger statement than being unable to obtain them. Section 4 and
-Table 3 now report this; `results/attention_core_sort.json`.
+can be had at once: selection does not grow with k and the aggregation reads
+exactly k value rows, so at 192 agents the kernel runs in 0.164 ms at one
+retained peer and 0.186 ms at sixteen — a 14% rise, against eightfold for the
+argmax kernel. It is also five times dense attention across that range, and
+slower than the argmax kernel below sixteen retained peers. Having both
+properties does not help, which is a stronger statement than being unable to
+obtain them. Section 4 and Table 3 now report this;
+`results/attention_core_sort.json`.
 
 ### The pre-score negative result was measured on a composed attention stage
 
@@ -371,16 +373,50 @@ selectors.
 
 **Result. This overturns the section's conclusion.** Fused, attention over a
 pre-chosen peer set is faster than the best dense implementation at every agent
-count — 0.78, 0.38, 0.24, 0.11 and 0.09 times dense from 48 to 512 agents at
-four retained peers, best case 0.055, eighteen times faster than dense. Fusing
-is worth 3.8–17.5×. With the sub-quadratic selector in front of it the whole
-path costs 13.6, 7.5, 3.7, 1.20 and 0.80 times dense: it crosses below dense
-attention at 512 agents. The explanation the manuscript gave for the negative
+count when at most four peers are retained — 0.76, 0.43, 0.25, 0.12 and 0.09
+times dense from 48 to 512 agents at four retained peers, best case 0.060,
+nearly seventeen times faster than dense. Fusing is worth 3.9–17.4×. With the
+sub-quadratic selector in front of it the whole path costs 16.8, 8.8, 4.0, 1.28
+and 0.91 times dense: it crosses below dense attention at 512 agents, by about
+ten per cent, at two and four retained peers, and the sweep's repeat puts those
+cells within 1.5% of each other. The explanation the manuscript gave for the negative
 result — that the gathered operand loses the matrix-multiply shape — is
 withdrawn. The constructive claim is now that escaping the ceiling is necessary
 and not sufficient, and that what decides the outcome is whether the selector
 avoids a quadratic intermediate and whether the attention left behind is fused.
 Abstract, introduction, Section 5, conclusion; `results/prescore.json`.
+
+### Two sweeps quoted against an untuned dense kernel, and one kernel was flat by construction
+
+Both found in an adversarial re-read of the two new experiments above.
+
+**The objections.** (1) The sorted kernel padded its aggregation axis to a floor
+of sixteen, so for every k below sixteen it read sixteen value rows and its cost
+was flat in k by construction; the "flat in k" measurement was therefore not
+evidence about the design, and "reads exactly k value rows" was false. (2) The
+pre-score and sorted-select sweeps quoted their ratios against the vendor
+library and our own dense kernel at its default tiling, while Section 4 commits
+the paper to quoting against the better of the library and a searched dense
+kernel — a weaker standard for the mechanism the paper proposes than for the one
+it criticises. (3) The two sweeps had no repeat, and Section 5 read claims off
+agent counts the paper's own policy excludes.
+
+**Action.** (1) The block floor is now the power of two the axis requires and
+nothing more; re-verified exact and re-measured. (2) `dense_tuned` is an
+implementation in both harnesses, re-timed inside the same interleaved group,
+and the tiling search was extended to 48 and 96 agents so every reported agent
+count has a searched configuration. All sweeps re-run. (3) The pre-score sweep
+is now run twice and the appendix reports how far the two runs agree, which is
+also what licenses quoting it below 192 agents.
+
+**Result.** The sorted kernel is not flat: it rises 14% from one to sixteen
+retained peers, against eightfold for the argmax kernel, and the conclusion is
+unchanged — having both properties does not help. Against the searched dense
+kernel the escape case weakens and survives: 18.1× becomes 16.8×, and the
+end-to-end crossing at 512 agents goes from 0.76 to 0.90, so the claim is now a
+ten per cent margin restricted to two and four retained peers rather than an
+unqualified crossing. The negative result is unchanged: at one retained peer the
+fused sparse kernel is still faster than the best dense implementation.
 
 ### Raised and not acted on
 

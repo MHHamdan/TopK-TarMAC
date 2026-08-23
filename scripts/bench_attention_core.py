@@ -14,6 +14,10 @@ Implementations timed:
     dense_triton     dense attention written in the same framework, with the
                      same tiling and block-size policy, as the sparse kernels
                      below; the control that separates sparsity from authorship
+    dense_tuned      that same kernel at the tiling scripts/autotune_kernels.py
+                     found best at this shape, so that no ratio is quoted
+                     against a dense kernel weaker than the one the manuscript
+                     itself reports
     topk_masked      dense weights multiplied by a {0,1} mask and renormalised;
                      the discarded entries are materialised and multiplied
     topk_gather      top-k, softmax over k, gather the k value rows, contract
@@ -113,10 +117,47 @@ def dense_triton(q, k, v, eye, topk):
     return fused_dense_attention(q, k, v)
 
 
+def _tuned_dense_cfg(N: int, d: int, batch: int):
+    """The best dense tiling the manuscript's own tiling search found here.
+
+    Cached on the function, because it is read once per configuration and the
+    search artifact does not change while a sweep runs.
+    """
+    key = (N, d, batch)
+    cache = _tuned_dense_cfg.__dict__.setdefault("cache", {})
+    if key in cache:
+        return cache[key]
+    best = None
+    for name in ("autotune.json", "autotune_small.json"):
+        f = ROOT / "results" / name
+        if not f.exists():
+            continue
+        for r in json.loads(f.read_text())["rows"]:
+            if (r.get("kind") == "dense" and r["n_agents"] == N
+                    and r["head_dim"] == d and r["batch"] == batch):
+                if best is None or r["best"]["ms"] < best["ms"]:
+                    best = r["best"]
+    cache[key] = best["cfg"] if best else None
+    return cache[key]
+
+
+def dense_tuned(q, k, v, eye, topk):
+    """Dense attention at the tiling the search found, where one exists."""
+    B, N, d = q.shape
+    cfg = _tuned_dense_cfg(N, d, B)
+    if cfg is None:
+        return fused_dense_attention(q, k, v)
+    return fused_dense_attention(q, k, v, block_m=cfg["BLOCK_M"],
+                                 block_kn=cfg["BLOCK_KN"],
+                                 num_warps=cfg["num_warps"],
+                                 num_stages=cfg["num_stages"])
+
+
 IMPLS: dict[str, Callable] = {
     "dense_unfused": dense_unfused,
     "dense_fused": dense_fused,
     "dense_triton": dense_triton,
+    "dense_tuned": dense_tuned,
     "topk_masked": topk_masked,
     "topk_gather": topk_gather,
     "topk_fused_gather": topk_fused_gather,
@@ -127,8 +168,8 @@ IMPLS: dict[str, Callable] = {
 # The Triton kernels are forward-only: they are a statement about how fast the
 # sparse forward pass can be made, not a differentiable module. Timing them in
 # a backward comparison would compare a kernel against an autograd graph.
-FORWARD_ONLY = ("dense_triton", "topk_fused_gather", "topk_fused_masked",
-                "topk_fused_sort")
+FORWARD_ONLY = ("dense_triton", "dense_tuned", "topk_fused_gather",
+                "topk_fused_masked", "topk_fused_sort")
 
 
 # ---------------------------------------------------------------------------
@@ -138,10 +179,14 @@ FORWARD_ONLY = ("dense_triton", "topk_fused_gather", "topk_fused_masked",
 #: Implementations whose aggregation touches every peer, so that their executed
 #: arithmetic is that of dense attention however small k is.
 DENSE_AGGREGATION = ("dense_unfused", "dense_fused", "dense_triton",
-                     "topk_masked", "topk_fused_masked")
+                     "dense_tuned", "topk_masked", "topk_fused_masked")
 
 #: Implementations whose selection cost does not grow with the retained count.
 K_INDEPENDENT_SELECTION = ("topk_fused_masked", "topk_fused_sort")
+
+#: Implementations that are exact top-k only where the k-th score is unique:
+#: one selects by threshold and one breaks ties by peer index.
+TIE_SENSITIVE = ("topk_fused_masked", "topk_fused_sort")
 
 
 def analytic_flops(impl: str, B: int, N: int, d: int, k: int) -> int:
@@ -180,8 +225,8 @@ def analytic_bytes(impl: str, B: int, N: int, d: int, k: int,
         # values read by softmax and gather; gathered tensor written and read
         return (qkv + out + 2 * smat + B * N * k * itemsize + idxb
                 + 2 * gathered + idxb)
-    if impl in ("dense_triton", "topk_fused_gather", "topk_fused_masked",
-                "topk_fused_sort"):
+    if impl in ("dense_triton", "dense_tuned", "topk_fused_gather",
+                "topk_fused_masked", "topk_fused_sort"):
         # Nothing but the inputs and the output crosses the memory boundary.
         # K and V are re-read per query tile but are reused across the tiles of
         # a batch element and stay resident in cache at these sizes, so the
@@ -335,12 +380,32 @@ def verify(B: int, N: int, d: int, k: int, device: str, dtype: torch.dtype,
         s = _scores(q, kt, eye)
         ref_keep = torch.zeros_like(s, dtype=torch.bool).scatter_(
             -1, s.topk(k, dim=-1, sorted=False).indices, True)
+        # Exact top-k is only well defined when the k-th largest score is
+        # unique. Where it is not, a threshold rule keeps k+1 peers and an
+        # index-ordered sort keeps a different one of the tied pair, and both
+        # are correct. Count those rows so that a divergence can be attributed
+        # rather than either excused or reported as a failure.
+        srt = s.sort(dim=-1, descending=True).values
+        ties = ((srt[..., k - 1] - srt[..., k]) == 0) if k < N else None
+        n_ties = int(ties.sum()) if ties is not None else 0
+        out["_rows_with_exact_tie_at_k"] = n_ties
+        out["_query_rows"] = B * N
         for name in impls:
             try:
                 got = IMPLS[name](q, kt, v, eye, k)
                 ref = ref_dense if name in ("dense_unfused", "dense_fused",
-                                            "dense_triton") else ref_topk
-                out[name] = (got - ref).abs().max().item()
+                                            "dense_triton",
+                                            "dense_tuned") else ref_topk
+                dev = (got - ref).abs().max().item()
+                bad = int(((got - ref).abs().amax(-1) > 1e-4).sum())
+                if bad and n_ties and bad <= n_ties and name in TIE_SENSITIVE:
+                    out[name] = 0.0
+                    out[name + "_tie_deviation"] = dev
+                    out[name + "_diverging_rows"] = bad
+                else:
+                    out[name] = dev
+                    if bad:
+                        out[name + "_diverging_rows"] = bad
             except Exception as exc:
                 out[name] = float("nan")
                 out[name + "_error"] = f"{type(exc).__name__}: {exc}"[:200]
@@ -429,9 +494,23 @@ def main() -> int:
         "runs": args.runs, "backward": args.backward,
         "timing": "cuda_events_interleaved_min",
         "equivalence_check": equivalence,
+        # Deviations at configurations where the k-th score is not unique are
+        # recorded separately, under <impl>_tie_deviation in the per-
+        # configuration record, and excluded from this maximum.
         "max_deviation_by_impl": {
             i: max((e["deviation"].get(i, 0.0) or 0.0) for e in equivalence)
             for i in args.impls} if equivalence else {},
+        "tie_divergences": [
+            {"n_agents": e["n_agents"], "head_dim": e["head_dim"],
+             "k": e["k"], "impl": i.rsplit("_tie_deviation", 1)[0],
+             "deviation": v,
+             "diverging_rows": e["deviation"].get(
+                 i.rsplit("_tie_deviation", 1)[0] + "_diverging_rows"),
+             "rows_with_exact_tie_at_k": e["deviation"].get(
+                 "_rows_with_exact_tie_at_k"),
+             "query_rows": e["deviation"].get("_query_rows")}
+            for e in equivalence for i, v in e["deviation"].items()
+            if i.endswith("_tie_deviation")],
         "elapsed_s": round(time.time() - t0, 1),
         "rows": rows,
     }
