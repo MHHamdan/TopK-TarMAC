@@ -51,7 +51,10 @@ computing two functions in five ways. All five evaluate every pairwise score,
 because a score-then-select rule must form the complete score vector before it
 can rank it. They differ in what reaches memory and in how much arithmetic the
 aggregation performs, and only the gathered and fused top-$k$ variants execute
-the saving that motivates sparsification at all.}
+the saving that motivates sparsification at all. The fused row stands for the
+kernels that compact the retained set; the threshold kernel of
+Section~\ref{sec:fused} is fused in the same sense but keeps the dense
+aggregation, so its cost is that of the masked row.}
 \label{fig:taxonomy}
 \end{figure}
 
@@ -153,7 +156,9 @@ C_{\mathrm{pre}} = 2Nkd + C_{\mathrm{sel}},
   = \frac{2N^2 d}{2Nkd + C_{\mathrm{sel}}}.
 \end{equation}
 \emph{(i)} If $C_{\mathrm{sel}} = o(Nkd)$ --- in particular for a fixed or
-precomputed pattern, where $C_{\mathrm{sel}} \approx 0$ --- the ratio is
+precomputed pattern, where $C_{\mathrm{sel}} \approx 0$; note that an
+$O(N \log N)$ selector does \emph{not} qualify, since
+$N\log N / (Nkd) = \log N/(kd) \not\to 0$ --- the ratio is
 asymptotic to $N/k$, that is
 $\bigl(C_{\text{dense}}/C_{\mathrm{pre}}\bigr)\big/(N/k) \to 1$. Exact equality
 with $N/k$ holds only when $C_{\mathrm{sel}} = 0$; for every
@@ -172,12 +177,52 @@ the denominator. For (ii), if $k/N \to 0$ then $2Nkd = o(N^2 d)$, so the whole
 denominator is $o(N^2 d)$ and the ratio diverges.
 \end{proof}
 
-Proposition~\ref{prop:ceiling} is the special case $C_{\mathrm{sel}} = N^2 d$:
-a score-then-select rule is one whose selector is a full score matrix, and it is
-that expense, rather than anything about top-$k$, that produces the twofold
-ceiling. Reading the two propositions as one statement places any peer-selection
-mechanism on a single axis, the cost of deciding what to keep, and the position
-on that axis determines what the mechanism can save.
+Proposition~\ref{prop:ceiling} is the case $C_{\mathrm{sel}} \ge N^2 d$. A
+score-then-select rule must form the full score matrix before it can rank it, so
+$N^2 d$ is a lower bound on its selector cost and not an estimate of it: the
+ranking itself is uncounted, and counting it enlarges $C_{\mathrm{sel}}$ and
+shrinks the ratio further. Substituting the bound recovers
+$2N^2d/(N^2d + Nkd)$, which is Proposition~\ref{prop:ceiling}; any real
+implementation sits below it. Reading the two propositions as one statement
+places any peer-selection mechanism on a single axis, the cost of deciding what
+to keep, and the position on that axis determines what the mechanism can save.
+
+\begin{corollary}[What a selector costs, and what it can therefore buy]
+\label{cor:taxonomy}
+Fix $k$ and $d$ and let $N \to \infty$ in
+$S = 2N^2d/(2Nkd + C_{\mathrm{sel}})$.
+\emph{(a) Full-score selection}, $C_{\mathrm{sel}} \ge N^2 d$: $S < 2$.
+\emph{(b) All-pairs selection in a cheaper feature dimension $p \ll d$},
+$C_{\mathrm{sel}} = \gamma N^2 p$: $S \to 2d/(\gamma p)$, a constant that does
+not grow with $N$ and does not improve with $k$.
+\emph{(c) Sub-quadratic selection}, $C_{\mathrm{sel}} = \Theta(N \log N)$:
+$S = \Theta\bigl(Nd/\log N\bigr)$, which diverges, but is a vanishing fraction
+of $N/k$.
+\emph{(d) Fixed or precomputed patterns}, $C_{\mathrm{sel}} = O(Nkd)$ and in
+particular $C_{\mathrm{sel}} \approx 0$: $S \sim N/k$.
+\end{corollary}
+
+\begin{proof}
+Each case substitutes its $C_{\mathrm{sel}}$ into the denominator. In (b) the
+$\gamma N^2 p$ term dominates $2Nkd$, giving $S \to 2N^2d/(\gamma N^2 p)$. In
+(c) the $\Theta(N\log N)$ term likewise dominates $2Nkd$, giving
+$S = \Theta(N^2 d / (N \log N))$; the quotient $S/(N/k) = \Theta(kd/\log N)
+\to 0$. Case (d) is Proposition~\ref{prop:escape}(i) and case (a) is
+Proposition~\ref{prop:ceiling}.
+\end{proof}
+
+Only (d) delivers the $N/k$ that operation-count arguments for sparse
+communication usually invoke, and only (a) is bounded. The two intermediate
+cases are where the multi-agent methods actually sit, and they behave very
+differently: a selector that ranks all pairs in a cheap feature space escapes the
+twofold ceiling and still cannot do better than a constant, while a
+sub-quadratic selector is unbounded but pays a $\log N$ drag that keeps it below
+$N/k$ by a factor that widens with $N$. Section~\ref{sec:prescore} measures one
+selector of each kind. Their analytic ratios are $Nd/(kd + N)$ and
+$4Nd/(4kd + 30 + 2\lceil \log_2 N\rceil)$ respectively, so at $512$ agents and
+four retained peers the first has reached $14.2$ against its ceiling of $d = 16$,
+while the second is at $107$ --- unbounded in principle, and already only
+$72\%$ of the $N/k = 128$ that the naive count promises.
 
 The selector-cost term is material, not decorative. A fixed topology or a
 precomputed spatial prior really is free at inference and lands in case~(i),

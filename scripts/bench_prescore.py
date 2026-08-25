@@ -254,6 +254,14 @@ def main() -> int:
                         nm: timed[nm]["inter_run_spread_pct"]
                         for nm in ("dense_fused", "dense_triton")
                         + (("dense_tuned",) if cfg is not None else ())},
+                    # The dense baselines' own dispersion, so that a ratio can
+                    # be recomputed under an estimator other than the minimum
+                    # without re-running the sweep.
+                    "dense_dispersion": {
+                        nm: {kk: timed[nm][kk] for kk in
+                             ("min_ms", "median_ms", "p25_ms", "p75_ms")}
+                        for nm in ("dense_fused", "dense_triton")
+                        + (("dense_tuned",) if cfg is not None else ())},
                 })
                 r = rows[-1]
                 print(f"N={N:>4} k={k:<3} {sel_name:<14} "

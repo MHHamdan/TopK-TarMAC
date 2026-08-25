@@ -1,49 +1,35 @@
 Sparsification would still be worth having if it cost nothing in return. Testing
 that requires care, because on a task where the channel is not needed
 ``sparsification is free'' and ``the channel was never used'' make identical
-predictions. We therefore gate the study on a positive control and register the
-analysis plan before the outcomes are inspected. The study is secondary. Its
-role is to establish that the architecture being sparsified does something, so
+predictions, so we gate the study on positive controls and register the analysis
+plan before the outcomes are inspected. The study is secondary, and its role is
+narrow: to establish that the architecture being sparsified does something, so
 that the sparsification comparisons are not vacuous, and to report what a
-five-seed design can and cannot resolve.
+five-seed design can and cannot resolve. No claim elsewhere in this paper rests
+on it.
 
-\subsection{Design}
+Twelve variants at up to twelve agents, five seeds each, two million environment
+steps. Scaling in the number of agents is left to the training-free measurements
+of Section~\ref{sec:measurement}, because a training step in this pipeline is
+dominated by the environment (Section~\ref{sec:backward}) and cannot attribute a
+latency difference to the communication module. Two positive controls establish
+that the channel carries something: a reference task in which each agent
+observes only its partner's goal, fixed at two agents where selection is
+degenerate, and a partially observable variant of a standard cooperative task,
+introduced here, in which a peer's relative position is withheld beyond a fixed
+radius. In the second, the fraction of peers visible falls with the agent count
+while the absolute number visible rises, because the world does not grow; that
+confound is why no claim here compares returns across agent counts.
 
-Twelve variants at up to twelve agents, five seeds each, two million
-environment steps. All scaling in the number of agents is delegated to the
-training-free measurements of Section~\ref{sec:measurement}, because an
-end-to-end training step in this pipeline is dominated by the environment
-(Section~\ref{sec:backward}) and cannot attribute a latency difference to the
-communication module.
-
-Two positive controls establish that the channel carries something. The first is
-a reference task in which each agent observes only its partner's goal, so
-information must pass between agents; it is fixed at two agents, where the
-selection mechanism is degenerate, so it validates the message pathway and not
-the selection. The second is a partially observable variant of a standard
-cooperative task, introduced here, in which a peer's relative position is
-withheld beyond a fixed radius. Under a uniform random policy the fraction of
-peers visible falls with the number of agents while the absolute number visible
-rises, because the world does not grow: that is a difficulty confound across
-agent counts, and it is why no claim in this paper compares returns across agent
-counts in this environment.
-
-The analysis plan was committed after eight of the forty runs in the
-pre-registered family had completed and before any of their outcomes was
-inspected; the two positive controls were complete and had been inspected, which
-is why they are excluded from the inferential family.
-Appendix~\ref{app:prereg} gives the chronology and the single amendment. The
-plan fixes the endpoint, the six comparisons and their direction, an exact
-two-sided permutation test, the effect sizes, a percentile bootstrap interval
-flagged approximate at five seeds, and a Holm--Bonferroni correction. It also
-fixes the power expectation in advance: with five seeds per variant the smallest
-attainable two-sided $p$-value is $2/252 = 0.0079$ against a first Holm
-threshold of $0.05/6 = 0.0083$, a margin of $4\times10^{-4}$, so a first
-rejection requires one variant's five seeds to lie entirely above the other's.
-Any null in this family is under-powered and is not evidence of absence, and no
-equivalence claim is available because no equivalence margin was registered.
-
-\subsection{Results}
+The plan fixes the endpoint, six comparisons and their direction, an exact
+two-sided permutation test, the effect sizes, a bootstrap interval flagged
+approximate at five seeds, and a Holm--Bonferroni correction. It also fixes the
+power expectation in advance: at five seeds a first rejection requires one
+variant's seeds to lie entirely above the other's, so any null in the family is
+under-powered and is not evidence of absence, and no equivalence claim is
+available because no equivalence margin was registered.
+Appendix~\ref{app:prereg} gives the chronology, the arithmetic behind that
+power statement, and the single amendment.
 
 \begin{table}[t]
 \centering\small
@@ -70,32 +56,30 @@ attention-selected peers $-$ uniformly random peers, same budget
 \end{table}
 
 Both positive controls separate completely, each attaining the floor of the
-permutation test for this design (Table~\ref{tab:training}). Measured attention
-entropy on the partially observable control is $0.35$ nats against a ceiling of
-$1.61$, so the learned weighting is peaked, not uniform. What this
-establishes is that sparsification is being applied to an architecture whose
-communication machinery improves return under the evaluated setup. It does not
-establish that the learned attention channel alone accounts for the difference:
-the communicating variants carry $7$--$19\%$ more trainable parameters, and the
-reference task supplies a discrete utterance channel of its own. A
-parameter-matched sham-communication variant would be needed for the
-channel-specific causal claim, and we do not make it.
+permutation test for this design (Table~\ref{tab:training}), and measured
+attention entropy on the partially observable control is $0.35$ nats against a
+ceiling of $1.61$, so the learned weighting is peaked rather than uniform.
+Sparsification is therefore being applied to an architecture whose communication
+machinery improves return under the evaluated setup. It does not follow that the
+learned attention channel alone accounts for the difference: the communicating
+variants carry $7$--$19\%$ more trainable parameters and the reference task
+supplies a discrete utterance channel of its own, so the channel-specific causal
+claim would need a parameter-matched sham variant, which we do not have and do
+not claim.
 
 The comparison the design exists for holds the communication budget, the
 executed aggregation cost and every hyperparameter fixed, and varies only
 whether peers are chosen by attention score or uniformly at random. Its point
 estimate favours attention by roughly two thirds of a standard deviation and its
 interval includes zero. The design lacked the power to resolve an effect of that
-size, which the pre-registered power calculation said in advance; nothing
-follows about whether attention selects informatively. The remaining five
-comparisons are reported in Appendix~\ref{app:training} as point estimates with
-intervals \citep{agarwal2021rliable}, and all six are Holm-adjusted nulls. No
-conclusion in this paper rests on any of them.
+size, which the pre-registered calculation said in advance; nothing follows
+about whether attention selects informatively. The remaining five comparisons
+are in Appendix~\ref{app:training} as point estimates with intervals
+\citep{agarwal2021rliable}, and all six are Holm-adjusted nulls.
 
-The environment limits the study in two ways. At twelve agents
-neither variant learns the task well: the dense variant scores below a
-uniform-random policy and the sparse variant only just above it, so no
-comparison at that agent count is interpretable. And the centralised critic sees
-the same masked observations as the actors, with no privileged global
-state, which departs from standard practice for this learner and is a plausible
-contributor to that failure.
+Two environment limits bound the study further. At twelve agents neither variant
+learns the task well --- the dense variant scores below a uniform-random policy
+and the sparse variant only just above it --- so no comparison at that agent
+count is interpretable; and the centralised critic sees the same masked
+observations as the actors, with no privileged global state, which departs from
+standard practice for this learner and is a plausible contributor.

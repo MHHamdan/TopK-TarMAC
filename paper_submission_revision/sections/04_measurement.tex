@@ -17,7 +17,15 @@ not a separate measurement. The primary statistic is the
 minimum over samples, on the modelling assumption that contention adds time
 rather than removing it, and the whole timed block is repeated so that the
 spread of per-run medians is reported and not hidden
-(Appendix~\ref{app:dispersion}). GPU clocks could not be locked; the account
+(Appendix~\ref{app:dispersion}). A minimum estimates an uncontended envelope
+rather than a service time, so we checked what the choice buys: recomputing
+every comparison at $192$ agents and above from the paired medians of the same
+samples changes which implementation is faster at one of $24$ configurations,
+$384$ agents with a single retained peer, where the ratio moves from $0.94$ to
+$1.14$ and the group's recorded inter-run spread is $64\%$. Neither of the two
+sweeps that measure the same configuration reproduces the reversal. The
+pre-score path of Section~\ref{sec:prescore} is the one place where the
+estimator does change a conclusion, and we report it there. GPU clocks could not be locked; the account
 lacks the privilege. Operation counts are analytic, from a model that follows
 the convention \texttt{torch.utils.flop\_counter} uses and that we checked
 against it on the composed implementations; the hand-written kernels are outside
@@ -104,20 +112,22 @@ as the composed path.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig2_ksweep.pdf}
-\caption{Latency divided by the faster of the two dense implementations, against
+\caption{Latency divided by the fastest dense implementation --- the vendor
+library, our own kernel, or our own kernel at the searched tiling --- against
 the number of peers retained. The dotted line is what an operation count
 predicts for the gathered path, $(N+k)/2N$, which lies below parity everywhere
 and so predicts a saving at every sparsity. Shading marks the region in which
 sparsity is actually faster; only the fused gathered kernel enters it, and only
-at the smallest $k$. The $N{=}96$ panel is shown for continuity and supports no
-claim: repeating the sweep moves its ratios by a median of $61\%$
+at the smallest $k$. The $N{=}96$ panel is shown for continuity and carries no claim,
+because at that size a fixed per-call cost is an eighth of the measurement and
+the implementations issue different numbers of calls
 (Appendix~\ref{app:drift}).}
 \label{fig:ksweep}
 \end{figure}
 
 \begin{table}[t]
 \centering\small
-\caption{The sparsity at which the best sparse implementation stops being faster than the best dense one, and how far it is from parity at the sparsity multi-agent communication actually uses. Both ratio columns are a minimum over the composed and the two fused implementations, so the widest-$k$ column is sometimes the composed path, which is the fastest sparse implementation there. Restricted to the agent counts whose measurements reproduce on repetition.}
+\caption{The sparsity at which the best sparse implementation stops being faster than the best dense one, and how far it is from parity at a quarter of the peers. Both ratio columns are a minimum over the composed path and the two fused kernels that rank in registers, so the widest-$k$ column is sometimes the composed path; the sorted kernel of Table~\ref{tab:selection} is faster than all three from sixteen retained peers upward and is reported there. Restricted to the agent counts at which the kernels are not launch-bound.}
 \label{tab:crossover}
 \input{tables/crossover}
 \end{table}
@@ -152,11 +162,14 @@ and the vendor library as the dense baseline, and report what fraction of the
 device's own matrix-multiply rate each kernel reaches beside its latency
 (Table~\ref{tab:autotune}).
 
-The search is not equal, and the inequality is structural rather than
-incidental. Because exact selection must hold the complete score row of a query
-before it can rank it, the sparse kernel's resident tile grows with the agent
-count, and above $192$ agents the shared-memory filter admits only three
-configurations against the dense kernel's twenty-eight to a hundred and six. We
+The search is not equal. All three of our sparse kernels keep the whole score
+row of a query resident --- two rank it in registers and one sorts it in place
+--- so their resident tile grows with the agent count, and above $192$ agents
+the shared-memory filter admits only three configurations against the dense
+kernel's twenty-eight to a hundred and six. That is a property of the kernels we
+wrote and not of exact top-$k$: a selector may compute all $N$ scores without
+holding them, maintaining a running candidate set as it streams. We did not
+write one, so the search counts below describe what our implementations admit. We
 report the counts in the table rather than describing the two searches as
 equivalent, and the consequence runs in two directions. The sparse kernel's
 efficiency figure is a lower bound on what a sparse kernel of this shape could
@@ -172,13 +185,17 @@ is the \emph{less} efficient of the two at every agent count --- $21$ to $33\%$
 of the device's rate against $30$ to $47\%$ for dense --- and it is faster only
 because it performs about half the arithmetic.
 
-The crossover is confined to a single retained peer, or two at one
-configuration, and to the two narrowest head widths. At four retained peers the
-sparse kernel is already $1.3$ to $2.1$ times slower, and at a quarter of peers
-it is more than an order of magnitude slower. A single retained peer is not a
-communication design: the softmax over one element is identically one, so the
-mechanism degenerates to copying the highest-scoring peer's value. The crossover
-is a fact about the cost model, not a recommendation.
+The crossover is an existence result inside a stated envelope, and the envelope
+is narrow: one GPU architecture, \texttt{fp32}, head widths $16$ and $32$, agent
+counts from $192$ upward where the sweep reproduces, a single retained peer with
+one configuration at two, and a dense baseline that reaches under half of the
+device's arithmetic rate at those head widths. At four retained peers the sparse
+kernel is already $1.3$ to $2.1$ times slower, and at a quarter of peers it is
+more than an order of magnitude slower. The $k{=}1$ case is also degenerate as
+an attention mechanism, because a softmax over one element is identically one
+and the mechanism reduces to copying the highest-scoring peer's value. What the
+crossover establishes is that the penalty measured earlier is not irreducible;
+it is not a recommendation to sparsify.
 
 Why it is confined to narrow heads we cannot say from these measurements. Dense
 efficiency and head width move together in our data --- $30\%$ at $d{=}16$
@@ -235,14 +252,17 @@ both properties does not help. The sort that buys independence from $k$ costs
 more than the argmax rounds it replaces throughout the range in which sparsity
 would otherwise pay.
 
-The second obstacle is available to dense attention and not to exact
-score-then-select. Dense attention can stream keys and values in blocks with an
-online softmax, keeping only a small tile resident. Exact selection cannot: the
-complete score row of a query must exist before the row can be ranked, so the
-sparse kernel holds an $N$-wide tile and fewer queries can be in flight per
-streaming multiprocessor as $N$ grows. That is a consequence of full-score
-selection itself, not of our implementation, and it is why the tiling the search
-chooses for the sparse kernel is narrower at every size.
+The second obstacle is one dense attention avoids and none of our sparse kernels
+does. Dense attention streams keys and values in blocks under an online softmax,
+keeping a small tile resident whatever $N$ is. Each of our sparse kernels
+instead holds the $N$-wide score row --- in registers to rank it, or in place to
+sort it --- so fewer queries can be in flight per streaming multiprocessor as
+$N$ grows, and the tiling the search chooses for it is narrower at every size.
+What is fundamental to exact score-then-select is that all $N$ scores must be
+\emph{computed} before the retained set is known; that they must all be
+\emph{resident} is not, and a streaming exact top-$k$ that keeps a running
+candidate set would relax it. We report the constraint we measured and mark it
+as ours.
 
 \subsection{Sensitivity to head width and batch}
 \label{sec:sensitivity}

@@ -76,6 +76,11 @@ run training_step scripts/bench_training_step.py --device "$DEV" \
     --n-agents 6 12 24 --iterations 5 --warmup 2 \
     --out results/training_step_timing.json
 
+# What a single kernel call costs before it computes anything, which is what
+# decides whether a small-N ratio is about the algorithm.
+run launch_overhead scripts/launch_overhead.py --device "$DEV" \
+    --out results/launch_overhead.json
+
 # Machine balance, with the bandwidth probe reading a buffer that has been
 # written and device work timed with device events.
 run roofline scripts/roofline.py --devices "$DEV" cpu \
@@ -92,6 +97,10 @@ run core_repeat scripts/bench_attention_core.py --device "$DEV" \
     --n-list 96 192 384 512 --k-list 1 2 4 8 16 32 64 128 \
     --d-list 16 --batch-list 256 --reps 60 --runs 3 \
     --out results/attention_core_d16_repeat.json
+
+# Every implementation against the reference at every reported configuration.
+run equivalence scripts/verify_all_configurations.py --device "$DEV" \
+    --out results/equivalence.json
 
 echo "=== campaign complete $(date -Is)"
 echo "regenerate the manuscript's tables and figures with:"

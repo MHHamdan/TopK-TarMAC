@@ -118,11 +118,20 @@ head width 16, batch 256, and three implementations rather than a proof about
 all possible ones. **Defensible: yes.** New in this revision, and it replaces an
 assertion with a measurement.
 
-**Exact score-then-select cannot stream keys and values the way dense attention
-can, because the complete score row must exist before it can be ranked.**
-Evidence: structural, and visible in the block-size policy the sparse kernels
-require. Scope: exact selection; an approximate or hierarchical rule is not
-constrained. **Defensible: yes.**
+**WITHDRAWN — "exact score-then-select cannot stream keys and values the way
+dense attention can, because the complete score row must exist before it can be
+ranked."**
+The premise is right and the conclusion does not follow. All N scores must be
+*computed* before the retained set is known; they need not all be *resident*,
+because a streaming exact top-k can maintain a running candidate set. What is
+now claimed is narrower and is what we measured.
+
+**All three of our fused sparse kernels hold the N-wide score row, so their
+resident tile grows with the agent count and the shared-memory filter admits
+fewer tilings for them than for the dense kernel.**
+Evidence: `results/autotune.json`, Table 3's configuration counts; the kernels
+themselves. Scope: a statement about the three kernels we wrote, stated as such
+in Section 4 and in the limitations. **Defensible: yes.**
 
 **The ordering survives the backward pass with a smaller margin, because
 selection has almost no adjoint.**

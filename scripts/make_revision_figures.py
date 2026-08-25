@@ -111,7 +111,7 @@ def fig_taxonomy() -> None:
         ax.text(0.0, 0.10, cost, fontsize=fs.MIN_PT + 1.0,
                 color=fs.ANNOT_COLOR, va="center")
         if r == 0:
-            ax.text(0.0, 1.12, "stored, and multiplied",
+            ax.text(0.0, 1.12, "written, and cost of the aggregation",
                     fontsize=fs.MIN_PT + 0.5, color=fs.ANNOT_COLOR, va="bottom")
         ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 
@@ -409,7 +409,7 @@ def fig_prescore() -> None:
     ax.set_xticks(ticks); ax.set_xticklabels([str(n) for n in ticks])
     ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.set_xlabel("agents $N$")
-    ax.set_ylabel("operations saved ($\\times$)")
+    ax.set_ylabel("operations saved ($\\times$, higher better)")
     ax.set_title(f"the count promises ($k={k_show}$)", pad=4)
     ax.legend(fontsize=fs.MIN_PT, loc="lower right", handlelength=2.2)
 
@@ -434,7 +434,7 @@ def fig_prescore() -> None:
     ax.set_xticks(ticks); ax.set_xticklabels([str(n) for n in ticks])
     ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
     ax.set_xlabel("agents $N$")
-    ax.set_ylabel("latency / best dense")
+    ax.set_ylabel("latency / best dense (lower better)")
     ax.set_title(f"the clock delivers ($k={k_show}$)", pad=4)
     ax.set_ylim(top=ax.get_ylim()[1] * 3.6)
     ax.legend(fontsize=fs.MIN_PT, loc="upper center", ncol=1,
@@ -469,8 +469,8 @@ def fig_prescore() -> None:
     ax.set_xlabel("retained peers $k$")
     ax.set_ylabel("latency / best dense")
     ax.set_title(f"extent in $k$ (${n_show}$ agents)", pad=4)
-    ax.set_ylim(0.035, 3.0)
-    ax.legend(fontsize=fs.MIN_PT, loc="lower right", handlelength=2.2,
+    ax.set_ylim(0.035, 9.0)
+    ax.legend(fontsize=fs.MIN_PT, loc="upper left", handlelength=2.2,
               borderpad=0.1, labelspacing=0.22)
 
     fs.savefig(fig, OUT / "fig5_prescore.pdf", W)

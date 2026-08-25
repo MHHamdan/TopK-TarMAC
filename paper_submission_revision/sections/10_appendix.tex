@@ -14,7 +14,11 @@ absent.
 \begin{table}[ht]
 \centering\small
 \caption{Best sparse divided by best dense, over head width (upper block) and
-batch (lower block). Values below one would indicate sparsity winning.}
+batch (lower block). Values below one indicate sparsity winning. The $96$-agent
+column is included for completeness and carries no claim, for the reason given
+in Appendix~\ref{app:drift}. Each column comes from the sweep that varies that
+axis, so a figure here can differ from the same nominal quantity in
+Section~\ref{sec:fused} by the few per cent that separates two sessions.}
 \label{tab:grid}
 \input{tables/grid}
 \end{table}
@@ -27,10 +31,9 @@ assumption that contention can only add time. That statistic is trustworthy only
 if the underlying sample was not wildly dispersed, so the harness records the
 median, the interquartile range and the spread of per-run medians for every
 configuration, and the released artifacts carry all of them. Two properties of
-this host limit what any of it can mean. Both GPUs carried between 30 and
-80~GiB
-of other tenants' allocations and near-continuous utilisation throughout the
-campaign, and clocks could not be locked. We therefore report the spread of
+this host limit what any of it can mean. Both GPUs carried other tenants' allocations and near-continuous utilisation
+throughout the campaign --- tens of gibibytes, varying between sessions, which
+we observed but did not record per run --- and clocks could not be locked. We therefore report the spread of
 per-run medians beside every configuration rather than a confidence interval: a
 ratio of minima has no sampling distribution.
 
@@ -45,23 +48,39 @@ is stated in.
 
 \begin{table}[ht]
 \centering\small
-\caption{Movement between two runs of the identical sweep. From $192$ agents
-upward both the latencies and the ratios reproduce to about one per cent. At
-$96$ they do not, by a wide margin, which is why no claim in this paper is read
-off an agent count below $192$.}
+\caption{Movement between two runs of the identical sweep, hours apart under
+different load. Median movement is at or below one per cent everywhere except
+$512$ agents, where it is six to seven per cent; no single configuration moves
+by more than $12.6\%$, and no ordering the paper reports changes between the
+runs.}
 \label{tab:drift}
 \input{tables/drift}
 \end{table}
 
-From $192$ agents upward the measurement is stable: median movement is under
-one per cent in latency and under half a per cent in the ratio, with the worst
-single configuration under eleven per cent. At $96$ agents it is not stable at
-all --- every implementation ran between $14\%$ and $394\%$ slower in the second
-run, and the fastest configurations in the first run had recorded inter-run
-spreads above $85\%$ at the time. That is the signature of a launch-bound
-regime on a contended device rather than of anything about attention, and it is
-why the crossover of Section~\ref{sec:fused} is reported only from $192$ agents
-upward even though the sweep measures smaller ones.
+Across $44$ configurations at each agent count the median movement in latency is
+$0.1\%$ at $96$ agents, $0.2\%$ at $192$, $0.6\%$ at $384$ and $6.1\%$ at $512$,
+and in the ratio $0.3$, $0.2$, $0.5$ and $7.2\%$; the worst single configuration
+moves $12.6\%$. Which implementation is faster changes between the runs at
+exactly one configuration, $96$ agents with two retained peers, where the ratio
+is $1.002$ in one run and $0.998$ in the other --- a tie either way.
+
+Two things follow for how the sweeps are read. The measurement reproduces well
+enough that every ordering in this paper survives repetition, which is the
+property the claims depend on. And the largest agent count is the least stable
+one, not the most, so a margin of a few per cent there --- which is what the
+end-to-end crossing of Section~\ref{sec:prescore} is --- is at the edge of what
+this device can resolve, and we say so where we report it. We restrict the
+crossover of Section~\ref{sec:fused} to $192$ agents and above for a different
+reason: fixed per-call cost. A one-program Triton kernel that writes a single
+float, timed the way every measurement here is timed, costs $1.8$\,\textmu s at
+its minimum and $2.3$\,\textmu s at its median
+(\texttt{scripts/launch\_overhead.py}). At $96$ agents the fastest dense
+configuration is $13.8$\,\textmu s and the fastest fused sparse one
+$11.7$\,\textmu s, so that fixed cost is an eighth of each, and the composed
+sparse path issues several kernels rather than one. At $512$ agents the same
+cost is one per cent of the dense measurement. A ratio between implementations
+that issue different numbers of kernels is therefore partly a ratio of launch
+counts at the small agent counts, and stops being one by $192$.
 
 The pre-score sweep of Section~\ref{sec:prescore} is repeated in the same way,
 and for a stronger reason: the crossing it reports is a margin of about ten per
@@ -78,12 +97,14 @@ runs and hours, not independence from one device, and we were not able to
 obtain a second card free of other tenants. The tiling search of
 Table~\ref{tab:autotune} was run twice, once on each card of the host. The two
 searches select the same configuration at $63$ of the $72$ shapes they share,
-and at head width $16$ --- where every crossover this paper reports lives ---
-at every shape, while their absolute times differ by as much as $70\%$ with the
-contention each session carried. That is why no latency anywhere in the
-manuscript is taken from the search's own session: what the search contributes
-is a configuration, which every sweep then re-times in its own interleaved
-group. All measurements reported here
+and at head width $16$, where most of what this paper reports lives, at $16$ of
+the $18$ shapes; the two disagreements are both sparse-kernel tilings. Their
+absolute times differ by as much as $81\%$ with the contention each session
+carried. That is why the search contributes a configuration and not a latency: every
+sweep re-times that configuration in its own interleaved group, and the only
+place a latency from the search's own session appears is
+Table~\ref{tab:autotune}, whose columns are the search's own record and are
+labelled as such. All measurements reported here
 were taken on one of the two cards of this host, and no cross-device calibration
 is claimed.
 
@@ -192,9 +213,12 @@ implementation churns, so it differs per implementation and does not cancel in a
 ratio; in an un-pinned run it inverted the ordering at one configuration. We
 raise the allocator's retention threshold so that freed temporaries are kept,
 and count minor faults per forward from the process's own resource usage across
-the timed region. The harness records the allocator environment, the thread
-counts, the affinity mask and the fault totals in each run's metadata, and the
-superseded un-pinned run is retained beside the pinned one.
+the timed region. The harness records the allocator environment, the thread counts, the affinity
+mask and the fault totals in each run's metadata. The fault figures quoted here
+come from the host microbenchmark that first exposed the effect, which predates
+the re-measurement campaign; the campaign's own artifacts inherit the fix and do
+not re-derive the fault counts, so those two numbers should be read as the
+diagnosis that motivated the control rather than as a released measurement.
 
 \subsection{Machine balance}
 \label{app:roofline}
@@ -202,7 +226,7 @@ superseded un-pinned run is retained beside the pinned one.
 Peak arithmetic rate is measured with a large matrix multiply and peak bandwidth
 with a large copy, in the same process as the measurements they normalise. That
 matters here more than it usually would: on this shared host the peak we measure
-varies between $53$ and $77$~TFLOP/s across sessions, depending on what else is
+varies between $58$ and $77$~TFLOP/s across sessions, depending on what else is
 running. Every fraction-of-peak figure in the paper is against the peak measured
 in the same process as the number it normalises, and is therefore an upper bound
 on the true efficiency rather than an estimate of it. Comparisons between two
@@ -235,6 +259,14 @@ to its deviations log; the endpoint, comparisons, test, effect sizes, interval
 and correction are byte-identical to the pre-unblinding version. Timestamps
 establish ordering and nothing more. Data generation had demonstrably already
 begun.
+
+The power statement in Section~\ref{sec:training} is arithmetic, not an
+estimate. With five seeds per variant an exact two-sided permutation test over
+$\binom{10}{5} = 252$ assignments has smallest attainable $p$-value
+$2/252 = 0.0079$, against a first Holm threshold of $0.05/6 = 0.0083$: a margin
+of $3.97\times10^{-4}$. A first rejection therefore requires one variant's five
+seeds to lie entirely above the other's, and any effect smaller than complete
+separation is undetectable by construction.
 
 One correction is logged against the released plan. It asserts that at most one
 comparison in the family can reach corrected significance. That is false: Holm
@@ -278,8 +310,10 @@ relative-position entry is zeroed when the peer is farther than a fixed radius.
 Reward, action space, landmark observations, episode length and observation
 dimension are unchanged. Two properties limit what it can support. The mask is a
 zeroing rather than an explicit visibility flag, so a peer at relative position
-exactly zero is not distinguishable from an absent one; measured under a uniform
-random policy, this affects at most $0.15\%$ of visible peers. And the visible
+exactly zero is not distinguishable from an absent one. On a continuous position
+space that coincidence has probability zero and we did not observe it, but we
+did not instrument for it either, and the released characterisation records
+visible fractions only. And the visible
 fraction falls with the number of agents while the absolute number visible
 rises, because the world size is fixed, which is a difficulty confound that
 rules out across-agent-count return comparisons.
@@ -322,8 +356,15 @@ argument rests on operation counts or asymptotics, not that it is wrong.}
 \label{app:repro}
 
 The measurement campaign is training-free and completes in under an hour on one
-device. \texttt{scripts/run\_revision\_campaign.sh} regenerates every artifact
-in the order the manuscript reports them;
+device. \texttt{scripts/run\_revision\_campaign.sh} regenerates the twelve
+artifacts every table and figure in this paper is built from, in the order the
+manuscript reports them; the equivalence sweep
+(\texttt{scripts/verify\_all\_configurations.py}), the launch-cost probe
+(\texttt{scripts/launch\_overhead.py}) and the backend probe of
+Appendix~\ref{app:verification} are separate entry points and are named where
+they are used. Results not produced by the current campaign --- the host-side
+allocator diagnosis and the numerical-format robustness checks --- date from an
+earlier campaign on the same host, and we say so where they are quoted;
 \texttt{scripts/make\_revision\_tables.py} and
 \texttt{scripts/make\_revision\_figures.py} regenerate every table and figure
 from those artifacts, so no tabular number in the manuscript is transcribed by
@@ -331,8 +372,21 @@ hand; and \texttt{scripts/check\_revision\_numbers.py} re-derives the numbers
 that appear in prose and fails on any disagreement. The campaign runs the
 tiling search first, because every sweep after it re-times the dense
 configuration the search selects; that is what makes each ratio in this paper a
-ratio against the best dense implementation we have rather than against whichever
-one a given sweep happened to build.
+ratio against the best dense implementation we have rather than against
+whichever one a given sweep happened to build.
+
+The environment is one NVIDIA RTX PRO 6000 Blackwell Server Edition
+(\texttt{sm\_120}, $95$\,GiB, driver $610.43.02$) of the two on a host with two
+Intel Xeon 6507P processors, under PyTorch $2.11$ with CUDA $12.8$ and Triton
+$3.6$. Every latency in the paper is \texttt{fp32}, timed with CUDA events
+around a single call, interleaved implementation by implementation and
+repetition by repetition, with $20$ warm-up repetitions discarded, $40$ to $60$
+timed repetitions per block, and the whole block repeated three times; the
+reported figure is the minimum over all samples and the spread of the three
+per-run medians is recorded beside it. The tiling search enumerates query tiles
+of $16$ to $128$, key tiles or head chunks of $16$ to $128$, two to eight warps
+and one to three pipeline stages, and admits a configuration when its key,
+value and accumulator blocks fit a $100$\,kB shared-memory budget.
 
 Three provenance caveats. The hardware description and the aggregate provenance
 record were written before this project's environment was upgraded and describe

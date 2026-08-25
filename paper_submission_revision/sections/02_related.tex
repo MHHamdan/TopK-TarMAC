@@ -16,12 +16,20 @@ and about local compute, of which only the second is what we measure.
 Proposition~\ref{prop:escape} organises these restriction mechanisms by what
 their selector costs, and the resulting three groups behave differently. The
 first fixes the retained set from structure that is available before any score
-exists: DGN restricts attention to each agent's $k$ nearest neighbours by
-Euclidean distance \citep{jiang2018dgn}, ATOC's initiator forms a group from its
+exists: DGN restricts attention to each agent's nearest neighbours in the
+environment \citep{jiang2018dgn}, ATOC's initiator forms a group from its
 nearest collaborators within a communication field \citep{jiang2018atoc}, and
 mean-field methods replace the peer set with a single averaged interaction
-\citep{yang2018meanfield}. Their selectors are free or nearly so, which places
-them in case~(i) of the proposition. The second group scores something cheaper
+\citep{yang2018meanfield}. What such a selector costs depends on something the
+operation count of the attention itself does not record. If the neighbour list
+arrives with the environment, or is maintained incrementally, or is a fixed
+topology, the selector is free and the mechanism lands in
+Corollary~\ref{cor:taxonomy}(d). If instead it is recomputed each step from all
+pairwise positions --- which is how a neighbourhood rule is ordinarily
+implemented when the agents move --- then it is an all-pairs selector in a
+low-dimensional feature space, case~(b), and its saving is capped by a constant
+however sparse the attention becomes. Section~\ref{sec:prescore} measures the
+second version and finds the cap binding. The second group scores something cheaper
 than the full pairwise interaction: IC3Net gates whether an agent speaks at all
 \citep{singh2018ic3net}, and SchedNet ranks agents by a scalar importance weight
 and schedules the $k$ largest \citep{kim2019schednet}. These are top-$k$ rules,

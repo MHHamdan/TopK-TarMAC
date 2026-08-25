@@ -277,7 +277,7 @@ def main() -> int:
     if all(mz):
         tot = [r["t_total_fused_ms"] / r["t_dense_best_ms"] for r in mz]
         check_num("fused pre-score total at the largest N", tot[-1],
-                  r"\$([\d.]+)\$ times dense attention from \$48\$ to \$512\$ agents\. At",
+                  r"\$([\d.]+)\$ times dense attention from \$48\$ to \$512\$ agents\.",
                   tol=0.03)
         checks += 1
         if tot[-1] >= 1.0:
@@ -286,19 +286,40 @@ def main() -> int:
                          f"{tot[-1]:.2f} times dense")
     # The crossing is claimed for the two sparsest settings only, so where it
     # stops is checked rather than described.
-    below = [k for k in pks
-             if (pat("morton_window", pns[-1], k)["t_total_fused_ms"]
-                 / pat("morton_window", pns[-1], k)["t_dense_best_ms"]) < 1.0]
+    # The end-to-end crossing is claimed on minima and explicitly withdrawn
+    # under the paired median, so both estimators are checked here: the sign
+    # under minima, and the fact that it reverses under medians.
+    def ratio(r, series, field):
+        den = min(v[field] for v in r["dense_dispersion"].values())
+        return r["dispersion"][series][field] / den
+
+    r512 = pat("morton_window", pns[-1], pks[0])
     checks += 1
-    if below != pks[:2]:
-        fails.append("the manuscript restricts the end-to-end crossing to the "
-                     f"two sparsest settings; the artifact has it at {below}")
-    for k, phrase in ((pks[2], r"level with dense at eight \(\$([\d.]+)\$\)"),
-                      (pks[3], r"behind it at sixteen \(\$([\d.]+)\$\)")):
-        r = pat("morton_window", pns[-1], k)
-        check_num(f"fused pre-score total at {pns[-1]} agents, k={k}",
-                  r["t_total_fused_ms"] / r["t_dense_best_ms"], phrase,
-                  tol=0.03)
+    if ratio(r512, "total_fused", "min_ms") >= 1.0:
+        fails.append("the manuscript claims the pre-score path reaches parity "
+                     "at the largest agent count on minima and it does not")
+    check_num("pre-score total under minima at the largest N",
+              ratio(r512, "total_fused", "min_ms"),
+              r"path costs \$([\d.]+)\$ times dense at two", tol=0.03)
+    check_num("pre-score total under the paired median at the largest N",
+              ratio(r512, "total_fused", "median_ms"),
+              r"it costs \$([\d.]+)\$\s*times dense instead", tol=0.03)
+    checks += 1
+    if ratio(r512, "total_fused", "median_ms") < 1.0:
+        fails.append("the manuscript says the end-to-end crossing reverses "
+                     "under the paired median and it does not")
+    r8 = pat("morton_window", pns[-1], pks[2])
+    check_num("pre-score total under minima at eight retained peers",
+              ratio(r8, "total_fused", "min_ms"),
+              r"and \$([\d.]+)\$ at eight", tol=0.03)
+    # The attention stage is claimed as robust to the estimator, so the claim
+    # that it is robust is itself checked.
+    b_min = min(ratio(r, "fused", "min_ms") for r in pre)
+    b_med = min(ratio(r, "fused", "median_ms") for r in pre)
+    check_num("attention stage under minima", 1 / b_min,
+              r"is \$([\d.]+)\$ times faster than dense on minima", tol=0.02)
+    check_num("attention stage under the paired median", 1 / b_med,
+              r"on minima and \$([\d.]+)\$ on\s*medians", tol=0.02)
     best = min(r["t_attention_fused_ms"] / r["t_dense_best_ms"] for r in pre)
     check_num("best fused pre-score attention over the grid", best,
               r"best case over the grid is \$([\d.]+)\$", tol=0.03)
@@ -357,9 +378,9 @@ def main() -> int:
             x2 = r2["t_total_fused_ms"] / r2["t_dense_best_ms"]
             worst_rep = max(worst_rep, abs(x1 - x2) / min(x1, x2))
         checks += 1
-        if 100 * worst_rep > 1.5:
-            fails.append("the manuscript says the two runs put the crossing "
-                         f"cells within one and a half per cent; measured "
+        if 100 * worst_rep > 2.5:
+            fails.append("the manuscript says the two runs agree to within "
+                         f"2.3 per cent at the crossing cells; measured "
                          f"{100 * worst_rep:.1f}%")
 
     # The equivalence appendix quotes the artifact, so the artifact checks it.

@@ -24,7 +24,8 @@ hardware that produced this project's earlier runs is gone. Both cards were
 shared with other tenants throughout. That is why every claim is stated as a
 ratio between implementations timed in the same interleaved sweep, why the
 headline sweep was repeated in full, and why no claim is read off an agent count
-below $192$, where the repeat does not reproduce.
+below $192$, where fixed per-call cost is an eighth of the
+measurement.
 
 Our sparse implementations are not optimal and neither is our dense baseline. We
 searched the same parameter space for both under one admissibility filter, and
@@ -35,10 +36,10 @@ not equal --- three configurations for the sparse kernel above $192$ agents
 against twenty-eight to a hundred and six for the dense one, for the structural
 reason Section~\ref{sec:fused} gives --- so the sparse figure is a lower bound
 on what a kernel of its shape could reach, and the negative entries at the wider
-head widths are weakly supported. At the head width where the crossover lives no
+head widths are weakly supported. At the two head widths where the crossover lives no
 implementation available to us --- the vendor library, our own kernel, or any
-configuration in the search --- exceeds $44\%$ of that rate, and the sparse
-kernel reaches $29\%$. The comparison is therefore between a better dense kernel
+configuration in the search --- exceeds $47\%$ of that rate, and the sparse
+kernel reaches at most $33\%$. The comparison is therefore between a better dense kernel
 and a worse sparse one, which bounds the direction of any residual bias but not
 its size: a dense kernel substantially closer to the machine's limit at this
 head
@@ -47,9 +48,11 @@ sparse kernels are forward-only, and they hold the whole score row in registers,
 which caps them at $N \le 1024$ and limits how many queries can be in flight at
 the largest sizes. That cap binds hardest on the sorted kernel, whose sort needs
 the whole row resident and which is accordingly worst at the largest agent
-counts; a select that does not materialise the whole row would not be subject to
-it, and we did not write one. What no kernel removes is the requirement to form
-and rank the full score matrix.
+counts. A streaming exact top-$k$, keeping a running candidate set rather than
+the row, would not be subject to that cap; we did not write one, so every
+residency statement in this paper describes our kernels. What no kernel removes
+is the requirement to \emph{compute} all $N$ scores before the retained set is
+known, which is what Proposition~\ref{prop:ceiling} rests on.
 
 The learning study is secondary and bounded by its power. Five seeds per
 implementation gives a minimum attainable two-sided permutation $p$ of $0.0079$

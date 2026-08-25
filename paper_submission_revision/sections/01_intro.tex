@@ -48,7 +48,8 @@ library kernel and one we wrote ourselves.
 
 The answer is conditional, and the condition is the contribution. Assembled from
 general-purpose tensor operations, the sparse path is slower than dense
-attention everywhere we measure, by up to an order of magnitude, and it moves
+attention everywhere we measure, by up to a factor of thirty-seven, and it
+moves
 several times more memory traffic while performing less arithmetic. A fused
 kernel that keeps the score row in registers and writes no intermediate removes
 most of that penalty, and where a single peer is retained it is faster than any
@@ -57,7 +58,9 @@ of a dense kernel we wrote ourselves. Three qualifications bound that result and
 we state them with it. The advantage exists only at one retained peer, where the
 softmax is identically one and no weighting is being learned. It exists only at
 the narrow head widths where nothing we tried reaches half the device's
-arithmetic rate, and vanishes at the widths where the vendor library does. And
+arithmetic rate; dense efficiency and head width move together in our data and
+no configuration we ran separates them, so we cannot say which of the two the
+crossover depends on. And
 it does not survive an increase in the number of retained peers, because ranking
 candidates costs more than aggregating over survivors saves. We wrote three
 selection strategies to test whether that is a property of the ranking or of our
@@ -70,16 +73,17 @@ the ceiling, and its operation-count saving is unbounded in principle. Whether
 it converts into time is a separate question, and we answer it for two selectors
 the count treats similarly: choosing the nearest peers by distance, which is
 what neighbourhood-based communication already does, and ordering agents along a
-space-filling curve, which is asymptotically cheaper. They remove between one
-and two orders of magnitude of arithmetic, and what they deliver depends on
-two things the count cannot see. The nearest-neighbour selector ranks a
+space-filling curve, which is sub-quadratic. They remove between three and a
+hundred and eighty times the arithmetic across the grid we measure, and what
+they deliver depends on two things the count cannot see. The nearest-neighbour selector ranks a
 pairwise matrix of its own and reproduces the cost it was introduced to avoid,
-ending an order of magnitude behind dense attention. The Z-order selector
+ending thirty times behind dense attention at the largest agent count. The Z-order selector
 avoids that, and once the attention over its chosen peers is executed by a
 kernel written for it rather than composed from library operators --- worth
-four to seventeen times --- that attention is up to seventeen times faster
-than dense, and at the largest agent count we measure, with a handful of peers
-retained, the whole path overtakes dense attention.
+four to seventeen times --- that attention is up to sixteen times faster than
+dense. The complete path, selector included, reaches dense attention's cost only
+at the largest agent count we measure and only on best-case timings; under the
+median of the same samples it does not.
 
 \paragraph{Contributions.}
 \begin{itemize}

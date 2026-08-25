@@ -29,8 +29,9 @@ positive result. It holds at one retained peer, where the softmax is identically
 one and nothing is being weighted; it holds only at the head widths where no
 implementation we have reaches half the device's arithmetic rate, and disappears
 where the vendor library does; and it is gone by four retained peers. At the
-sparsity this literature uses, the fastest sparse implementation we could write
-is more than an order of magnitude slower than dense attention.
+sparsities we test beyond a single retained peer, the fastest sparse
+implementation we could write is $1.3$ to $28$ times slower than dense
+attention, the penalty growing with the number retained.
 
 The constructive half is where the argument turns, and it turns because the
 same discipline was applied to it. A selector that fixes the retained set before
@@ -39,19 +40,22 @@ operation count by up to two orders of magnitude. Composed from library
 operators, both are slower than dense attention and we would have reported the
 escape as a failure. Written as a fused kernel --- one key row and one value row
 read per retained peer, a running maximum, nothing else written --- the same
-attention is up to seventeen times faster than the best dense implementation
-we have, and improves with the agent count exactly as the accounting predicts.
+attention is up to sixteen times faster than the best dense implementation we
+have, and improves with the agent count exactly as the accounting predicts.
 
 What then decides the outcome is the selector, and the two we tried diverge. One
 reaches its decision by ranking a pairwise matrix of its own, reproducing the
 cost it was introduced to avoid, and its path falls further behind as the agent
-count grows. The other is sub-quadratic and flat in cost, and its path overtakes
-dense attention at the largest agent count we measure, where retaining two or
-four peers of five hundred is about ten per cent faster end to end than the best
-dense attention we can obtain --- a margin the sweep reproduces, at the edge of
-the range we can measure, and gone by sixteen retained peers. Neither condition
-is sufficient alone: a cheap selector with a composed attention stage loses, and
-a fused attention stage behind a quadratic selector loses.
+count grows. The other is sub-quadratic and flat in cost, and at the largest
+agent count we measure its path reaches parity: retaining two or four peers of
+five hundred costs about fifteen per cent less than the best dense attention we
+can obtain on best-case timings, a margin the repeated sweep reproduces to
+within a few per cent but which the median of the same samples reverses, because
+a multi-launch path has the heavier tail on a shared device. We report the
+attention stage as the robust result and the end-to-end crossing as an
+uncontended-envelope one. Neither condition is sufficient alone: a cheap
+selector with a composed attention stage loses, and a fused attention stage
+behind a quadratic selector loses.
 
 That is the finding we would put in front of a designer. An operation count
 prices work in operations, and on this hardware, at these sizes, the price is

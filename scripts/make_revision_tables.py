@@ -75,20 +75,21 @@ def table_headline() -> str:
                      and r["n_agents"] == N})
         k = min(ks, key=lambda x: abs(x - k)) if ks else 1
         du, df, dt = (ms(at(rows, i, N)) for i in DENSE)
+        dtu = ms(at(rows, "dense_tuned", N))
         gg = ms(at(rows, "topk_gather", N, k))
         fg = ms(at(rows, "topk_fused_gather", N, k))
         fm = ms(at(rows, "topk_fused_masked", N, k))
-        bd = min(x for x in (df, dt) if x is not None)
+        bd = best_dense(rows, N)
         bs = min(x for x in (gg, fg, fm) if x is not None)
         body.append(
-            f"{N} & {k} & {fmt(du)} & {fmt(df)} & {fmt(dt)} & "
+            f"{N} & {k} & {fmt(du)} & {fmt(df)} & {fmt(dt)} & {fmt(dtu)} & "
             f"{fmt(gg)} & {fmt(fg)} & {fmt(fm)} & {bs / bd:.2f} \\\\")
-    return r"""\begin{tabular}{rrrrrrrrr}
+    return r"""\begin{tabular}{rrrrrrrrrr}
 \toprule
-& & \multicolumn{3}{c}{\textbf{dense}} & \multicolumn{3}{c}{\textbf{top-$k$}} & \\
-\cmidrule(lr){3-5}\cmidrule(lr){6-8}
-$N$ & $k$ & unfused & fused & ours & gathered & fused & fused & best sparse \\
-& & & (library) & & (composed) & gather & mask & $\div$ best dense \\
+& & \multicolumn{4}{c}{\textbf{dense}} & \multicolumn{3}{c}{\textbf{top-$k$}} & \\
+\cmidrule(lr){3-6}\cmidrule(lr){7-9}
+$N$ & $k$ & unfused & fused & ours & ours & gathered & fused & fused & best sparse \\
+& & & (library) & & (tuned) & (composed) & gather & mask & $\div$ best dense \\
 \midrule
 """ + "\n".join(body) + r"""
 \bottomrule
@@ -99,11 +100,10 @@ def table_crossover() -> str:
     """The k at which the best sparse implementation stops being faster."""
     pay = load("attention_core_d16.json")
     rows = live(pay)
-    # Below 192 agents the cost of every implementation is governed by how many
-    # kernels it launches rather than by arithmetic or bandwidth, and the
-    # repeated sweep shows those configurations do not reproduce: at 96 agents
-    # the two runs disagree by a median of 61% in the ratio, against 0.3% at
-    # 192. A crossover read off them would be a fact about device contention.
+    # Below 192 agents a fixed per-call cost of about 1.8 us is an eighth of
+    # the measurement (results/launch_overhead.json) and the implementations
+    # issue different numbers of calls, so a crossover read off them would be
+    # partly a fact about launch counts.
     ns = [n for n in sorted({r["n_agents"] for r in rows}) if n >= 192]
     body = []
     for N in ns:

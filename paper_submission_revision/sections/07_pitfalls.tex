@@ -23,15 +23,15 @@ than its value.
 
 \paragraph{Interference from a shared device.} Timing implementations in
 sequential blocks makes each block hostage to whatever else was running during
-it. On our shared host that produced swings above $100\%$ between identical
-configurations and a $3.7\times$ discrepancy for one implementation at one
-agent count. Interleaving the implementations repetition by repetition lands any
+it. On our shared host the recorded inter-run spread reaches $374\%$ at one
+configuration of the released sweeps, and the sessions that produced our tiling
+searches differ from each other by up to $81\%$ on identical shapes. Interleaving the implementations repetition by repetition lands any
 interference burst on all of them at once, so the ratios between them survive
 even when the absolute numbers drift. The residual sensitivity is to which
-implementations share an interleaved sweep: at small $N$, where cost is governed
-by kernel launches rather than by arithmetic or bandwidth, the launch count of
-the whole group enters every measurement in it, and two of our own sweeps
-disagree by $5\times$ at one such configuration. Sweeps that will be compared
+implementations share an interleaved sweep: at small $N$, where a fixed per-call cost is a large share of the
+measurement, the launch count of the whole group enters every measurement in it,
+and two of our own sweeps that differ only in which implementations they time
+disagree by $1.4\times$ at twelve agents. Sweeps that will be compared
 must therefore hold their implementation set fixed and say so.
 
 \paragraph{Measuring a different algorithm from the one claimed.} The two most
@@ -54,7 +54,7 @@ against a vendor library's dense kernel measures sparsity and authorship at
 once. At the head widths used in multi-agent communication, PyTorch's fused
 attention path runs at roughly half the rate of a straightforward Triton kernel,
 because it is tuned for the long sequences and wide heads of language models.
-Against it our fused sparse kernel appears up to $2.5\times$ faster, which is
+Against it our fused sparse kernel appears up to $2.8\times$ faster, which is
 more than sparsity can supply at any $k$ and was how we noticed. Matched
 authorship is the obvious remedy and it is not sufficient either: two kernels by
 the same author can differ by more than the margin under test. The condition
@@ -99,7 +99,7 @@ Swings above $100\%$ between identical configurations &
 Interleave repetition by repetition; report paired ratios \\
 \addlinespace
 & Changing which implementations share a sweep &
-Two sweeps disagree by $5\times$ at one configuration &
+Two sweeps disagree by $1.4\times$ at twelve agents &
 Fix the implementation set across comparable sweeps \\
 \midrule
 \multirow{2}{*}{\parbox{\linewidth}{Wrong algorithm}}
