@@ -1,18 +1,19 @@
 Sparse attention in multi-agent communication is routinely justified by counting
 the operations it removes. For rules that select partners by their attention
-scores, the count is bounded and what it buys in time is smaller still. Because every score is computed before any can be discarded, only the
-aggregation is removable, so no such rule can remove more than half of
-attention's arithmetic at any sparsity. Whether even that half becomes time
-depends on the implementation. Applying the selection as a mask leaves the dense
-aggregation in place and saves nothing; a genuinely sparse one moves more data than
-dense attention despite less arithmetic. Fused kernels remove most of that
+scores, the count is bounded and what it buys in time is smaller still. Because
+every score is computed before any can be discarded, only the aggregation is
+removable, so no such rule can remove more than half of attention's arithmetic
+at any sparsity. Whether even that half becomes time depends on the
+implementation. Applying the selection as a mask leaves the dense aggregation in
+place and saves nothing, while a genuinely sparse implementation moves more data
+than dense attention despite less arithmetic. Fused kernels remove most of that
 overhead and expose the algorithm: retaining a single peer is faster than the
-best dense implementation we could obtain, but that case is degenerate, and at
-the moderate retained sets we test sparsity is an order of magnitude slower.
+best dense implementation we could obtain, but that case is degenerate, and
+beyond it the sparse path is one and a half to twenty-eight times slower.
 Deciding what to attend to before any score exists lifts the bound, and there
 the selector's own cost decides the outcome. A selector that ranks all pairs in
 a cheap feature space cannot beat a constant however sparse the attention
 becomes; a sub-quadratic one is unbounded, and behind a fused kernel its
-attention stage runs up to sixteen times faster than dense, and on best-case
-timings the complete path reaches parity at five hundred agents. Count the
+attention stage runs up to sixteen times faster than dense, with the complete
+path reaching parity at five hundred agents on best-case timings. Count the
 selector, and measure the kernel that runs.
