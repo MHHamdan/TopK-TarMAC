@@ -97,7 +97,96 @@ def select_morton_window(pos: torch.Tensor, k: int) -> torch.Tensor:
     return order.gather(1, neigh_rank.reshape(B, N * k)).view(B, N, k)
 
 
+def grid_knn_shape(N: int, k: int) -> tuple[int, int]:
+    """Grid side G and per-cell capacity M for select_grid_knn.
+
+    Cells are sized for about k agents each, so the k-th nearest neighbour lies
+    within one cell width with high probability. The capacity allows three
+    standard deviations of Poisson occupancy above the mean; agents beyond it
+    are left out of the candidate set, which is what makes the selector
+    approximate, and the benchmark measures how often that changes the
+    retained set.
+    """
+    occ = max(2, k)
+    G = max(1, int((N / occ) ** 0.5))
+    mean = N / (G * G)
+    M = int(mean + 3 * mean ** 0.5 + 2)
+    return G, M
+
+
+_GRID_CACHE: dict = {}
+
+
+def select_grid_knn(pos: torch.Tensor, k: int) -> torch.Tensor:
+    """k nearest peers among the 3x3 grid cells around each agent.
+
+    A uniform grid replaces the all-pairs distance matrix. Agents are sorted
+    once by cell, with cell id x*G + y, so the three cells (x', y-1..y+1) of
+    each neighbouring column x' are contiguous in sorted order: each agent's
+    candidates are three contiguous runs of at most 3M sorted agents, and it
+    ranks only those. For positions of bounded density that is Theta(Nk)
+    candidates rather than N^2, which moves the selector from Corollary 1(b)
+    to linear cost. It is exact whenever the k-th nearest neighbour is no
+    farther than the nearest edge of the 3x3 block and no cell overflowed;
+    ``grid_knn_recall`` measures how often the retained set matches exact kNN.
+    Where the neighbourhood would hold N or more candidates the grid saves
+    nothing, and the exact all-pairs selector is used instead.
+    """
+    B, N, _ = pos.shape
+    G, M = grid_knn_shape(N, k)
+    L = 3 * M
+    if 3 * L >= N:
+        return select_radius_knn(pos, k)
+    dev = pos.device
+    key = (G, M, N, str(dev))
+    if key not in _GRID_CACHE:
+        _GRID_CACHE[key] = (torch.arange(N, device=dev),
+                            torch.arange(L, device=dev),
+                            torch.arange(-1, 2, device=dev))
+    ar_n, ar_l, off = _GRID_CACHE[key]
+    C = G * G
+    lo = pos.amin(dim=1, keepdim=True)
+    span = (pos.amax(dim=1, keepdim=True) - lo).clamp_min(1e-6)
+    cxy = ((pos - lo) / span * G).long().clamp_(0, G - 1)          # (B,N,2)
+    cell = cxy[..., 0] * G + cxy[..., 1]                            # (B,N)
+    order = cell.argsort(dim=1)                                     # (B,N)
+    # start[c] = first sorted position of cell c, for c in 0..C (C = end).
+    counts = torch.zeros(B, C + 1, device=dev, dtype=torch.long)
+    counts.scatter_add_(1, cell + 1, torch.ones_like(cell))
+    start = counts.cumsum(1)                                        # (B,C+1)
+
+    # For neighbour column x' = x-1..x+1: run from cell (x', max(y-1,0)) to
+    # the end of cell (x', min(y+1,G-1)).
+    x = cxy[..., 0].unsqueeze(-1) + off                             # (B,N,3)
+    y = cxy[..., 1].unsqueeze(-1)
+    ok_col = (x >= 0) & (x < G)
+    xc = x.clamp(0, G - 1)
+    c_lo = xc * G + (y - 1).clamp_min(0)
+    c_hi = xc * G + (y + 1).clamp_max(G - 1) + 1
+    s_lo = start.gather(1, c_lo.view(B, -1)).view(B, N, 3)
+    s_hi = start.gather(1, c_hi.view(B, -1)).view(B, N, 3)
+    s_hi = torch.minimum(s_hi, s_lo + L)                            # capacity
+    idx = s_lo.unsqueeze(-1) + ar_l                                  # (B,N,3,L)
+    valid = (idx < s_hi.unsqueeze(-1)) & ok_col.unsqueeze(-1)
+    cand = order.gather(1, idx.clamp_max(N - 1).view(B, -1)).view(B, N, 3 * L)
+    valid = valid.view(B, N, 3 * L) & (cand != ar_n.view(1, N, 1))
+    pc = pos.gather(1, cand.view(B, -1, 1).expand(B, -1, 2)).view(B, N, 3 * L, 2)
+    d2 = (pc - pos.unsqueeze(2)).square().sum(-1).masked_fill(~valid,
+                                                              float("inf"))
+    j = d2.topk(k, dim=-1, largest=False, sorted=False).indices
+    return cand.gather(2, j)
+
+
+def grid_knn_recall(pos: torch.Tensor, k: int) -> float:
+    """Fraction of retained peers that exact kNN would also retain."""
+    got = select_grid_knn(pos, k)
+    ref = select_radius_knn(pos, k)
+    hit = (got.unsqueeze(-1) == ref.unsqueeze(-2)).any(-1)
+    return hit.float().mean().item()
+
+
 SELECTORS = {"radius_knn": select_radius_knn,
+             "grid_knn": select_grid_knn,
              "morton_window": select_morton_window}
 
 
@@ -140,6 +229,15 @@ def analytic_flops(selector: str, B: int, N: int, d: int, kk: int) -> dict:
         # which is a lower bound for any selection algorithm and keeps the
         # selector from being credited with work it does not do.
         sel = 3 * B * N * N + B * N * N
+    elif selector == "grid_knn":
+        # One sort to bucket agents by cell, then per agent 9M candidates each
+        # charged a 2-D distance (3 operations) and one comparison, with M the
+        # per-cell capacity: Theta(Nk) at bounded density.
+        _, M = grid_knn_shape(N, kk)
+        if 9 * M >= N:          # falls back to the all-pairs selector
+            sel = 3 * B * N * N + B * N * N
+        else:
+            sel = B * N * (4 * 9 * M + 2 * max(1, N.bit_length()))
     elif selector == "morton_window":
         # Quantise, interleave ten bit-pairs with five shift-and-mask steps,
         # then sort: O(N log N) comparisons. Comparisons and multiply-adds are

@@ -39,7 +39,47 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.kernels.prescore_selection import (  # noqa: E402
-    SELECTORS, analytic_flops, prescore_attention)
+    SELECTORS, _morton_code, analytic_flops, grid_knn_recall,
+    prescore_attention, select_morton_window)
+from torch.nn.attention.flex_attention import (  # noqa: E402
+    create_block_mask, flex_attention)
+
+# Every (N, d, dtype, mask) is a new specialisation. Past dynamo's default
+# recompile limit flex_attention silently falls back to an unfused eager path
+# that materialises the score matrix, which would time a different algorithm;
+# raise the limit, and fail rather than fall back if it is ever reached.
+torch._dynamo.config.recompile_limit = 100_000
+torch._dynamo.config.accumulated_recompile_limit = 100_000
+torch._dynamo.config.fail_on_recompile_limit_hit = True
+_flex = torch.compile(flex_attention, dynamic=False)
+
+
+def morton_band_mask(N: int, kk: int, device: str):
+    """The Z-order window as a band in Morton-sorted coordinates.
+
+    In the order the curve induces, agent r retains ranks r+1..r+h and
+    r-1..r-(kk-h) modulo N, which is a banded mask with wrapped corners. The
+    band depends only on (N, kk), not on the data, so the block mask is built
+    once; the data-dependent part is the permutation into curve order."""
+    half = (kk + 1) // 2
+    lo_back = N - (kk - half)
+
+    def mm(b, h, qi, ki):
+        dlt = (ki - qi + N) % N
+        return ((dlt >= 1) & (dlt <= half)) | (dlt >= lo_back)
+
+    return create_block_mask(mm, None, None, N, N, device=device)
+
+
+def flex_morton(q, k, v, pos, bm):
+    """FlexAttention over the Z-order window: permute into curve order, run
+    block-sparse attention on the band, permute back."""
+    B, N, d = q.shape
+    order = _morton_code(pos).argsort(dim=-1)
+    idx = order.unsqueeze(-1).expand(B, N, d)
+    qs, ks, vs = (t.gather(1, idx).unsqueeze(1) for t in (q, k, v))
+    o = _flex(qs, ks, vs, block_mask=bm).squeeze(1)
+    return torch.empty_like(o).scatter_(1, idx, o)
 from src.kernels.fused_dense_attention import fused_dense_attention  # noqa: E402
 from src.kernels.fused_prescore_attention import (  # noqa: E402
     fused_prescore_attention)
@@ -191,6 +231,15 @@ def main() -> int:
             # as a composition of library operators and as a fused kernel,
             # because the manuscript's own argument about the score-then-select
             # path is that a composed constant is an upper bound.
+            # FlexAttention for the Z-order window: PyTorch's production
+            # block-sparse path, applied to the one selector whose retained set
+            # is a band after a permutation.
+            band = morton_band_mask(N, k, device)
+            fns["flex_total:morton_window"] = (
+                lambda bm=band: flex_morton(q, kt, v, pos, bm))
+            with torch.no_grad():
+                flex_dev = (flex_morton(q, kt, v, pos, band) - prescore_attention(
+                    q, kt, v, select_morton_window(pos, k))).abs().max().item()
             for sel_name, sel in SELECTORS.items():
                 idx_fixed = sel(pos, k)
                 fns[f"attn:{sel_name}"] = (
@@ -231,6 +280,18 @@ def main() -> int:
                         + ([timed["dense_tuned"]["min_ms"]]
                            if cfg is not None else [])),
                     "t_topk_gather_ms": timed["topk_gather"]["min_ms"],
+                    "t_flex_total_ms": (
+                        timed["flex_total:morton_window"]["min_ms"]
+                        if sel_name == "morton_window" else None),
+                    "flex_total_dispersion": (
+                        {kk: timed["flex_total:morton_window"][kk]
+                         for kk in ("min_ms", "median_ms", "p25_ms", "p75_ms")}
+                        if sel_name == "morton_window" else None),
+                    "flex_deviation": (flex_dev if sel_name == "morton_window"
+                                       else None),
+                    "recall_vs_exact_knn": (
+                        grid_knn_recall(pos, k) if sel_name == "grid_knn"
+                        else None),
                     "flops": fl,
                     "flop_ratio_vs_dense": fl["dense_total"] / fl["total"],
                     # Dispersion for every quantity a claim is read off, not

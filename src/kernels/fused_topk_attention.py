@@ -222,6 +222,7 @@ def _fused_topk_tiled_kernel(
     BLOCK_D: tl.constexpr,
     BLOCK_DC: tl.constexpr,
     HEAD_D: tl.constexpr,
+    PRECISION: tl.constexpr = "ieee",
 ):
     """Tile of queries per program, so the score product runs on tensor cores.
 
@@ -247,9 +248,10 @@ def _fused_topk_tiled_kernel(
     # the matrix-multiply path and without leaving the streaming multiprocessor.
     # The head dimension is walked in chunks so that the key tile resident in
     # shared memory stays inside the SM's budget at the largest (N, d) measured.
-    # input_precision="ieee": TF32 would perturb the scores enough to change
-    # which peers the top-k selects, so the kernel would no longer compute the
-    # same function as the reference implementation it is timed against.
+    # PRECISION defaults to "ieee": TF32 perturbs the scores enough to change
+    # which peers the top-k selects, so only the ieee setting computes the same
+    # function as the fp32 reference. The TF32 setting exists for the precision
+    # study, which reports its retained-set disagreement beside its latency.
     scores = tl.zeros([BLOCK_M, BLOCK_N], dtype=tl.float32)
     for dc in tl.static_range(0, BLOCK_D, BLOCK_DC):
         offs_c = dc + tl.arange(0, BLOCK_DC)
@@ -260,7 +262,7 @@ def _fused_topk_tiled_kernel(
         k_c = tl.load(K + b * stride_kb + offs_n[:, None] * stride_kn
                       + offs_c[None, :] * stride_kd,
                       mask=n_mask[:, None] & c_mask[None, :], other=0.0)
-        scores += tl.dot(q_c, tl.trans(k_c), input_precision="ieee")
+        scores += tl.dot(q_c, tl.trans(k_c), input_precision=PRECISION)
     scores = scores * scale
     neg = float("-inf")
     valid = n_mask[None, :] & (offs_n[None, :] != offs_m[:, None])
@@ -293,7 +295,11 @@ def _next_pow2(x: int) -> int:
 
 def fused_topk_attention_tiled(q: torch.Tensor, k: torch.Tensor,
                                v: torch.Tensor, topk: int,
-                               block_m: int | None = None) -> torch.Tensor:
+                               block_m: int | None = None,
+                               block_dc: int | None = None,
+                               num_warps: int = 4,
+                               num_stages: int | None = None,
+                               precision: str = "ieee") -> torch.Tensor:
     """Tiled fused top-k attention; the score stage runs on tensor cores.
 
     ``block_m`` defaults to the largest query tile whose score tile, key chunk
@@ -307,7 +313,7 @@ def fused_topk_attention_tiled(q: torch.Tensor, k: torch.Tensor,
     bn, bd = _next_pow2(N), max(16, _next_pow2(d))
     # Keep the resident key chunk near 32 kB and the score tile near 32 kB, so
     # the whole working set fits the 100 kB shared-memory budget of an SM.
-    bdc = max(16, min(bd, 32768 // (bn * 4)))
+    bdc = max(16, min(bd, 32768 // (bn * 4))) if block_dc is None else block_dc
     if block_m is None:
         block_m = max(16, min(32, 32768 // (bn * 4)))
     block_m = min(block_m, bn)
@@ -320,8 +326,9 @@ def fused_topk_attention_tiled(q: torch.Tensor, k: torch.Tensor,
         out.stride(0), out.stride(1), out.stride(2),
         N, 1.0 / (d ** 0.5),
         TOPK=topk, BLOCK_M=block_m, BLOCK_N=bn,
-        BLOCK_D=bd, BLOCK_DC=bdc, HEAD_D=d,
-        num_warps=4,
+        BLOCK_D=bd, BLOCK_DC=bdc, HEAD_D=d, PRECISION=precision,
+        num_warps=num_warps,
+        **({} if num_stages is None else {"num_stages": num_stages}),
     )
     return out
 
@@ -513,7 +520,7 @@ def fused_topk_attention_sort(q: torch.Tensor, k: torch.Tensor,
     # rows whatever k is, which would make the cost flat in k by construction
     # rather than by design and would misreport what the kernel does.
     bk = _next_pow2(topk)
-    bdc = max(16, min(bd, 32768 // (bn * 4)))
+    bdc = max(16, min(bd, 32768 // (bn * 4))) if block_dc is None else block_dc
     if block_m is None:
         # The sort holds BLOCK_M x BLOCK_N 64-bit words; keep that near 32 kB.
         block_m = max(16, min(32, 32768 // (bn * 8)))
@@ -527,7 +534,8 @@ def fused_topk_attention_sort(q: torch.Tensor, k: torch.Tensor,
         out.stride(0), out.stride(1), out.stride(2),
         N, 1.0 / (d ** 0.5),
         TOPK=topk, BLOCK_M=block_m, BLOCK_N=bn, BLOCK_K=bk,
-        BLOCK_D=bd, BLOCK_DC=bdc, HEAD_D=d,
-        num_warps=4,
+        BLOCK_D=bd, BLOCK_DC=bdc, HEAD_D=d, PRECISION=precision,
+        num_warps=num_warps,
+        **({} if num_stages is None else {"num_stages": num_stages}),
     )
     return out

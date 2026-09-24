@@ -47,6 +47,7 @@ def _flash_dense_kernel(
     BLOCK_KN: tl.constexpr,
     BLOCK_D: tl.constexpr,
     HEAD_D: tl.constexpr,
+    PRECISION: tl.constexpr = "ieee",
 ):
     pid_m = tl.program_id(0)
     b = tl.program_id(1)
@@ -73,7 +74,7 @@ def _flash_dense_kernel(
         v_blk = tl.load(V + b * stride_vb + offs_n[:, None] * stride_vn
                         + offs_d[None, :] * stride_vd,
                         mask=n_mask[:, None] & d_mask[None, :], other=0.0)
-        s = tl.dot(q, tl.trans(k_blk), input_precision="ieee") * scale
+        s = tl.dot(q, tl.trans(k_blk), input_precision=PRECISION) * scale
         valid = n_mask[None, :] & (offs_n[None, :] != offs_m[:, None])
         s = tl.where(valid, s, float("-inf"))
 
@@ -88,7 +89,8 @@ def _flash_dense_kernel(
         p = tl.where(valid, p, 0.0)
 
         l_i = l_i * alpha + tl.sum(p, axis=1)
-        acc = acc * alpha[:, None] + tl.dot(p, v_blk, input_precision="ieee")
+        acc = acc * alpha[:, None] + tl.dot(p.to(v_blk.dtype), v_blk,
+                                            input_precision=PRECISION)
         m_i = m_new
 
     tl.store(Out + b * stride_ob + offs_m[:, None] * stride_on
@@ -105,8 +107,14 @@ def fused_dense_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor,
                           block_m: int | None = None,
                           block_kn: int | None = None,
                           num_warps: int | None = None,
-                          num_stages: int | None = None) -> torch.Tensor:
-    """Streaming dense self-attention with the diagonal masked."""
+                          num_stages: int | None = None,
+                          precision: str = "ieee") -> torch.Tensor:
+    """Streaming dense self-attention with the diagonal masked.
+
+    ``precision`` is Triton's ``input_precision`` for fp32 inputs: ``"ieee"``
+    keeps the reference summation order off the tensor cores, ``"tf32"`` puts
+    both products on them. bf16 inputs use the tensor cores either way.
+    """
     B, N, d = q.shape
     q, k, v = q.contiguous(), k.contiguous(), v.contiguous()
     out = torch.empty_like(q)
@@ -139,6 +147,6 @@ def fused_dense_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor,
         N, 1.0 / (d ** 0.5),
         BLOCK_M=block_m, BLOCK_KN=block_kn, BLOCK_D=bd, HEAD_D=d,
         num_warps=4 if num_warps is None else num_warps,
-        num_stages=stages,
+        num_stages=stages, PRECISION=precision,
     )
     return out

@@ -98,6 +98,18 @@ run core_repeat scripts/bench_attention_core.py --device "$DEV" \
     --d-list 16 --batch-list 256 --reps 60 --runs 3 \
     --out results/attention_core_d16_repeat.json
 
+# The fused crossover in fp32, TF32 and bf16, each kernel searched in each
+# format, against the library, FlexAttention and our own dense kernel.
+run precision scripts/bench_precision.py --device "$DEV" \
+    --n-list 192 384 512 --k-list 1 2 4 8 16 --d-list 16 32 \
+    --out results/precision.json
+
+# All three pre-score selectors, including the grid nearest-neighbour selector,
+# and FlexAttention over the Z-order window, in one interleaved sweep.
+run prescore_selectors scripts/bench_prescore.py --device "$DEV" \
+    --n-list 48 96 192 384 512 --k-list 2 4 8 16 --reps 50 --runs 3 \
+    --out results/prescore_selectors.json
+
 # Every implementation against the reference at every reported configuration.
 run equivalence scripts/verify_all_configurations.py --device "$DEV" \
     --out results/equivalence.json
