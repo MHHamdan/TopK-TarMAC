@@ -42,8 +42,8 @@ implementation only when one peer is retained (two at a single configuration),
 only at head widths $16$ and $32$, and only without tensor cores: in TF32 and
 bf16 dense attention gains three to eight times, and the advantage is gone from
 $384$ agents upward. From four retained peers upward the fused kernel is slower
-in every format, because ranking candidates costs more than aggregating over
-survivors saves. Selecting before scoring changes the
+in every configuration we could compare, because ranking candidates costs more
+than aggregating over survivors saves. Selecting before scoring changes the
 picture: fused, the attention stage becomes up to sixteen times faster than
 dense attention, and the selector then decides the outcome. An all-pairs
 nearest-neighbour selector is capped by a constant and ends far behind dense
