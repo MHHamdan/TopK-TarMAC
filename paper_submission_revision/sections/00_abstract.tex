@@ -1,20 +1,19 @@
-Sparse attention in multi-agent communication is commonly motivated by counting
-the operations it removes. For rules that select partners by their attention
-scores, the count is bounded and what it buys in time is smaller still. Because
-every score is computed before any can be discarded, only the aggregation is
-removable, so no such rule can remove more than half of the arithmetic of an
-attention forward pass at any sparsity. Whether even that half becomes time depends on the
-implementation. Applying the selection as a mask leaves the dense aggregation in
-place and saves nothing, while a genuinely sparse implementation moves more data
-than dense attention despite less arithmetic. Fused kernels remove most of that
-overhead and expose the algorithm: retaining a single peer is faster than the
-best dense implementation we could obtain, but that case is nearly degenerate,
-and from four retained peers upward the sparse path is 1.3 to 28 times slower.
-Deciding what to attend to before any score exists lifts the bound, and there
-the selector's own cost decides the outcome. A selector that ranks all pairs in
-a cheap feature space cannot beat a constant however sparse the attention
-becomes; a sub-quadratic one is unbounded, and behind a fused kernel its
-attention stage runs up to sixteen times faster than dense, with the complete
-path reaching parity at five hundred agents on best-case timings. All timings
-are from one GPU architecture; the operation-count results are
-hardware-independent.
+Sparse attention in multi-agent communication is commonly motivated by the
+operations it removes. We study when that saving becomes elapsed time, with a
+cost model that charges each peer-selection rule for what it costs to run.
+Rules that select peers by their attention scores must compute every score
+first, so they can remove at most half of the arithmetic of an attention
+forward pass at any sparsity. Rules that select before scoring escape this
+bound by an amount set by the selector's own cost, which separates selectors
+capped by a constant from those that are not. A byte count predicts when
+compacting the retained peers adds more memory traffic than it removes.
+Measurements of verified-equivalent implementations on one GPU architecture
+support each prediction. Composed from library operators, score-then-select
+attention is slower than dense attention at every configuration we measure.
+Fused kernels are faster only when one peer is retained, at narrow heads and
+without tensor cores; with TF32 or bf16 the advantage disappears beyond two
+hundred agents, and from four retained peers upward they are 1.3 to 28 times
+slower. Selecting before scoring with a sub-quadratic selector and a fused
+kernel makes the attention stage up to sixteen times faster than dense. The
+practical implication is to charge the selector and to measure the kernel that
+runs.

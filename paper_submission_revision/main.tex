@@ -18,11 +18,9 @@
 % Values quoted inside captions, generated from the artifacts.
 \input{tables/macros}
 
-\title{The FLOPs You Save Are Not the Time You Spend:\\
-Score-Then-Select Sparse Attention in Multi-Agent Communication}
+\title{Score-Then-Select Sparse Attention in Multi-Agent Communication:\\
+Operation-Count Limits and Measured Latency}
 
-% Authors must not appear in the submitted version. They are hidden as long as
-% the tmlr package is used without the [accepted] or [preprint] options.
 \author{\name Anonymous \email anonymous@example.com \\
       \addr Anonymous Institution}
 
@@ -46,27 +44,15 @@ Score-Then-Select Sparse Attention in Multi-Agent Communication}
 \label{sec:related}
 \input{sections/02_related.tex}
 
-\section{Computational Limits of Score-Then-Select Attention}
+\section{A Cost Model for Peer Selection}
 \label{sec:analysis}
 \input{sections/03_analysis.tex}
 
-\section{Measured Cost}
+\section{Experiments}
 \label{sec:measurement}
 \input{sections/04_measurement.tex}
 
-\section{Selecting Before Scoring}
-\label{sec:prescore}
-\input{sections/06_prescore.tex}
-
-\section{Learning Study}
-\label{sec:training}
-\input{sections/05_training.tex}
-
-\section{Sources of Measurement Error}
-\label{sec:pitfalls}
-\input{sections/07_pitfalls.tex}
-
-\section{Limitations}
+\section{Discussion and Limitations}
 \label{sec:limitations}
 \input{sections/08_limitations.tex}
 
@@ -81,10 +67,30 @@ to reduce wasted compute in the design of multi-agent communication
 architectures by discouraging optimisation against an operation count that does
 not predict runtime.
 
+\subsubsection*{Reproducibility Statement}
+The kernels, measurement harness, analysis scripts and every measurement
+artifact are provided as anonymised supplementary material and will be released
+publicly with the camera-ready version. A single script regenerates every
+table and figure from the artifacts, and a second re-derives every number
+quoted in the text and fails on any disagreement. The environment, commands and
+measurement parameters are listed in Appendix~\ref{app:repro}.
+
 \bibliographystyle{tmlr}
 \bibliography{references}
 
+\clearpage
 \appendix
+\input{sections/11_app_theory.tex}
+\input{sections/12_app_measurement.tex}
+
+\section{Sources of measurement error}
+\label{sec:pitfalls}
+\input{sections/07_pitfalls.tex}
+
+\section{Learning study}
+\label{sec:training}
+\input{sections/05_training.tex}
+
 \input{sections/10_appendix.tex}
 
 \end{document}

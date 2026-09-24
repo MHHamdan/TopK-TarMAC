@@ -32,6 +32,14 @@ SEC = PAPER / "sections"
 TAB = PAPER / "tables"
 
 
+#: Section files set in the main text; the rest are appendices. Sections 05
+#: (learning study) and 07 (measurement error) moved to the appendix when the
+#: paper was restructured for length.
+MAIN_TEXT = ("00_abstract.tex", "01_intro.tex", "02_related.tex",
+             "03_analysis.tex", "04_measurement.tex", "08_limitations.tex",
+             "09_conclusion.tex")
+
+
 def load(name: str) -> dict:
     p = R / name
     if not p.exists():
@@ -346,9 +354,10 @@ def main() -> int:
               r"is worth between \$[\d.]+\$ and \$([\d.]+)\$", tol=0.03)
     sel_ms = [r["t_selector_ms"] for r in pre if r["selector"] == "morton_window"]
     check_num("Z-order selector, cheapest", min(sel_ms),
-              r"agent count --- \$([\d.]+)\$ to", tol=0.03)
+              r"nearly flat in the agent count --- \$([\d.]+)\$ to", tol=0.03)
     check_num("Z-order selector, dearest", max(sel_ms),
-              r"agent count --- \$[\d.]+\$ to \$([\d.]+)\$\\,ms", tol=0.03)
+              r"nearly flat in the agent count --- \$[\d.]+\$ to \$([\d.]+)\$\\,ms",
+              tol=0.03)
     knn = [pat("radius_knn", N, pks[1]) for N in pns]
     if all(knn):
         kt = [r["t_total_fused_ms"] / r["t_dense_best_ms"] for r in knn]
@@ -382,6 +391,61 @@ def main() -> int:
             fails.append("the manuscript says the two runs agree to within "
                          f"2.3 per cent at the crossing cells; measured "
                          f"{100 * worst_rep:.1f}%")
+
+    # ---- the second pre-score sweep: three selectors and FlexAttention ----
+    ps = load("prescore_selectors.json")["rows"]
+
+    def psel(sel, N, k):
+        c = [r for r in ps if r["selector"] == sel and r["n_agents"] == N
+             and r["k"] == k]
+        return c[0] if c else None
+
+    def pden(r, f="min_ms"):
+        return min(v[f] for v in r["dense_dispersion"].values())
+
+    a192, a512 = psel("radius_knn", 192, 4), psel("radius_knn", 512, 4)
+    g192, g512 = psel("grid_knn", 192, 4), psel("grid_knn", 512, 4)
+    z512 = psel("morton_window", 512, 4)
+    check_num("all-pairs selector at 192 agents", a192["t_selector_ms"],
+              r"quadratically, from \$([\d.]+)\$ to", tol=0.03)
+    check_num("all-pairs selector at 512 agents", a512["t_selector_ms"],
+              r"quadratically, from \$[\d.]+\$ to \$([\d.]+)\$", tol=0.03)
+    check_num("all-pairs path at 512 agents",
+              a512["t_total_fused_ms"] / pden(a512),
+              r"its path ends \$([\d.]+)\$ times slower", tol=0.03)
+    check_num("grid selector at 192 agents", g192["t_selector_ms"],
+              r"cost rises from \$([\d.]+)\$ to", tol=0.03)
+    check_num("grid selector at 512 agents", g512["t_selector_ms"],
+              r"cost rises from \$[\d.]+\$ to \$([\d.]+)\$", tol=0.03)
+    check_num("grid path at 512 agents", g512["t_total_fused_ms"] / pden(g512),
+              r"keeps the path \$([\d.]+)\$ times\s*slower", tol=0.05)
+    check_num("Z-order path at 512 agents, minima",
+              z512["t_total_fused_ms"] / pden(z512),
+              r"the path costs \$([\d.]+)\$ times dense at \$512\$", tol=0.03)
+    check_num("Z-order path at 512 agents, medians",
+              z512["dispersion"]["total_fused"]["median_ms"]
+              / pden(z512, "median_ms"),
+              r"in the second sweep \(\$([\d.]+)\$\)", tol=0.03)
+    check_num("Z-order through FlexAttention at 512 agents",
+              z512["t_flex_total_ms"] / pden(z512),
+              r"window costs \$([\d.]+)\$ times dense", tol=0.04)
+    check_num("grid recall, worst", 100 * min(
+        r["recall_vs_exact_knn"] for r in ps if r["selector"] == "grid_knn"),
+              r"at least\s*\$([\d.]+)\\%\$", tol=0.0001)
+    for sel in ("radius_knn", "grid_knn"):
+        checks += 1
+        r16 = [psel(sel, N, 16) for N in (384, 512)]
+    checks += 1
+    if not all(psel("grid_knn", N, 16)["t_total_fused_ms"]
+               > psel("radius_knn", N, 16)["t_total_fused_ms"]
+               for N in (384, 512)):
+        fails.append("the grid selector is said to be slower than all-pairs "
+                     "at sixteen retained peers at 384 and 512 agents")
+    checks += 1
+    zf = [r for r in ps if r["selector"] == "morton_window"]
+    if not all(r["flex_deviation"] < 1e-4 for r in zf):
+        fails.append("FlexAttention over the Z-order band does not compute "
+                     "the same function as the pre-score path")
 
     # The equivalence appendix quotes the artifact, so the artifact checks it.
     eq = load("equivalence.json")
@@ -576,7 +640,7 @@ def main() -> int:
                       ("timing group", "say interleaved sweep")):
         checks += 1
         hits = sum(len(re.findall(rf"\b{word}s?\b", t, re.I))
-                   for n, t in flat.items() if n != "10_appendix.tex")
+                   for n, t in flat.items() if n in MAIN_TEXT)
         if hits > 2:
             fails.append(f"harness vocabulary {word!r} appears {hits} times "
                          f"in the main text -- {why}")
@@ -584,15 +648,17 @@ def main() -> int:
     # Corollary 1's worked example: the Z-order closed form at N=512, k=4, d=16
     # and its fraction of N/k, which an earlier revision misquoted as 72%.
     N, k, d = 512, 4, 16
-    zorder = 4 * N * d / (4 * k * d + 30 + 2 * (N - 1).bit_length())
+    # The selector charges floor(log2 N) + 1 = N.bit_length() sort levels,
+    # as src/kernels/prescore_selection.analytic_flops does.
+    zorder = 4 * N * d / (4 * k * d + 30 + 2 * N.bit_length())
     knn = N * d / (k * d + N)
     for want, why in ((f"{knn:.1f}", "kNN closed form"),
                       (f"${zorder:.0f}$", "Z-order closed form"),
                       (f"${100 * zorder / (N / k):.0f}\\%$",
                        "Z-order fraction of N/k")):
         checks += 1
-        if want not in prose.get("03_analysis.tex", ""):
-            fails.append(f"03_analysis.tex: expected {want!r} ({why})")
+        if want not in everything:
+            fails.append(f"manuscript: expected {want!r} ({why})")
 
     # ---- 5. required scoping --------------------------------------------
     required = [

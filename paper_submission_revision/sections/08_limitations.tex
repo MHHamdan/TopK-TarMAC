@@ -1,91 +1,40 @@
-Every cost result here concerns centralised inference on a single device: the
-latency and memory of executing the communication module in one process that
-holds all agents' observations. It is not a claim about bandwidth-constrained
-distributed deployment, where the objective is to reduce messages physically
-transmitted and top-$k$ sparsification may well be correct even though it does
-not reduce local computation. Proposition~\ref{prop:ceiling} says nothing about
-transmitted bytes, and neither do the measurements. The analysis is also
-single-round and single-head. Assumptions A1 and A3 show that the
-\emph{operation-count} ratio is invariant to rounds and heads, but this paper's
-whole argument is that the operation-count ratio does not determine time, so
-that invariance cannot be used to extend a timing result. It should not be: $H$
-heads of width $d/H$ is a change in per-head width, and per-head width is the
-axis along which our timing result changes sign.
+\paragraph{Measurement error.} Seven errors produced plausible but spurious
+results during this study before they were caught, among them a host transfer
+inside the timed region, sequential timing on a shared device, a masked
+implementation benchmarked as sparse, and a hand-written sparse kernel compared
+with a vendor dense kernel tuned for another regime. Appendix~\ref{sec:pitfalls}
+lists each with its symptom and the practice that corrected it.
+
+\paragraph{Limitations.} Every cost result concerns centralised inference on a
+single device; the paper makes no claim about bandwidth-constrained distributed
+deployment, where reducing transmitted messages is itself the objective and
+top-$k$ selection may well be the right design. The analysis is single-round
+and single-head. The operation-count ratio is invariant to rounds and heads, but
+the timing result is not guaranteed to be: $H$ heads of width $d/H$ change the
+per-head width, which is the axis along which our timing result changes sign.
 
 The measured envelope is one GPU architecture (NVIDIA Blackwell, sm\_120), one
-x86\_64 CPU, PyTorch 2.11 with CUDA 12.8 and Triton 3.6, input embedding width
-$64$, head width $d \in \{16,\dots,512\}$, $N \le 512$, batch $32$--$1024$,
-\texttt{fp32} and \texttt{bf16}, and eager, compiled and CUDA-graph execution.
-The crossover of Section~\ref{sec:fused} is narrower still: it appears only at
-$d \in \{16,32\}$, only at $N \ge 192$, and only in \texttt{fp32}, which is the
-dtype in which dense attention is least advantaged. We could not replicate on a
-second GPU generation, because the host has two cards of the same model and the
-hardware that produced this project's earlier runs is gone. Both cards were
-shared with other tenants throughout. That is why every claim is stated as a
-ratio between implementations timed in the same interleaved sweep, why the
-headline sweep was repeated in full, and why no claim is read off an agent count
-below $192$, where fixed per-call cost is an eighth of the
-measurement.
+x86\_64 CPU, PyTorch 2.11 with CUDA 12.8 and Triton 3.6, head widths $16$ to
+$512$, $N \le 512$, batch $32$ to $1024$, and fp32, TF32 and bf16. We could not replicate on a second
+GPU generation, because no other was available to us. Both cards were shared
+with other tenants throughout, and clocks could not be locked; every claim is
+therefore a ratio between implementations timed in the same interleaved sweep,
+and no claim is read off an agent count below $192$, where a fixed per-call cost
+is a large share of the measurement.
 
-Our sparse implementations are not optimal and neither is our dense baseline. We
-searched the same parameter space for both under one admissibility filter, and
-report what fraction of the device's measured matrix-multiply rate each one
-reaches, because matched authorship is a weaker condition than matched efficiency
-and only the second identifies the algorithm. The budgets the filter admits are
-not equal --- three configurations for the sparse kernel above $192$ agents
-against twenty-eight to a hundred and six for the dense one, for the structural
-reason Section~\ref{sec:fused} gives --- so the sparse figure is a lower bound
-on what a kernel of its shape could reach, and the negative entries at the wider
-head widths are weakly supported. At the two head widths where the crossover lives no
-implementation available to us --- the vendor library, our own kernel, or any
-configuration in the search --- exceeds $47\%$ of that rate, and the sparse
-kernel reaches at most $33\%$. The comparison is therefore between a better dense kernel
-and a worse sparse one, which bounds the direction of any residual bias but not
-its size: a dense kernel substantially closer to the machine's limit at this
-head
-width would remove the crossover, and we cannot rule one out. Separately, the
-sparse kernels are forward-only, and they hold the whole score row in registers,
-which caps them at $N \le 1024$ and limits how many queries can be in flight at
-the largest sizes. That cap binds hardest on the sorted kernel, whose sort needs
-the whole row resident and which is accordingly worst at the largest agent
-counts. A streaming exact top-$k$, keeping a running candidate set rather than
-the row, would not be subject to that cap; we did not write one, so every
-residency statement in this paper describes our kernels. What no kernel removes
-is the requirement to \emph{compute} all $N$ scores before the retained set is
-known, which is what Proposition~\ref{prop:ceiling} rests on.
-
-The learning study is secondary and bounded by its power. Five seeds per
-implementation gives a minimum attainable two-sided permutation $p$ of $0.0079$
-against a first Holm threshold of $0.0083$, so a first rejection requires one
-implementation's seeds to lie entirely above the other's. Resolving the effect
-the primary comparison suggests would need roughly $45$ seeds per
-implementation, or $70$ at the family-corrected level, from a
-normal-approximation formula that guides order of magnitude rather than
-describing the exact test we run. That was a budget allocation and not an
-unaffordable experiment: the $60$-run study consumed $31.9$ GPU-hours and a
-properly powered primary comparison would have cost about $37.9$ more. Its
-positive controls do not isolate the learned channel, for reasons given in
-Section~\ref{sec:training}, and one of them sits at an agent count where the
-selection mechanism is degenerate. Readers should treat the study as evidence
-that the architecture is not inert, and as no evidence at all about the six
-comparisons it could not resolve.
-
-Finally, the pre-score selectors of Section~\ref{sec:prescore} demonstrate a
-cost structure and not a method. They attend to a different peer set than
-top-$k$ does, so the comparison is of cost and not of quality, and we make no
-claim that spatial neighbours carry the information attention would have
-selected. Their selectors are also composed from library operators, so the
-constant we measure for them is an upper bound in the same way the composed
-sparse path's was before we fused it; how far a fused selector could fall is the
-obvious next measurement and one we did not make.
-
-That section's envelope is narrower than the rest of the paper's. It is one head
-width, one batch and one numerical format --- \texttt{fp32} at head width $16$
-and batch $256$ --- and the same reservation applies as to the crossover of
-Section~\ref{sec:fused}: \texttt{fp32} is the format in which dense attention
-is least advantaged, because our dense kernel forgoes the tensor cores to
-reproduce the reference's summation order while the pre-score kernel's score is
-a reduction with no tensor-core path to lose. A format that returns the tensor
-cores to dense attention would move the crossover, and we did not measure one.
-The crossover is also at the top of the agent range we measure, so it is stated
-where it was observed and not extrapolated in either direction.
+Our kernels are not optimal. The sparse kernels hold the whole score row of a
+query on chip, which caps them at $N \le 1024$ and admits only three tilings
+above $192$ agents against $28$ to $106$ for the dense kernel; a streaming exact
+top-$k$ that keeps a running candidate set would not have that constraint, and
+we did not write one. The sparse efficiency figures are therefore lower bounds,
+and the negative results at wide heads are weakly supported. The fused
+crossover at one retained peer is provisional in the other direction, and
+Section~\ref{sec:precision} shows how: a dense kernel that uses the tensor cores
+removes it from $384$ agents upward. The
+pre-score selectors attend to a different peer set than top-$k$ does, so their
+comparison is of cost and not of quality; their selectors are composed from
+library operators, so the selector costs we report are upper bounds; and their
+envelope is one head width, one batch and fp32. Finally, the learning study
+(Appendix~\ref{sec:training}) has five seeds per variant; it shows that the
+communication architecture improves return and cannot resolve the effect of any
+sparsification choice.

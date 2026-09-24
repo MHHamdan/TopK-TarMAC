@@ -357,8 +357,9 @@ argument rests on operation counts or asymptotics, not that it is wrong.}
 \section{Reproduction and provenance}
 \label{app:repro}
 
-The measurement campaign is training-free and completes in under an hour on one
-device. \texttt{scripts/run\_revision\_campaign.sh} regenerates the twelve
+The measurement campaign is training-free and completes in about three hours on
+one device, most of it the per-format tiling searches of the precision study.
+\texttt{scripts/run\_revision\_campaign.sh} regenerates the fourteen
 artifacts every table and figure in this paper is built from, in the order the
 manuscript reports them; the equivalence sweep
 (\texttt{scripts/verify\_all\_configurations.py}), the launch-cost probe
@@ -380,7 +381,8 @@ whichever one a given sweep happened to build.
 The environment is one NVIDIA RTX PRO 6000 Blackwell Server Edition
 (\texttt{sm\_120}, $95$\,GiB, driver $610.43.02$) of the two on a host with two
 Intel Xeon 6507P processors, under PyTorch $2.11$ with CUDA $12.8$ and Triton
-$3.6$. Every latency in the paper is \texttt{fp32}, timed with CUDA events
+$3.6$. Every latency outside the precision study of
+Section~\ref{sec:precision} is \texttt{fp32}, timed with CUDA events
 around a single call, interleaved implementation by implementation and
 repetition by repetition, with $20$ warm-up repetitions discarded, $40$ to $60$
 timed repetitions per block, and the whole block repeated three times; the
@@ -388,7 +390,11 @@ reported figure is the minimum over all samples and the spread of the three
 per-run medians is recorded beside it. The tiling search enumerates query tiles
 of $16$ to $128$, key tiles or head chunks of $16$ to $128$, two to eight warps
 and one to three pipeline stages, and admits a configuration when its key,
-value and accumulator blocks fit a $100$\,kB shared-memory budget.
+value and accumulator blocks fit a $100$\,kB shared-memory budget; the
+precision study repeats that search separately in each format. FlexAttention is
+called through \texttt{torch.compile} with the recompilation limit raised and
+fallback to the unfused path disabled, since past the default limit it silently
+executes an implementation that materialises the score matrix.
 
 Three provenance caveats. The hardware description and the aggregate provenance
 record were written before this project's environment was upgraded and describe

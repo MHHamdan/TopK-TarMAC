@@ -11,6 +11,7 @@ Run with no arguments to rebuild all of them.
 from __future__ import annotations
 
 import argparse
+from typing import Any
 import json
 import sys
 from pathlib import Path
@@ -167,6 +168,13 @@ def _best_dense(rows, N: int) -> float:
     return min(cands)
 
 
+def _best_dense_row(rows, N: int):
+    """The dense row that _best_dense's minimum comes from."""
+    c = [r for r in rows if r["n_agents"] == N and r["impl"] in
+         ("dense_fused", "dense_triton", "dense_tuned") and r.get("forward")]
+    return min(c, key=lambda r: r["forward"]["min_ms"]) if c else None
+
+
 def fig_ksweep() -> None:
     payload = load("attention_core_d16.json")
     rows = rows_of(payload)
@@ -189,6 +197,21 @@ def fig_ksweep() -> None:
             ys = [p["forward"]["min_ms"] / dense for p in pts]
             st = fs.style(impl)
             ax.plot(ks, ys, markersize=4.0, **st)
+            # Band: the range of the paired per-run ratio, each of the three
+            # runs' median divided by the same run's median of the best dense
+            # implementation. It shows how far the conclusion moves between
+            # runs and under a change of estimator from minimum to median.
+            dref = _best_dense_row(rows, N)
+            if dref is not None:
+                dm = dref["forward"]["run_medians_ms"]
+                lo_, hi_ = [], []
+                for p in pts:
+                    pr = [a / b for a, b in zip(p["forward"]["run_medians_ms"],
+                                                dm)]
+                    lo_.append(min(pr + [p["forward"]["min_ms"] / dense]))
+                    hi_.append(max(pr + [p["forward"]["min_ms"] / dense]))
+                ax.fill_between(ks, lo_, hi_, color=st.get("color"),
+                                alpha=0.18, linewidth=0, zorder=1)
         # the count model: what an operation count predicts for the gathered path
         ks = np.array(sorted({r["k"] for r in rows if r["n_agents"] == N
                               and r["impl"] == "topk_gather"}), dtype=float)
@@ -411,7 +434,6 @@ def fig_prescore() -> None:
     ax.set_xlabel("agents $N$")
     ax.set_ylabel("operations saved ($\\times$, higher better)")
     ax.set_title(f"the count promises ($k={k_show}$)", pad=4)
-    ax.legend(fontsize=fs.MIN_PT, loc="lower right", handlelength=2.2)
 
     # ---- what the clock delivers, against N ------------------------------
     ax = axes[1]
@@ -436,9 +458,6 @@ def fig_prescore() -> None:
     ax.set_xlabel("agents $N$")
     ax.set_ylabel("latency / best dense (lower better)")
     ax.set_title(f"the clock delivers ($k={k_show}$)", pad=4)
-    ax.set_ylim(top=ax.get_ylim()[1] * 3.6)
-    ax.legend(fontsize=fs.MIN_PT, loc="upper center", ncol=1,
-              handlelength=2.2, borderpad=0.1, labelspacing=0.22)
     fs.parity_line(ax, label="dense")
 
     # ---- and how far the crossing extends in k ---------------------------
@@ -470,8 +489,14 @@ def fig_prescore() -> None:
     ax.set_ylabel("latency / best dense")
     ax.set_title(f"extent in $k$ (${n_show}$ agents)", pad=4)
     ax.set_ylim(0.035, 9.0)
-    ax.legend(fontsize=fs.MIN_PT, loc="upper left", handlelength=2.2,
-              borderpad=0.1, labelspacing=0.22)
+    # One legend below the panels: per-panel legends sat on top of the data.
+    seen: dict[str, Any] = {}
+    for a_ in axes:
+        for h_, l_ in zip(*a_.get_legend_handles_labels()):
+            seen.setdefault(l_, h_)
+    fig.legend(list(seen.values()), list(seen.keys()), loc="lower center",
+               ncol=3, bbox_to_anchor=(0.5, -0.24), fontsize=fs.MIN_PT + 0.5,
+               handlelength=2.2)
 
     fs.savefig(fig, OUT / "fig5_prescore.pdf", W)
     plt.close(fig)

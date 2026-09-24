@@ -1,0 +1,13 @@
+\begin{tabular}{r rr rrr rr r}
+\toprule
+& \multicolumn{2}{c}{\textbf{all-pairs kNN}} & \multicolumn{3}{c}{\textbf{grid kNN}} & \multicolumn{2}{c}{\textbf{Z-order, fused}} & \textbf{Z-order} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-6}\cmidrule(lr){7-8}
+$N$ & select & total & select & total & recall & min & median & \textbf{Flex} \\
+\midrule
+48 & 0.048 & 8.12 & 0.047 & 8.09 & 1.0000 & 15.73 & 11.04 & 17.63 \\
+96 & 0.099 & 7.72 & 0.098 & 7.54 & 1.0000 & 8.62 & 7.69 & 14.97 \\
+192 & 0.317 & 10.08 & 0.506 & 16.09 & 1.0000 & 3.79 & 3.58 & 4.63 \\
+384 & 1.813 & 16.93 & 1.185 & 11.17 & 1.0000 & 1.26 & 1.34 & 2.25 \\
+512 & 5.692 & 37.48 & 1.669 & 9.85 & 0.9999 & 0.86 & 0.92 & 1.61 \\
+\bottomrule
+\end{tabular}%

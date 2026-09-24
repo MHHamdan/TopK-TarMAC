@@ -1,0 +1,152 @@
+\section{Proofs and assumptions}
+\label{app:theory}
+
+\subsection{Proposition~\ref{prop:ceiling}}
+
+\begin{proof}
+From \eqref{eq:counts}, $C_{\text{top-}k} = N^2 d + Nkd > N^2 d =
+\tfrac12 C_{\text{dense}}$ for every $k \ge 1$, since $Nkd > 0$, so the ratio
+$2N/(N+k)$ is below $2$. It is decreasing in $k$, hence largest at $k = 1$, and
+approaches $2$ from below as $k/N \to 0$.
+\end{proof}
+
+We use $N^2 d$ rather than $N(N{-}1)d$ because it is the count the
+implementations execute: self-masking writes $-\infty$ into the diagonal of a
+full $N \times N$ score matrix and does not skip work. Counting the diagonal
+exactly gives $2(N{-}1)/\bigl((N{-}1)+k\bigr)$, which is strictly smaller for
+every $1 \le k \le N-1$, so the proposition is a valid upper bound under either
+convention.
+
+Six assumptions support the statement, of which only the second is essential.
+\textbf{(A1) Single round}: with $R$ rounds both terms scale by $R$ and the
+ratio is unchanged. \textbf{(A2) Full-score selection}: the retained set is
+determined only after the complete candidate score vector has been computed, so
+all $N$ scores must be formed. \textbf{(A3) Per head}: with $H$ heads of width
+$d/H$ both terms scale identically. \textbf{(A4) Projections excluded}:
+including the shared $qkv$ and output projections moves the ratio strictly
+closer to $1$, so the bound remains valid. \textbf{(A5) Selection cost
+excluded}: counting the top-$k$ operation itself can only decrease the ratio,
+and Appendix~\ref{app:stages} shows the term is large in practice.
+\textbf{(A6) Equal key and value widths}: with key width $d_k$ and value width
+$d_v$ the two products cost $N^2 d_k$ and $N^2 d_v$, and the ceiling is
+$1 + d_v/d_k$, which is $2$ in the equal-width attention used throughout.
+
+A2 concerns \emph{when} the retained set is fixed, not whether the rule depends
+on the data. Routing Transformer's online $k$-means routing
+\citep{roy2021routing} and Reformer's locality-sensitive hash
+\citep{kitaev2020reformer} are content-dependent in every ordinary sense and
+still evaluate scores only for candidate pairs; a hierarchical rule that ranks
+compressed blocks and then scores only the selected ones \citep{yuan2025nsa} is
+likewise outside A2. A2 also does not require the scores to be held at once: a
+streaming selector that keeps a running candidate set computes all $N$ scores
+without storing them, and remains inside the class.
+
+\subsection{The training-time analogue}
+
+Exact selection is piecewise constant in the scores, so gradients reach only
+the retained entries. Of the four products in dense attention's backward pass
+--- the gradients with respect to values, weights, queries and keys, each
+$N^2 d$ --- a gathered top-$k$ backward executes each over the $Nk$ retained
+pairs alone, given the indices recorded in the forward pass. Counting both
+passes, without recomputation,
+\begin{equation}
+\frac{C^{\text{f+b}}_{\text{dense}}}{C^{\text{f+b}}_{\text{top-}k}}
+= \frac{6N^2 d}{N^2 d + 5Nkd} = \frac{6N}{N+5k} < 6,
+\end{equation}
+so in training at most five sixths of attention's arithmetic is removable,
+against half in inference. A dense implementation that recomputes the scores in
+its backward pass, as FlashAttention does, adds $N^2 d$ to the dense count and
+raises the bound to $7$. The asymmetry is visible in the measurements of
+Appendix~\ref{app:backward}, where the gathered path's backward is cheap
+relative to its forward.
+
+\subsection{Proposition~\ref{prop:escape} and Corollary~\ref{cor:taxonomy}}
+
+\begin{proof}[Proof of Proposition~\ref{prop:escape}]
+Both statements read off the displayed ratio. For (i),
+$2Nkd + C_{\mathrm{sel}} = 2Nkd\,(1+o(1))$, so
+$S = (N/k)\,(1+o(1))^{-1}$, whose quotient with $N/k$ tends to $1$;
+substituting $C_{\mathrm{sel}} = 0$ gives $2N^2 d/2Nkd = N/k$ exactly, and any
+$C_{\mathrm{sel}} > 0$ strictly enlarges the denominator. For (ii), if
+$k/N \to 0$ then $2Nkd = o(N^2 d)$, so the whole denominator is $o(N^2 d)$ and
+the ratio diverges.
+\end{proof}
+
+For a score-then-select rule the displayed form charges the $Nk$ retained
+scores inside $2Nkd$ although the rule has already formed them while
+selecting, so its selector cost in this form is at least the scores of the
+discarded pairs, $C_{\mathrm{sel}} \ge N^2 d - Nkd$. That is a lower bound and
+not an estimate: the ranking itself is uncounted, and counting it enlarges
+$C_{\mathrm{sel}}$ and shrinks the ratio further. Substituting the bound gives
+$2N^2d/(N^2d + Nkd)$, which is Proposition~\ref{prop:ceiling}.
+
+\begin{proof}[Proof of Corollary~\ref{cor:taxonomy}]
+Each case substitutes its $C_{\mathrm{sel}}$ into the denominator of $S$. Case
+(a) is Proposition~\ref{prop:ceiling}. In (b) the $\gamma N^2 p$ term dominates
+$2Nkd$ at fixed $k$ and $d$, giving $S \to 2N^2d/(\gamma N^2 p)$. In (c) the
+$\Theta(N\log N)$ term likewise dominates $2Nkd$, giving
+$S = \Theta(N^2 d / (N \log N))$, and $S/(N/k) = \Theta(kd/\log N) \to 0$; the
+statement needs $d = O(1)$, since with $d = \Theta(\log N)$ the penalty
+disappears. In (d), $S = 2N^2d/((2+c)Nkd) = 2N/((2+c)k)$ exactly, which is
+$\Theta(N/k)$ but not asymptotic to it; with $C_{\mathrm{sel}} = o(Nkd)$ it is
+Proposition~\ref{prop:escape}(i).
+\end{proof}
+
+The selector-cost term is material, not decorative. A fixed topology or a
+precomputed spatial prior really is free at inference and lands in case~(d),
+which is why Longformer and BigBird obtain asymptotic savings where
+score-then-select top-$k$ cannot
+\citep{beltagy2020longformer,zaheer2020bigbird}: their patterns are fixed before
+any score is formed, so nothing is spent deciding. A hash must be evaluated and
+its buckets assembled \citep{kitaev2020reformer}, and a routing rule must
+maintain and query its clusters \citep{roy2021routing}, so their
+$C_{\mathrm{sel}}$ has to be counted, not assumed away. Between the two
+sits a family of multi-agent methods whose selector is itself pairwise --- a
+learned hard-attention or scheduling network evaluated over all $N^2$ pairs
+before communication attention runs \citep{liu2020g2anet,niu2021magic} --- and
+for these $C_{\mathrm{sel}}$ is of the same order as the score matrix they
+avoid, so they inherit a ceiling of the same kind instead of escaping it.
+
+\subsection{Closed forms for the measured selectors}
+\label{app:closedforms}
+
+The three selectors of Section~\ref{sec:prescore}, charged under the unit
+convention of Corollary~\ref{cor:taxonomy}, have closed-form ratios. The
+all-pairs nearest-neighbour selector charges three operations for each
+two-dimensional distance and one comparison per candidate, $4N^2$ operations or
+$2N^2$ MAC-equivalents per batch element, giving $Nd/(kd + N)$; the ranking is
+charged one comparison per candidate, a lower bound for any selection algorithm,
+so the formula overstates that selector's ratio. The Z-order selector
+quantises, interleaves ten bit-pairs and sorts, $N(15 + \lfloor \log_2 N
+\rfloor + 1)$ MAC-equivalents, giving
+$4Nd/(4kd + 32 + 2\lfloor \log_2 N\rfloor)$. At $512$ agents and four retained
+peers the first has reached $14.2$ against its ceiling of $d = 16$, while the
+second is at $107$ --- unbounded in principle, and already only $84\%$ of the
+$N/k = 128$ that the naive count promises. The grid selector charges one sort to
+bucket agents and, per agent, a distance and a comparison for each of $9M$
+candidates in the surrounding cells, where $M$ is the per-cell capacity; for
+bounded density $M = \Theta(k)$, so $C_{\mathrm{sel}} = \Theta(Nk)$ and the
+selector is in case~(d) with $c = \Theta(1/d)$.
+
+\subsection{Machine balance and arithmetic intensity}
+\label{app:intensity}
+
+We compute arithmetic intensity, floating-point operations per byte of global
+memory traffic, analytically per stage, counting each tensor read and written
+once, and compare it against a machine balance measured on the same device: a
+large matrix multiply gives the achievable arithmetic rate, a large copy gives
+achievable bandwidth, and their ratio is the ridge point above which a kernel is
+compute-bound. Counting each tensor once ignores cache residency, so at small
+$N$, where the working set fits the GPU's L2, the analytic byte counts overstate
+traffic; the per-stage accounting of Appendix~\ref{app:stages} flags such stages
+so the reader need not infer them. The ridge point itself depends on whether the
+probe's buffer fits the last-level cache, so we measure two of them per device.
+On the GPU the ridge is $23$\,FLOP/byte cache-resident and $53$ from memory; on
+the host it is $8$ and $28$. Both paths in this study sit below every one of
+those figures at every agent count, on both devices, so the memory-bound
+conclusion does not depend on which ridge is the relevant one. The per-stage
+table of Appendix~\ref{app:stages} quotes a third figure, $39$, because its
+probe runs in the same process as the stage timings it scales and measures the
+arithmetic rate at $57.8$ rather than $76.7$\,TFLOP/s on the same card; every
+stage sits below that ridge as well. Appendix~\ref{app:roofline} gives the
+probe.

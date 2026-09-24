@@ -511,6 +511,96 @@ $N$ & communication & """ + head + r""" & s/iter & $\div$ fused & spread \\
 \end{tabular}"""
 
 
+def table_precision() -> str:
+    """The fused crossover in three numerical formats, each kernel searched in
+    each format, against the best of the library, FlexAttention and our own
+    dense kernel. No fraction-of-peak column: the sweep ran while other
+    tenants loaded the device, which depresses a same-process peak and so
+    inflates any fraction of it, whereas the interleaved ratios stay paired.
+    Ratios are of minima; the median-based ratio at one retained
+    peer is shown beside it because the positive result rests on that column."""
+    pay = load("precision.json")
+    label = {"sdpa": "library", "flex_dense": "flex",
+             "dense_tuned": "ours"}
+    lines = [r"\begin{tabular}{rrl lr rrrr r}", r"\toprule",
+             r"& & & \multicolumn{2}{c}{\textbf{best dense}} & "
+             r"\multicolumn{4}{c}{\textbf{fused top-$k$ $\div$ best dense}} & "
+             r"\textbf{Flex} \\",
+             r"\cmidrule(lr){4-5}\cmidrule(lr){6-9}",
+             r"$d$ & $N$ & format & from & ms & $k{=}1$ & "
+             r"$k{=}1$ (med.) & $k{=}2$ & $k{=}4$ & $k{=}1$ \\",
+             r"\midrule"]
+    order = {"fp32": 0, "tf32": 1, "bf16": 2}
+    rows = sorted(pay["rows"], key=lambda r: (r["head_dim"], r["n_agents"],
+                                               order[r["mode"]]))
+    prev = None
+    for r in rows:
+        t = r["timed"]
+        bd = r["best_dense_ms"]
+        bdm = r["best_dense_median_ms"]
+
+        def rat(name, field="min_ms", den=bd):
+            return (f"{t[name][field] / den:.2f}" if name in t else "---")
+
+        key = (r["head_dim"], r["n_agents"])
+        if prev is not None and key[0] != prev[0]:
+            lines.append(r"\midrule")
+        lines.append(
+            f"{r['head_dim'] if key != prev else ''} & "
+            f"{r['n_agents'] if key != prev else ''} & {r['mode']} & "
+            f"{label[r['best_dense']]} & {bd:.4f} & {rat('fused_topk:1')} & "
+            f"{rat('fused_topk:1', 'median_ms', bdm)} & "
+            f"{rat('fused_topk:2')} & {rat('fused_topk:4')} & "
+            f"{rat('flex_topk:1')} \\\\")
+        prev = key
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(lines)
+
+
+def table_selectors() -> tuple[str, int]:
+    """All three pre-score selectors and FlexAttention over the Z-order window,
+    from one interleaved sweep, at four retained peers. Ratios are end-to-end
+    (selector included, attention fused) against the best dense implementation
+    of the same sweep, on minima and on paired medians."""
+    pay = load("prescore_selectors.json")
+    k = 4
+    rows = [r for r in pay["rows"] if r["k"] == k]
+
+    def pick(sel, N):
+        c = [r for r in rows if r["selector"] == sel and r["n_agents"] == N]
+        return c[0] if c else None
+
+    def tot(r, field="min_ms"):
+        den = min(v[field] for v in r["dense_dispersion"].values())
+        return r["dispersion"]["total_fused"][field] / den
+
+    def flex(r, field="min_ms"):
+        den = min(v[field] for v in r["dense_dispersion"].values())
+        return r["flex_total_dispersion"][field] / den
+
+    lines = [r"\begin{tabular}{r rr rrr rr r}", r"\toprule",
+             r"& \multicolumn{2}{c}{\textbf{all-pairs kNN}} & "
+             r"\multicolumn{3}{c}{\textbf{grid kNN}} & "
+             r"\multicolumn{2}{c}{\textbf{Z-order, fused}} & "
+             r"\textbf{Z-order} \\",
+             r"\cmidrule(lr){2-3}\cmidrule(lr){4-6}\cmidrule(lr){7-8}",
+             r"$N$ & select & total & select & total & recall & min & "
+             r"median & \textbf{Flex} \\",
+             r"\midrule"]
+    for N in sorted({r["n_agents"] for r in rows}):
+        a, g, z = (pick(s, N) for s in ("radius_knn", "grid_knn",
+                                          "morton_window"))
+        if not (a and g and z):
+            continue
+        lines.append(
+            f"{N} & {a['t_selector_ms']:.3f} & {tot(a):.2f} & "
+            f"{g['t_selector_ms']:.3f} & {tot(g):.2f} & "
+            f"{g['recall_vs_exact_knn']:.4f} & {tot(z):.2f} & "
+            f"{tot(z, 'median_ms'):.2f} & {flex(z):.2f} \\\\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(lines), k
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     written = []
@@ -541,11 +631,18 @@ def main() -> int:
                      ("grid", table_grid),
                      ("drift", table_drift),
                      ("autotune", table_autotune),
+                     ("precision", table_precision),
                      ("audit", table_audit)):
         try:
             put(name, fn())
         except SystemExit as exc:
             print(f"  (skipped {name}: {exc})")
+    try:
+        sel, sk = table_selectors()
+        put("selectors", sel)
+        macros["SelectorsK"] = str(sk)
+    except SystemExit as exc:
+        print(f"  (skipped selectors: {exc})")
     (OUT / "macros.tex").write_text(
         "\n".join(f"\\newcommand{{\\{n}}}{{{v}}}"
                   for n, v in sorted(macros.items())) + "\n")
