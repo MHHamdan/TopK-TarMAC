@@ -34,8 +34,9 @@ configuration, and the released artifacts carry all of them. Two properties of
 this host limit what any of it can mean. Both GPUs carried other tenants' allocations and near-continuous utilisation
 throughout the campaign --- tens of gibibytes, varying between sessions, which
 we observed but did not record per run --- and clocks could not be locked. We therefore report the spread of
-per-run medians beside every configuration rather than a confidence interval: a
-ratio of minima has no sampling distribution.
+per-run medians beside every configuration. Whether a bootstrap interval for a
+ratio of minima is meaningful depends on the contention process, which is not
+stationary on this host, so we do not report one for the minimum.
 
 \subsection{Drift control}
 \label{app:drift}
@@ -252,7 +253,8 @@ other.
 
 The analysis plan was committed when eight of the forty runs in the
 pre-registered family had produced a final evaluation and before any of their
-returns had been inspected. Commit history establishes the ordering: the
+returns had been inspected. The timestamped history in the anonymised
+supplementary archive establishes the ordering: the
 positive-control artifacts at 12:18, the plan at 12:56, and the remaining
 artifacts at 19:11 the same day. The plan has two commits, the second appending
 to its deviations log; the endpoint, comparisons, test, effect sizes, interval

@@ -41,7 +41,7 @@ against the better of the vendor library and our own dense kernel at the tiling
 the search of Section~\ref{sec:fused} found. Composing the attention stage from
 library operators costs an order of magnitude more than fusing it, and the
 difference decides the conclusion: composed, the attention is slower than dense
-attention at every configuration measured; fused, it is up to seventeen times
+attention at every configuration measured; fused, it is up to sixteen times
 faster.}
 \label{tab:prescore}
 \resizebox{\linewidth}{!}{\input{tables/prescore}}
@@ -112,7 +112,7 @@ medians.
 Three things follow, and together they are the paper's constructive result.
 
 Escaping the operation-count ceiling is necessary and not sufficient. Both
-selectors escape it, by between $7$ and $107$ times in operations at
+selectors escape it, by between $7$ and $108$ times in operations at
 four retained peers, and one of
 them is an order of magnitude slower than dense attention while the other is
 faster. What separates them is whether the selector reaches its decision through

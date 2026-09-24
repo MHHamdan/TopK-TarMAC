@@ -23,8 +23,8 @@ statement omits is where the handful comes from. Selecting peers by attention
 score requires the scores, so by the time the selection can be made, every
 pairwise interaction has been evaluated. Attention has two matrix products of
 equal size, one producing the scores and one aggregating the values; sparsity of
-this kind reaches only the second. The arithmetic that can be removed is
-therefore at most half, whatever the sparsity, and the familiar fraction that
+this kind reaches only the second. The forward-pass arithmetic that can be
+removed is therefore at most half, whatever the sparsity, and the familiar fraction that
 describes the aggregation term alone overstates the achievable saving by a
 factor approaching two.
 
@@ -56,7 +56,8 @@ most of that penalty, and where a single peer is retained it is faster than any
 dense implementation we could obtain, including a search over a hundred tilings
 of a dense kernel we wrote ourselves. Three qualifications bound that result and
 we state them with it. The advantage exists only at one retained peer, where the
-softmax is identically one and no weighting is being learned. It exists only at
+softmax is identically one and no weighting is being learned, and at a single
+configuration at two. It exists only at
 the narrow head widths where nothing we tried reaches half the device's
 arithmetic rate; dense efficiency and head width move together in our data and
 no configuration we ran separates them, so we cannot say which of the two the
@@ -87,9 +88,11 @@ median of the same samples it does not.
 
 \paragraph{Contributions.}
 \begin{itemize}
-  \item We show that any rule selecting communication partners by their
-    attention scores can remove at most half of attention's arithmetic, however
-    sparse it is, and that the bound is the special case of a general accounting
+  \item Under a multiply--accumulate count, any rule selecting communication
+    partners by their attention scores can remove at most half of the
+    arithmetic of an attention forward pass, however sparse it is, and at most
+    five sixths of a forward and backward pass together; the bound is the
+    special case of a general accounting
     in which a selection rule is charged for what it costs to run. That
     accounting places existing multi-agent restriction mechanisms on one axis
     and separates those that escape the bound from those that inherit it
@@ -104,8 +107,9 @@ median of the same samples it does not.
     the machine each reaches beside the number of configurations each search
     admitted, so that the comparison identifies the algorithm rather than the
     authors.
-    Sparsity does become faster than dense attention, at one retained peer, at
-    narrow head widths, and nowhere else (Section~\ref{sec:fused}).
+    Sparsity does become faster than dense attention, at one retained peer
+    (two at a single configuration), at narrow head widths, and in no other
+    configuration we measured (Section~\ref{sec:fused}).
   \item We instantiate the constructive half of the analysis with two selectors
         that fix the retained set before scoring. Both remove the
     operation-count bound; one is an order of magnitude slower

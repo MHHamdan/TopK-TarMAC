@@ -116,7 +116,23 @@ exactly gives $2(N{-}1)/\bigl((N{-}1)+k\bigr)$, which is strictly smaller for
 every $1 \le k \le N-1$, so the proposition is a valid upper bound under either
 convention.
 
-Five assumptions support the statement, of which only the second is essential.
+The ceiling is a statement about the forward pass, and training moves it. Exact
+selection is piecewise constant in the scores, so gradients reach only the
+retained entries: of the four products in dense attention's backward pass
+(the gradients with respect to values, weights, queries and keys, each
+$N^2 d$), a gathered top-$k$ backward executes each over the $Nk$ retained pairs
+alone, given the indices recorded in the forward pass. Counting both passes,
+without recomputation,
+\begin{equation}
+\frac{C^{\text{f+b}}_{\text{dense}}}{C^{\text{f+b}}_{\text{top-}k}}
+= \frac{6N^2 d}{N^2 d + 5Nkd} = \frac{6N}{N+5k} < 6,
+\end{equation}
+so in training at most five sixths of attention's arithmetic is removable,
+against half in inference. The asymmetry is visible in the measurements of
+Section~\ref{sec:backward}, where the gathered path's backward is cheap relative
+to its forward.
+
+Six assumptions support the statement, of which only the second is essential.
 \textbf{(A1) Single round}: with $R$ rounds both terms scale by $R$ and the
 ratio is unchanged. \textbf{(A2) Full-score selection}: the retained set is
 determined only after the complete candidate score vector has been computed, so
@@ -126,6 +142,9 @@ including the shared $qkv$ and output projections moves the ratio strictly
 closer to $1$, so the bound remains valid. \textbf{(A5) Selection cost
 excluded}: counting the top-$k$ operation itself can only decrease the ratio,
 and Section~\ref{sec:stages} shows the term is large in practice.
+\textbf{(A6) Equal key and value widths}: with key width $d_k$ and value width
+$d_v$ the two products cost $N^2 d_k$ and $N^2 d_v$, and the ceiling is
+$1 + d_v/d_k$, which is $2$ in the equal-width attention used throughout.
 
 A2 concerns \emph{when} the retained set is fixed, not whether the rule depends
 on the data. Mechanisms that are content-dependent but not score-then-select lie
@@ -163,8 +182,9 @@ asymptotic to $N/k$, that is
 $\bigl(C_{\text{dense}}/C_{\mathrm{pre}}\bigr)\big/(N/k) \to 1$. Exact equality
 with $N/k$ holds only when $C_{\mathrm{sel}} = 0$; for every
 $C_{\mathrm{sel}} > 0$ the ratio is strictly smaller. \emph{(ii)} If only
-$C_{\mathrm{sel}} = o(N^2 d)$, the ratio is no longer bounded by $2$: with
-$k/N \to 0$ it diverges, though not in general at the rate $N/k$.
+$C_{\mathrm{sel}} = o(N^2 d)$ and $k/N \to 0$, the ratio diverges, and in
+particular is not bounded by $2$, though it does not in general grow at the
+rate $N/k$.
 \end{proposition}
 
 \begin{proof}
@@ -177,11 +197,14 @@ the denominator. For (ii), if $k/N \to 0$ then $2Nkd = o(N^2 d)$, so the whole
 denominator is $o(N^2 d)$ and the ratio diverges.
 \end{proof}
 
-Proposition~\ref{prop:ceiling} is the case $C_{\mathrm{sel}} \ge N^2 d$. A
-score-then-select rule must form the full score matrix before it can rank it, so
-$N^2 d$ is a lower bound on its selector cost and not an estimate of it: the
-ranking itself is uncounted, and counting it enlarges $C_{\mathrm{sel}}$ and
-shrinks the ratio further. Substituting the bound recovers
+Proposition~\ref{prop:ceiling} is the limiting case of this accounting. A
+score-then-select rule must form the full score matrix before it can rank it,
+and in doing so it has already evaluated the scores of the $Nk$ retained pairs,
+which the displayed form charges again inside $2Nkd$. Written in that form its
+selector cost is therefore at least the scores of the discarded pairs,
+$C_{\mathrm{sel}} \ge N^2 d - Nkd$, and this is a lower bound and not an
+estimate: the ranking itself is uncounted, and counting it enlarges
+$C_{\mathrm{sel}}$ and shrinks the ratio further. Substituting the bound gives
 $2N^2d/(N^2d + Nkd)$, which is Proposition~\ref{prop:ceiling}; any real
 implementation sits below it. Reading the two propositions as one statement
 places any peer-selection mechanism on a single axis, the cost of deciding what
@@ -189,18 +212,24 @@ to keep, and the position on that axis determines what the mechanism can save.
 
 \begin{corollary}[What a selector costs, and what it can therefore buy]
 \label{cor:taxonomy}
-Fix $k$ and $d$ and let $N \to \infty$ in
-$S = 2N^2d/(2Nkd + C_{\mathrm{sel}})$.
-\emph{(a) Full-score selection}, $C_{\mathrm{sel}} \ge N^2 d$: $S < 2$.
+Count $C_{\mathrm{sel}}$ in multiply--accumulate equivalents, one comparison,
+integer operation or distance term being one unit. Fix $k$ and $d$ and let
+$N \to \infty$ in $S = 2N^2d/(2Nkd + C_{\mathrm{sel}})$.
+\emph{(a) Full-score selection}, $C_{\mathrm{sel}} \ge N^2 d - Nkd$: $S < 2$.
 \emph{(b) All-pairs selection in a cheaper feature dimension $p \ll d$},
 $C_{\mathrm{sel}} = \gamma N^2 p$: $S \to 2d/(\gamma p)$, a constant that does
 not grow with $N$ and does not improve with $k$.
 \emph{(c) Sub-quadratic selection}, $C_{\mathrm{sel}} = \Theta(N \log N)$:
 $S = \Theta\bigl(Nd/\log N\bigr)$, which diverges, but is a vanishing fraction
 of $N/k$.
-\emph{(d) Fixed or precomputed patterns}, $C_{\mathrm{sel}} = O(Nkd)$ and in
-particular $C_{\mathrm{sel}} \approx 0$: $S \sim N/k$.
+\emph{(d) Fixed or precomputed patterns}, $C_{\mathrm{sel}} = o(Nkd)$ and in
+particular $C_{\mathrm{sel}} \approx 0$: $S \sim N/k$. A selector with
+$C_{\mathrm{sel}} = cNkd$ for a constant $c > 0$ gives $S \to 2N/((2+c)k)$,
+which is $\Theta(N/k)$ but not asymptotic to it.
 \end{corollary}
+
+The asymptotic classes do not depend on the unit convention; the constants in
+the closed forms below do.
 
 \begin{proof}
 Each case substitutes its $C_{\mathrm{sel}}$ into the denominator. In (b) the
@@ -212,7 +241,7 @@ Proposition~\ref{prop:ceiling}.
 \end{proof}
 
 Only (d) delivers the $N/k$ that operation-count arguments for sparse
-communication usually invoke, and only (a) is bounded. The two intermediate
+communication usually invoke, and only (a) is bounded by two. The two intermediate
 cases are where the multi-agent methods actually sit, and they behave very
 differently: a selector that ranks all pairs in a cheap feature space escapes the
 twofold ceiling and still cannot do better than a constant, while a
@@ -221,8 +250,9 @@ $N/k$ by a factor that widens with $N$. Section~\ref{sec:prescore} measures one
 selector of each kind. Their analytic ratios are $Nd/(kd + N)$ and
 $4Nd/(4kd + 30 + 2\lceil \log_2 N\rceil)$ respectively, so at $512$ agents and
 four retained peers the first has reached $14.2$ against its ceiling of $d = 16$,
-while the second is at $107$ --- unbounded in principle, and already only
-$72\%$ of the $N/k = 128$ that the naive count promises.
+while the second is at $108$ --- unbounded in principle, and already only
+$84\%$ of the $N/k = 128$ that the naive count promises. The first formula omits
+the cost of ranking the distances, so it overstates that selector's ratio.
 
 The selector-cost term is material, not decorative. A fixed topology or a
 precomputed spatial prior really is free at inference and lands in case~(i),

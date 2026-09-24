@@ -267,11 +267,13 @@ as ours.
 \subsection{Sensitivity to head width and batch}
 \label{sec:sensitivity}
 
-Across head widths to $512$, the crossover exists only at the two narrowest:
-the best sparse implementation is faster
-than the best dense one at head widths $16$ and $32$ at every agent count, and
-at no agent count for head width $128$ or above, where it is roughly twice as
-slow (Appendix~\ref{app:grid}). The ratio does not fall monotonically with head
+Across head widths to $512$, and at the agent counts from $192$ upward that
+carry claims, the crossover exists only at the two narrowest: the best sparse
+implementation is faster than the best dense one at head widths $16$ and $32$
+at every agent count, and at no agent count for head width $64$ or above, where
+it is $1.3$ to $2.3$ times slower (Appendix~\ref{app:grid}). The launch-bound
+$96$-agent column has one exception, $0.88$ at head width $64$, which we do not
+read as a result. The ratio does not fall monotonically with head
 width; it reverses.
 
 That is what the byte criterion predicts. Byte-neutrality requires
@@ -280,8 +282,8 @@ retained set proportionally, and at head width $128$ the criterion permits only
 $k \le 4$ at $512$ agents --- by which point the selection cost of
 Section~\ref{sec:fused} has already overtaken the saving. Widening the batch
 over a
-thirty-twofold range, by contrast, moves the ratio by less than a fifth and
-never across parity, which is the expected behaviour of a quantity that is a
+thirty-twofold range, by contrast, moves the ratio by up to a third --- from
+$0.54$ to $0.72$ at $512$ agents --- and never across parity, which is the expected behaviour of a quantity that is a
 ratio of per-element costs.
 
 \subsection{Where the time goes}

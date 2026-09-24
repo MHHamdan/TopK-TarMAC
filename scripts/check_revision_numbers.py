@@ -534,12 +534,34 @@ def main() -> int:
          "report the null; do not narrate having reported it"),
         ("decide where to look before looking", "slogan"),
         ("the arm meant to save cost", "slogan, and 'arm' is harness jargon"),
+        ("one and a half to twenty-eight",
+         "from four retained peers upward the range is 1.3 to 28"),
+        ("narrow head widths, and nowhere else",
+         "at d=32, N=512 sparsity also pays at two retained peers"),
+        ("by less than a fifth",
+         "the batch sweep moves the ratio by up to a third at N=512"),
+        ("every measurement in this paper was at some point wrong",
+         "self-damaging framing a reviewer will quote"),
+        ("one we proposed and built",
+         "de-anonymises the submission"),
+        ("commit history establishes",
+         "points reviewers at a de-anonymising repository"),
+        ("a ratio of minima has no sampling distribution",
+         "false: a bootstrap distribution exists"),
     ]
     for phrase, why in banned:
         checks += 1
         for name, text in lower.items():
             if phrase.lower() in text:
                 fails.append(f"{name}: banned phrase {phrase!r} -- {why}")
+
+    # Case-sensitive: Corollary 1(d) needs little-o, since C_sel = O(Nkd)
+    # gives Theta(N/k) and not S ~ N/k. Lower-casing would hide the difference.
+    checks += 1
+    if "C_{\\mathrm{sel}} = O(Nkd)$ and in particular" in flat.get(
+            "03_analysis.tex", ""):
+        fails.append("03_analysis.tex: Corollary 1(d) states O(Nkd) where "
+                     "S ~ N/k needs o(Nkd)")
 
     # The abstract carries no mathematical notation.
     checks += 1
@@ -559,8 +581,23 @@ def main() -> int:
             fails.append(f"harness vocabulary {word!r} appears {hits} times "
                          f"in the main text -- {why}")
 
+    # Corollary 1's worked example: the Z-order closed form at N=512, k=4, d=16
+    # and its fraction of N/k, which an earlier revision misquoted as 72%.
+    N, k, d = 512, 4, 16
+    zorder = 4 * N * d / (4 * k * d + 30 + 2 * (N - 1).bit_length())
+    knn = N * d / (k * d + N)
+    for want, why in ((f"{knn:.1f}", "kNN closed form"),
+                      (f"${zorder:.0f}$", "Z-order closed form"),
+                      (f"${100 * zorder / (N / k):.0f}\\%$",
+                       "Z-order fraction of N/k")):
+        checks += 1
+        if want not in prose.get("03_analysis.tex", ""):
+            fails.append(f"03_analysis.tex: expected {want!r} ({why})")
+
     # ---- 5. required scoping --------------------------------------------
     required = [
+        ("forward pass",
+         "the twofold ceiling holds for the forward pass only"),
         ("score-then-select",
          "Proposition 1 must be scoped to score-then-select rules"),
         ("centralised inference",

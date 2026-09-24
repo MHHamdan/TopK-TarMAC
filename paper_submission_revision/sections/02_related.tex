@@ -60,9 +60,9 @@ to $30$ agents and it reports no measured runtime. Handshake-style mechanisms
 that match a requester's query against every candidate key and then select
 \citep{liu2020who2com} are score-then-select in the same sense.
 
-The design we analyse is one we proposed and built,
-so the ceiling constrains our own design and the structural selectors above are
-outside it. And the agent counts at which these methods operate are small:
+The top-$k$ design analysed here is the direct construction from the problem
+setting of Section~\ref{sec:setting}; the ceiling constrains it, and the
+structural selectors above are outside it. And the agent counts at which these methods operate are small:
 between two and roughly thirty agents for the attention-based communication
 methods above, with DGN reaching the low hundreds in grid worlds. Our sweep runs
 to $N{=}512$ so that the trend is visible, but the regime the argument is about
