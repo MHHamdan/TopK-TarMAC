@@ -27,7 +27,6 @@ rsync -a --exclude 'logs' --exclude 'provenance.json' \
 mkdir -p "$OUT/paper_submission_revision"
 rsync -a --exclude 'main.log' --exclude 'main.aux' --exclude 'main.blg' \
   --exclude 'main.out' --exclude '*.synctex*' \
-  --exclude 'main_tmlr_submission_revision.pdf' \
   paper_submission_revision/ "$OUT/paper_submission_revision/"
 rm -f "$OUT/scripts/make_supplement.sh"
 
