@@ -486,7 +486,7 @@ def main() -> int:
                      f"at {tie_cfg} configurations")
     check_num("pre-score configurations checked",
               eq["prescore"]["configurations"],
-              r"at all \$(\d+)\$ configurations")
+              r"--- \$(\d+)\$ configurations and \$")
     checks += 1
     if eq["prescore"]["failures"]:
         fails.append("the fused pre-score kernel disagrees with the composed "

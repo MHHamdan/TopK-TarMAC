@@ -520,7 +520,7 @@ def fused_topk_attention_sort(q: torch.Tensor, k: torch.Tensor,
     # rows whatever k is, which would make the cost flat in k by construction
     # rather than by design and would misreport what the kernel does.
     bk = _next_pow2(topk)
-    bdc = max(16, min(bd, 32768 // (bn * 4))) if block_dc is None else block_dc
+    bdc = max(16, min(bd, 32768 // (bn * 4)))
     if block_m is None:
         # The sort holds BLOCK_M x BLOCK_N 64-bit words; keep that near 32 kB.
         block_m = max(16, min(32, 32768 // (bn * 8)))
@@ -534,8 +534,7 @@ def fused_topk_attention_sort(q: torch.Tensor, k: torch.Tensor,
         out.stride(0), out.stride(1), out.stride(2),
         N, 1.0 / (d ** 0.5),
         TOPK=topk, BLOCK_M=block_m, BLOCK_N=bn, BLOCK_K=bk,
-        BLOCK_D=bd, BLOCK_DC=bdc, HEAD_D=d, PRECISION=precision,
-        num_warps=num_warps,
-        **({} if num_stages is None else {"num_stages": num_stages}),
+        BLOCK_D=bd, BLOCK_DC=bdc, HEAD_D=d,
+        num_warps=4,
     )
     return out

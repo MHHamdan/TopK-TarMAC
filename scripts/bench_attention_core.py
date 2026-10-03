@@ -137,7 +137,11 @@ def _tuned_dense_cfg(N: int, d: int, batch: int):
                     and r["head_dim"] == d and r["batch"] == batch):
                 if best is None or r["best"]["ms"] < best["ms"]:
                     best = r["best"]
-    cache[key] = best["cfg"] if best else None
+    # Where the search's winner is the library kernel its record has no Triton
+    # tiling; the library path is timed separately as dense_fused, so fall back
+    # to the default tiling here rather than fail.
+    cfg = best["cfg"] if best else None
+    cache[key] = cfg if cfg and "BLOCK_M" in cfg else None
     return cache[key]
 
 

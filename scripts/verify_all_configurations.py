@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.bench_attention_core import IMPLS, _scores, dense_unfused, topk_gather  # noqa: E402
 from src.kernels.fused_prescore_attention import fused_prescore_attention  # noqa: E402
 from src.kernels.prescore_selection import (  # noqa: E402
-    prescore_attention, select_morton_window, select_radius_knn)
+    prescore_attention, SELECTORS)
 
 ARTIFACTS = ("attention_core_d16.json", "attention_core_dsweep.json",
              "attention_core_batch.json", "attention_core_d16_repeat.json",
@@ -62,12 +62,20 @@ def check_prescore(args) -> tuple[list[dict[str, Any]], float, int]:
     access pattern depends on the index set it is given: the Z-order indices are
     contiguous and the nearest-neighbour indices are not.
     """
-    src = ROOT / "results" / "prescore.json"
-    if not src.exists():
+    # Both pre-score sweeps: the second adds the grid selector.
+    cfgs_set: set[tuple[int, int, str]] = set()
+    d = 16
+    for name in ("prescore.json", "prescore_selectors.json"):
+        src = ROOT / "results" / name
+        if not src.exists():
+            continue
+        pay = json.loads(src.read_text())
+        d = pay.get("head_dim", d)
+        cfgs_set |= {(r["n_agents"], r["k"], r["selector"])
+                     for r in pay["rows"]}
+    if not cfgs_set:
         return [], 0.0, 0
-    pay = json.loads(src.read_text())
-    d = pay.get("head_dim", 16)
-    cfgs = sorted({(r["n_agents"], r["k"], r["selector"]) for r in pay["rows"]})
+    cfgs = sorted(cfgs_set)
     rows: list[dict[str, Any]] = []
     worst = 0.0
     failures = 0
@@ -82,8 +90,7 @@ def check_prescore(args) -> tuple[list[dict[str, Any]], float, int]:
                 v = torch.randn(batch, N, d, device=args.device, generator=gen)
                 pos = torch.rand(batch, N, 2, device=args.device, generator=gen)
                 with torch.no_grad():
-                    idx = (select_radius_knn(pos, k) if sel == "radius_knn"
-                           else select_morton_window(pos, k))
+                    idx = SELECTORS[sel](pos, k)
                     ref = prescore_attention(q, kt, v, idx)
                     dev = (fused_prescore_attention(q, kt, v, idx)
                            - ref).abs().max().item()
@@ -175,8 +182,13 @@ def main() -> int:
                     ref = ref_d if impl in DENSE else ref_s
                     dev = (got - ref).abs().max().item()
                 except Exception as exc:
+                    # An implementation that cannot run a configuration it was
+                    # timed at is a failure, not a skipped check.
                     row["deviation"][impl] = None
                     row.setdefault("errors", {})[impl] = f"{type(exc).__name__}"
+                    failures += 1
+                    print(f"  ERROR {impl} N={N} d={d} k={k}: {exc}",
+                          flush=True)
                     continue
                 row["deviation"][impl] = dev
                 # How many query rows disagree, not just by how much. A tie
