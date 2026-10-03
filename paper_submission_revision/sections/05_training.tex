@@ -9,9 +9,11 @@ five-seed design can and cannot resolve. No claim elsewhere in this paper rests
 on it.
 
 Twelve variants at up to twelve agents, five seeds each, two million environment
-steps. The variants include an $\alpha$-entmax normalisation
+steps, following the protocols of \citet{papoudakis2021epymarl} and
+\citet{agarwal2021rliable}, with environments from PettingZoo/MPE
+\citep{terry2020pettingzoo} and MAPPO \citep{yu2022mappo} as the learner. The variants include an $\alpha$-entmax normalisation
 \citep{peters2019entmax} and a communication budget enforced by a Lagrangian
-\citep{achiam2017cpo,stooke2020pidlagrangian} on a per-agent Gumbel-softmax
+\citep{stooke2020pidlagrangian} on a per-agent Gumbel-softmax
 gate \citep{jang2017gumbel}. Scaling in the number of agents is left to the training-free measurements
 of Section~\ref{sec:measurement}, because a training step in this pipeline is
 dominated by the environment (Section~\ref{sec:backward}) and cannot attribute a

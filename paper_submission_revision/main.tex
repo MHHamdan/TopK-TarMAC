@@ -15,6 +15,14 @@
 \newtheorem{proposition}{Proposition}
 \newtheorem{corollary}{Corollary}
 
+% TMLR requires LLM use to be disclosed in a first-page footnote. The authors
+% must confirm that this text describes their use accurately before submission.
+\newcommand{\LLMDisclosure}{Large language model assistants were used in this
+work to write and test code, to edit the manuscript, and to audit its numbers,
+derivations and citations against the released artifacts and the cited
+sources. Every measurement was produced by the released scripts, and the authors
+take responsibility for all content.}
+
 % Values quoted inside captions, generated from the artifacts.
 \input{tables/macros}
 
@@ -69,11 +77,11 @@ not predict runtime.
 
 \subsubsection*{Reproducibility Statement}
 The kernels, measurement harness, analysis scripts and every measurement
-artifact are provided as anonymised supplementary material and will be released
-publicly with the camera-ready version. A single script regenerates every
-table and figure from the artifacts, and a second re-derives every number
-quoted in the text and fails on any disagreement. The environment, commands and
-measurement parameters are listed in Appendix~\ref{app:repro}.
+artifact are provided as anonymised supplementary material. Two scripts
+regenerate every table and figure from the artifacts; a third re-derives the
+numbers quoted in the main text from a manifest that names each one's source
+artifact and tolerance, and fails on any disagreement. The environment, commands
+and measurement parameters are in Appendix~\ref{app:repro}.
 
 \bibliographystyle{tmlr}
 \bibliography{references}

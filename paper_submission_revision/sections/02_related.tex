@@ -1,10 +1,7 @@
 \paragraph{Communication sparsity in multi-agent reinforcement learning.}
-Learned inter-agent communication has converged on attention for deciding whose
-message matters: CommNet broadcasts mean-pooled hidden states
-\citep{sukhbaatar2016commnet}, TarMAC introduces signature-based targeting
-\citep{das2019tarmac}, and MAT casts the joint policy as a sequence model
-\citep{wen2022mat}. Because attention over $N$ agents is pairwise, much of this
-literature restricts who communicates, usually motivated by cost; DGN observes
+CommNet broadcasts mean-pooled hidden states \citep{sukhbaatar2016commnet},
+TarMAC introduced signature-based attention targeting \citep{das2019tarmac}, and
+MAT casts the joint policy as a sequence model \citep{wen2022mat}. Because attention over $N$ agents is pairwise, several of these methods restrict who communicates, and some motivate the restriction by cost; DGN observes
 that receiving much information ``requires high bandwidth and incurs high
 computational complexity'' \citep{jiang2018dgn}. Corollary~\ref{cor:taxonomy}
 sorts these mechanisms by what their selector costs. DGN's nearest neighbours,
@@ -22,8 +19,7 @@ sparse communication graph of \citet{sun2020sparsecomm} applies a sparsemax
 generalisation to logits already formed for every pair and motivates it partly
 by reduced complexity, and handshake mechanisms that match a query against every
 candidate key before selecting \citep{liu2020who2com} are score-then-select in
-the same sense. These methods operate with two to roughly thirty agents, DGN reaching the low
-hundreds. Of the multi-agent papers we relied on that make an efficiency claim,
+the same sense. Most of these methods are evaluated with two to roughly thirty agents; DGN and ATOC reach about one hundred, and mean-field MARL, which replaces communication with a population average, one thousand. Of the multi-agent papers we relied on that make an efficiency claim,
 one of five reports a measured time attributable to the mechanism
 (Appendix~\ref{app:audit}).
 
@@ -39,24 +35,21 @@ Performer keeps every interaction and reorders the algebra
 \citep{choromanski2021performers}. Top-$k$ attention in sequence models is the
 closest analogue of our mechanism: the Explicit Sparse Transformer keeps the $k$
 largest scores per query \citep{zhao2019explicit}, and \citet{gupta2021topk}
-compute each query's exact top-$k$ over all keys in chunks, with memory
-efficiency as the stated benefit. Sparsemax and $\alpha$-entmax obtain exact
-zeros from the normalisation rather than a hard cutoff
-\citep{martins2016sparsemax,peters2019entmax}; because their zeros arrive after
-the scores exist, they fall under Proposition~\ref{prop:ceiling}, which is our
-inference rather than a claim they make. Sparse mixture-of-experts routing is
+compute each query's exact top-$k$ over all keys in chunks, with memory efficiency as the stated benefit. That top-$k$ attention cannot approach $N/k$ has been noted before: \citet{chen2023dfss} bound its speedup by a constant in a memory-access model even with a mask supplied at no cost, and Block-Sparse FlashAttention computes every query--key score to choose which value blocks to skip, skipping about half the work of a pruned block and reporting kernel speedups of up to $1.38\times$ \citep{ohayon2026bsfa}. Sparsemax and $\alpha$-entmax
+\citep{martins2016sparsemax,peters2019entmax} produce their zeros after the
+scores exist, so by our reading they fall under
+Proposition~\ref{prop:ceiling}. Sparse mixture-of-experts routing is
 also score-then-select \citep{shazeer2017moe,fedus2022switch}, but the router is
 small relative to the expert computation it gates, so the analogue of our score
-term is minor and the saving is real. Whether score-then-select pays therefore
-depends on the ratio between the cost of scoring every candidate and the cost
-of the work skipped, which is one in single-head attention. 
+term is minor and the saving is real. Whether score-then-select pays depends on
+the ratio between the cost of scoring every candidate and the cost of the work
+skipped, which is one in single-head attention.
 
 \paragraph{Hardware-aware execution.} That operation counts do not determine
 runtime is established in general terms \citep{dehghani2022misnomer}, and
 transformer workloads are known to be dominated by data movement rather than
 arithmetic \citep{ivanov2021datamovement}; the roofline model formalises when
-arithmetic ceases to govern runtime \citep{williams2009roofline}. FlashAttention
-and its successors reduce memory traffic without changing the operation count
+arithmetic ceases to govern runtime \citep{williams2009roofline}. FlashAttention and its successors reduce memory traffic without reducing the operation count
 \citep{dao2022flashattention,dao2024flashattention2,shah2024flashattention3,rabe2021selfattention},
 and FlexAttention compiles attention variants expressed as score modifications
 and block masks into fused kernels \citep{dong2025flexattention}. Native Sparse
@@ -67,10 +60,5 @@ skipped work is large \citep{yuan2025nsa,lai2026msa}. Relative to this
 literature our contribution is specific: a selector-cost accounting that
 separates mechanisms before measurement, a byte criterion for per-pair
 compaction, and measurements at tens to hundreds of agents and narrow heads,
-where neither block amortisation nor large skipped work is available. Our benchmarking follows
-established practice for reporting performance on shared hardware
-\citep{hoefler2015benchmarking}, and our kernels are written in Triton
-\citep{tillet2019triton}. The training study follows
-\citet{papoudakis2021epymarl} and \citet{agarwal2021rliable}, with environments
-from PettingZoo/MPE \citep{terry2020pettingzoo} and MAPPO
-\citep{yu2022mappo}.
+where neither block amortisation nor large skipped work is available. We follow the benchmarking recommendations of \citet{hoefler2015benchmarking} where they apply, reporting absolute latencies beside every ratio together with the statistic and its run-to-run dispersion, and our kernels are written in Triton
+\citep{tillet2019triton}.

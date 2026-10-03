@@ -17,8 +17,7 @@ absent.
 batch (lower block). Values below one indicate sparsity winning. The $96$-agent
 column is included for completeness and carries no claim, for the reason given
 in Appendix~\ref{app:drift}. Each column comes from the sweep that varies that
-axis, so a figure here can differ from the same nominal quantity in
-Section~\ref{sec:fused} by the few per cent that separates two sessions.}
+axis, so a figure here can differ from the same nominal quantity in Section~\ref{sec:fused} by the few per cent that separates two sessions. The searched dense tiling exists only at batch $256$, so in the batch block our dense kernel runs at its default tiling except at batch $256$; in the head-width block it is missing at four configurations with $d \ge 64$, where the search's winner was the library kernel, which is in the baseline.}
 \label{tab:grid}
 \input{tables/grid}
 \end{table}
@@ -149,9 +148,7 @@ and admit a tie as the explanation only when no more rows diverge than have a
 tie.
 
 The fused kernel for attention over a pre-chosen peer set is checked the same
-way against the composed path it replaces, at all $40$ configurations of
-Section~\ref{sec:prescore} and both selectors, over $315{,}392$ query rows, to
-a maximum deviation of $1.1\times10^{-6}$. Its timed call also converts the
+way against the composed path it replaces, at every configuration of both pre-score sweeps and all three selectors --- $60$ configurations and $473{,}088$ query rows --- to a maximum deviation of $1.1\times10^{-6}$. In the fixed-set sweep of Section~\ref{sec:fused}, every top-$k$ path is checked on the timed inputs themselves, at all $48$ configurations: maximum deviation $2.4\times10^{-6}$ and no diverging row in $3.6$ million. All references are the composed fp32 paths; a float64 reference is used only in the precision study, where reduced-precision rounding changes the retained set. Its timed call also converts the
 retained indices to the integer width the kernel reads them at, which the
 composed path does not need, so the figure we report for it includes a cost the
 comparison does not require of it.
@@ -199,7 +196,7 @@ in \texttt{fp32} under any input, so the library dense baseline runs the
 memory-efficient CUTLASS kernel. Forcing FlashAttention on the same unmasked
 \texttt{bf16} shape is faster than the kernel we do get, so a baseline able to
 reach it would widen rather than narrow the gap we report --- which is part of
-why the dense baseline in this revision is the better of the library path and a
+why the dense baseline in this paper is the better of the library path and a
 kernel we wrote.
 
 \subsection{The host allocator control}
@@ -362,17 +359,12 @@ one device, most of it the per-format tiling searches of the precision study.
 \texttt{scripts/run\_revision\_campaign.sh} regenerates the fourteen
 artifacts every table and figure in this paper is built from, in the order the
 manuscript reports them; the equivalence sweep
-(\texttt{scripts/verify\_all\_configurations.py}), the launch-cost probe
-(\texttt{scripts/launch\_overhead.py}) and the backend probe of
-Appendix~\ref{app:verification} are separate entry points and are named where
-they are used. Results not produced by the current campaign --- the host-side
+(\texttt{scripts/verify\_all\_configurations.py}), the launch-cost probe (\texttt{scripts/launch\_overhead.py}), the fixed-set sweep of Section~\ref{sec:fused} (\texttt{scripts/bench\_fixed\_set.py}, about two minutes, which stores every raw sample and times each group eagerly and under CUDA-graph replay) and the backend probe of Appendix~\ref{app:verification} are separate entry points and are named where they are used. Results not produced by the current campaign --- the host-side
 allocator diagnosis and the numerical-format robustness checks --- date from an
 earlier campaign on the same host, and we say so where they are quoted;
 \texttt{scripts/make\_revision\_tables.py} and
 \texttt{scripts/make\_revision\_figures.py} regenerate every table and figure
-from those artifacts, so no tabular number in the manuscript is transcribed by
-hand; and \texttt{scripts/check\_revision\_numbers.py} re-derives the numbers
-that appear in prose and fails on any disagreement. The campaign runs the
+from those artifacts, so no tabular number is transcribed by hand except those of the learning study's Table~\ref{tab:training}, which are copied from \texttt{results/reduced\_design\_summary.md}; \texttt{scripts/check\_revision\_numbers.py} re-derives the numbers that appear in prose and fails on any disagreement; and with \texttt{--verify-paper-numbers} it also checks a manifest (\texttt{scripts/paper\_numbers.py}) that ties each number in the main text, in the section where it appears, to its source artifact, configuration and tolerance. The campaign runs the
 tiling search first, because every sweep after it re-times the dense
 configuration the search selects; that is what makes each ratio in this paper a
 ratio against the best dense implementation we have rather than against
@@ -385,7 +377,7 @@ $3.6$. Every latency outside the precision study of
 Section~\ref{sec:precision} is \texttt{fp32}, timed with CUDA events
 around a single call, interleaved implementation by implementation and
 repetition by repetition, with $20$ warm-up repetitions discarded, $40$ to $60$
-timed repetitions per block, and the whole block repeated three times; the
+timed repetitions per block, and the whole block repeated three times (the tiling search instead times each configuration $30$ times after $15$ warm-up calls, in one block, sequentially); the
 reported figure is the minimum over all samples and the spread of the three
 per-run medians is recorded beside it. The tiling search enumerates query tiles
 of $16$ to $128$, key tiles or head chunks of $16$ to $128$, two to eight warps

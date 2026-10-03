@@ -1,24 +1,15 @@
-We characterised when sparse attention in multi-agent communication turns an
-operation-count saving into a saving in time. For score-then-select rules the
-answer is bounded before any measurement: because the selection reads every
-score, at most half of the forward-pass arithmetic is removable, and charging
-each selection rule for its own cost places every restriction mechanism on a
-single axis, from full-score selection, bounded by two, to free selection,
-which attains $N/k$. The measurements show that the bounded saving is
-optimistic in this regime. Masked implementations execute none of it; gathered
-implementations execute it and are slower, because compaction adds more traffic
-than it removes whenever $kd > N$. Fused kernels remove most of that overhead
-and are faster than the best dense implementation available to us only at one
-retained peer (two at a single configuration), at head widths $16$ and $32$ and
-without tensor cores; in TF32 and bf16, where dense attention gains three to
-eight times, the advantage disappears from $384$ agents upward, and from four
-retained peers upward the fused kernels are $1.3$ to $28$ times slower in fp32.
-
-Selecting before scoring is where the saving becomes real, and the cost model
-says in advance which selectors can deliver it. Once the attention over
-pre-selected peers is fused it runs up to sixteen times faster than dense
-attention; an all-pairs selector then dominates the cost and loses, while a
-sub-quadratic selector reaches parity with dense attention at five hundred
-agents on best-case timings. For designers, the practical guidance is to charge
-the selector, to check $kd \le N$ before compacting, and to measure the kernel
-that actually runs.
+We asked when an operation-count saving from sparse attention in multi-agent
+communication becomes a saving in time. A rule that selects peers by their
+scores must form every score, so at most half of the forward-pass
+multiply--accumulates are removable; charging other rules for their own
+selection cost places them on one axis, from full-score selection, bounded by
+two, to free selection, which attains $N/k$. In this regime even the bounded
+saving is optimistic: masked implementations execute none of it, gathered ones
+execute it and are slower because compaction adds traffic, and fused kernels win
+only at one retained peer, at narrow heads and without tensor cores, losing
+elsewhere to the cost of finding the retained set. Selecting before scoring is
+where the saving can become real: attention over a pre-selected set runs up to
+sixteen times faster than dense attention, and the selector then decides the
+outcome. An operation count describes neither the cost of choosing peers nor the
+cost of the kernel that runs; both have to be measured, on the same device and
+against the strongest dense baseline available, before a speedup is claimed.

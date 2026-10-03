@@ -601,6 +601,45 @@ def table_selectors() -> tuple[str, int]:
     return "\n".join(lines), k
 
 
+def table_fixed_set() -> str:
+    """The same retained set reached two ways: found by scoring inside the
+    fused score-then-select kernel, or handed to the fixed-set kernel for free.
+
+    CUDA-graph replay, so that both are device times; the eager figures are in
+    the artifact and agree for the score-then-select kernel."""
+    G = [g for g in load("fixed_set.json")["groups"]
+         if g["mode"] == "graph" and g["n_agents"] >= 192]
+    ks = (1, 2, 4, 16, 32)
+    body = []
+    for d in sorted({g["head_dim"] for g in G}):
+        for N in sorted({g["n_agents"] for g in G}):
+            cells, share = [], []
+            for k in ks:
+                g = [x for x in G if x["head_dim"] == d and x["n_agents"] == N
+                     and x["k"] == k]
+                if not g:
+                    cells.append("---")
+                    continue
+                r = g[0]["ratios"]
+                a = r["fused_stsel"]["ratio_of_minima"]
+                b = r["fixed_set"]["ratio_of_minima"]
+                cells.append(f"{a:.2f} / {b:.2f}")
+                share.append(1 - b / a)
+            body.append(f"{d if N == 192 else ''} & {N} & " + " & ".join(cells)
+                        + f" & {100 * min(share):.0f}--{100 * max(share):.0f}\\% \\\\")
+        body.append(r"\midrule")
+    body.pop()
+    return r"""\begin{tabular}{rr ccccc r}
+\toprule
+& & \multicolumn{5}{c}{\textbf{found by scoring / given for free}, $\div$ best dense} & \textbf{finding} \\
+\cmidrule(lr){3-7}
+$d$ & $N$ & $k{=}1$ & $k{=}2$ & $k{=}4$ & $k{=}16$ & $k{=}32$ & \textbf{the set} \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     written = []
@@ -632,6 +671,7 @@ def main() -> int:
                      ("drift", table_drift),
                      ("autotune", table_autotune),
                      ("precision", table_precision),
+                     ("fixed_set", table_fixed_set),
                      ("audit", table_audit)):
         try:
             put(name, fn())

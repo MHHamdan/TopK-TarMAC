@@ -17,7 +17,7 @@ exactly gives $2(N{-}1)/\bigl((N{-}1)+k\bigr)$, which is strictly smaller for
 every $1 \le k \le N-1$, so the proposition is a valid upper bound under either
 convention.
 
-Six assumptions support the statement, of which only the second is essential.
+Seven assumptions support the statement. The second is essential; the sixth and seventh fix the constant.
 \textbf{(A1) Single round}: with $R$ rounds both terms scale by $R$ and the
 ratio is unchanged. \textbf{(A2) Full-score selection}: the retained set is
 determined only after the complete candidate score vector has been computed, so
@@ -29,7 +29,13 @@ excluded}: counting the top-$k$ operation itself can only decrease the ratio,
 and Appendix~\ref{app:stages} shows the term is large in practice.
 \textbf{(A6) Equal key and value widths}: with key width $d_k$ and value width
 $d_v$ the two products cost $N^2 d_k$ and $N^2 d_v$, and the ceiling is
-$1 + d_v/d_k$, which is $2$ in the equal-width attention used throughout.
+$1 + d_v/d_k$, which is $2$ in the equal-width attention used throughout and
+exceeds two when values are wider than keys. \textbf{(A7) Element-wise work
+excluded}: the scale, softmax and exponentials are not counted. Charging
+$\alpha$ operations per softmaxed element and $\sigma$ per ranked score gives a
+ceiling $(2d+\alpha)/(d+\sigma)$, which exceeds two when $\alpha > 2\sigma$; at
+$d{=}16$ with five operations per softmax element and one comparison per score
+it is $2.09$.
 
 A2 concerns \emph{when} the retained set is fixed, not whether the rule depends
 on the data. Routing Transformer's online $k$-means routing
@@ -46,19 +52,25 @@ without storing them, and remains inside the class.
 Exact selection is piecewise constant in the scores, so gradients reach only
 the retained entries. Of the four products in dense attention's backward pass
 --- the gradients with respect to values, weights, queries and keys, each
-$N^2 d$ --- a gathered top-$k$ backward executes each over the $Nk$ retained
-pairs alone, given the indices recorded in the forward pass. Counting both
-passes, without recomputation,
+$N^2 d$ --- a top-$k$ backward needs each only over the $Nk$ retained pairs,
+given the indices recorded in the forward pass. Counting both passes for such a
+backward, without recomputation,
 \begin{equation}
 \frac{C^{\text{f+b}}_{\text{dense}}}{C^{\text{f+b}}_{\text{top-}k}}
 = \frac{6N^2 d}{N^2 d + 5Nkd} = \frac{6N}{N+5k} < 6,
 \end{equation}
-so in training at most five sixths of attention's arithmetic is removable,
-against half in inference. A dense implementation that recomputes the scores in
-its backward pass, as FlashAttention does, adds $N^2 d$ to the dense count and
-raises the bound to $7$. The asymmetry is visible in the measurements of
-Appendix~\ref{app:backward}, where the gathered path's backward is cheap
-relative to its forward.
+so in training at most five sixths of attention's multiply--accumulates are
+removable, against half in inference. The composed gathered path we time does
+not reach this bound: autograd scatters the retained-score gradient into a dense
+$N \times N$ tensor and forms the query and key gradients as dense products, so
+its executed count is $3N^2d + 3Nkd$ and its ratio is $2N/(N+k)$, as in the
+forward pass. A dense implementation that recomputes the scores in its backward
+pass, as FlashAttention does, adds $N^2 d$ to the dense count; against a top-$k$
+backward that stores its indices the supremum becomes $7$, a difference in what
+the dense baseline recomputes rather than in what sparsity removes. The
+measurements of Appendix~\ref{app:backward} show the gathered path's backward is
+cheap relative to its forward because selection has almost no adjoint, not
+because its backward arithmetic is sparse.
 
 \subsection{Proposition~\ref{prop:escape} and Corollary~\ref{cor:taxonomy}}
 
@@ -86,8 +98,8 @@ Each case substitutes its $C_{\mathrm{sel}}$ into the denominator of $S$. Case
 $2Nkd$ at fixed $k$ and $d$, giving $S \to 2N^2d/(\gamma N^2 p)$. In (c) the
 $\Theta(N\log N)$ term likewise dominates $2Nkd$, giving
 $S = \Theta(N^2 d / (N \log N))$, and $S/(N/k) = \Theta(kd/\log N) \to 0$; the
-statement needs $d = O(1)$, since with $d = \Theta(\log N)$ the penalty
-disappears. In (d), $S = 2N^2d/((2+c)Nkd) = 2N/((2+c)k)$ exactly, which is
+statement needs $kd = o(\log N)$; with $d = \Theta(\log N)$ the penalty is a
+constant factor, and it disappears only when $kd$ grows faster than $\log N$. In (d), $S = 2N^2d/((2+c)Nkd) = 2N/((2+c)k)$ exactly, which is
 $\Theta(N/k)$ but not asymptotic to it; with $C_{\mathrm{sel}} = o(Nkd)$ it is
 Proposition~\ref{prop:escape}(i).
 \end{proof}
@@ -124,9 +136,12 @@ peers the first has reached $14.2$ against its ceiling of $d = 16$, while the
 second is at $107$ --- unbounded in principle, and already only $84\%$ of the
 $N/k = 128$ that the naive count promises. The grid selector charges one sort to
 bucket agents and, per agent, a distance and a comparison for each of $9M$
-candidates in the surrounding cells, where $M$ is the per-cell capacity; for
-bounded density $M = \Theta(k)$, so $C_{\mathrm{sel}} = \Theta(Nk)$ and the
-selector is in case~(d) with $c = \Theta(1/d)$.
+candidates in the surrounding cells, where $M$ is the per-cell capacity; for spatially uniform positions $M = \Theta(k)$, so the candidate term is
+$\Theta(Nk)$ and the bucketing sort adds $\Theta(N \log N)$. With a linear-time
+bucketing the selector is in case~(d) with $c = \Theta(1/d)$ (about $3.5$ at
+$d{=}16$, $k{=}4$); as implemented, with a comparison sort, it is formally
+case~(c), though the sort is under $5\%$ of the charged cost at every agent
+count we measure.
 
 \subsection{Machine balance and arithmetic intensity}
 \label{app:intensity}
@@ -142,8 +157,7 @@ traffic; the per-stage accounting of Appendix~\ref{app:stages} flags such stages
 so the reader need not infer them. The ridge point itself depends on whether the
 probe's buffer fits the last-level cache, so we measure two of them per device.
 On the GPU the ridge is $23$\,FLOP/byte cache-resident and $53$ from memory; on
-the host it is $8$ and $28$. Both paths in this study sit below every one of
-those figures at every agent count, on both devices, so the memory-bound
+the host it is $8$ and $28$. Both composed paths sit below every one of those figures at every agent count at $d{=}16$, on both devices, so the memory-bound
 conclusion does not depend on which ridge is the relevant one. The per-stage
 table of Appendix~\ref{app:stages} quotes a third figure, $39$, because its
 probe runs in the same process as the stage timings it scales and measures the

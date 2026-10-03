@@ -1,5 +1,9 @@
 # TMLR submission package
 
+> Superseded by the October 2026 revision: see `audits/` (in particular
+> `tmlr_reviewer_report.md` and `final_adversarial_review.md`). Page counts,
+> the "1.3 to 28" range and the claim audit below describe commit 53ef0f4.
+
 Manuscript: `paper_submission_revision/main.pdf` (built from `db93c68` onward).
 Main text + references: pp. 1–15. Appendix: pp. 16–34.
 

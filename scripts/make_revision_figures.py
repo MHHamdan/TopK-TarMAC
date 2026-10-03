@@ -53,73 +53,98 @@ def pick(rows, **kw):
 # ---------------------------------------------------------------------------
 
 def fig_taxonomy() -> None:
-    """Five implementations of one function, by what reaches memory."""
-    rng = np.random.default_rng(4)
-    N, k = 12, 3
-    keep = np.zeros((N, N), dtype=bool)
-    for i in range(N):
-        cand = [j for j in range(N) if j != i]
-        keep[i, rng.choice(cand, size=k, replace=False)] = True
+    """Where each kind of top-k attention spends its work: what a selection
+    rule removes, and what it still pays for.
 
+    Every row is a pipeline of stages drawn to a common scale of work, coloured
+    by the role the stage plays with the same ramp as the per-stage figure:
+    forming scores, selecting, aggregating, and writing and re-reading an
+    intermediate. A dashed empty box is work the dense pipeline does that this
+    one removes; a hatched box is work that is executed although it contributes
+    nothing to the output.
+    """
+    C = {"score": fs.ROLE_COLOR["score"], "select": fs.ROLE_COLOR["select"],
+         "agg": fs.ROLE_COLOR["aggregate"], "mem": fs.ROLE_COLOR["memory"]}
+    big, small = 2.3, 0.7          # widths standing for N^2 d and N k d
     rows = [
-        ("Dense, unfused", "all", "stored", r"$2N^2d$", "dense_unfused"),
-        ("Dense, fused", "all", "tiled", r"$2N^2d$", "dense_fused"),
-        ("Top-$k$, masked", "kept", "stored", r"$2N^2d$", "topk_masked"),
-        ("Top-$k$, gathered", "kept", "compacted", r"$N^2d + Nkd$", "topk_gather"),
-        ("Top-$k$, fused", "kept", "tiled", r"$N^2d + Nkd$", "topk_fused"),
+        ("Dense attention", None,
+         [("score", big, r"scores $N^2d$", ""), ("agg", big, r"aggregate $N^2d$", "")],
+         r"$2N^2d$", "reference"),
+        ("Score-then-select, masked", "selection after every score",
+         [("score", big, r"scores $N^2d$", ""), ("select", 0.55, "top-$k$", ""),
+          ("agg", big, r"aggregate $N^2d$", "zeros")],
+         r"$2N^2d$", "nothing removed"),
+        ("Score-then-select, gathered", "selection after every score",
+         [("score", big, r"scores $N^2d$", ""), ("select", 0.55, "top-$k$", ""),
+          ("mem", 1.0, "write, read\n$(N,k,d)$", ""), ("agg", small, "$Nkd$", ""),
+          ("gone", big - small - 1.0, "", "")],
+         r"$N^2d + Nkd$", "at most half removed;\ntraffic added"),
+        ("Score-then-select, fused", "selection after every score",
+         [("score", big, r"scores $N^2d$", ""), ("select", 0.55, "top-$k$", ""),
+          ("agg", small, "$Nkd$", ""), ("gone", big - small, "", "")],
+         r"$N^2d + Nkd$", "at most half removed"),
+        ("Select before scoring", "selector first",
+         [("select", 1.05, r"selector $C_{\mathrm{sel}}$", ""),
+          ("score", small, "$Nkd$", ""), ("gone", big - small - 1.05 + 0.55, "", ""),
+          ("agg", small, "$Nkd$", ""), ("gone", big - small, "", "")],
+         r"$2Nkd + C_{\mathrm{sel}}$", "up to $N/k$,\nless the selector"),
     ]
-
-    fig, axes = plt.subplots(len(rows), 3, figsize=(W, 3.6),
-                             gridspec_kw={"width_ratios": [1.0, 1.0, 1.35],
-                                          "hspace": 0.30, "wspace": 0.06,
-                                          "left": 0.02, "right": 0.99,
-                                          "top": 0.90, "bottom": 0.10})
-    for r, (label, weights, storage, cost, impl) in enumerate(rows):
-        col = fs.IMPL_COLOR[impl]
-
-        # panel 1: the score matrix every implementation forms
-        ax = axes[r, 0]
-        _matrix(ax, np.ones((N, N), dtype=bool), np.eye(N, dtype=bool),
-                face="#B9C6D4", show_all=True)
-        if r == 0:
-            ax.set_title("scores formed", pad=6)
-
-        # panel 2: the weights that reach the aggregation, and whether the
-        # implementation writes them down
-        ax = axes[r, 1]
-        if storage == "compacted":
-            comp = np.ones((N, k), dtype=bool)
-            _matrix(ax, comp, np.zeros((N, k), dtype=bool), face=col,
-                    show_all=True, width=N)
-        else:
-            sel = np.ones((N, N), dtype=bool) if weights == "all" else keep
-            _matrix(ax, sel, np.eye(N, dtype=bool), face=col,
-                    show_all=(weights == "all" or storage == "stored"),
-                    ghost=(storage == "tiled"))
-        if r == 0:
-            ax.set_title("weights aggregated", pad=6)
-
-        # panel 3: what is written, and what the aggregation costs
-        ax = axes[r, 2]
-        ax.axis("off")
-        written = {"stored": r"writes an $N\times N$ matrix",
-                   "compacted": r"writes an $N\times k$ tensor",
-                   "tiled": "writes no intermediate"}[storage]
-        ax.text(0.0, 0.72, label, fontsize=fs.MIN_PT + 1.5, color=col,
-                fontweight="semibold", va="center")
-        ax.text(0.0, 0.40, written, fontsize=fs.MIN_PT, color=fs.MUTED_COLOR,
-                va="center")
-        ax.text(0.0, 0.10, cost, fontsize=fs.MIN_PT + 1.0,
+    fig = plt.figure(figsize=(W, 3.45))
+    ax = fig.add_axes([0.0, 0.0, 1.0, 1.0])
+    ax.set_xlim(0, 10.0); ax.set_ylim(0, 6.25); ax.axis("off")
+    x0, h = 2.75, 0.62
+    for r, (name, sub, stages, cost, verdict) in enumerate(rows):
+        y = 5.25 - r * 1.08
+        ax.text(0.05, y + h / 2 + (0.12 if sub else 0), name,
+                fontsize=fs.MIN_PT + 1.0, fontweight="semibold",
                 color=fs.ANNOT_COLOR, va="center")
-        if r == 0:
-            ax.text(0.0, 1.12, "written, and cost of the aggregation",
-                    fontsize=fs.MIN_PT + 0.5, color=fs.ANNOT_COLOR, va="bottom")
-        ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-
-    fig.text(0.5, 0.01,
-             "A dashed outline marks weights that are used but never written to "
-             "memory; a cross marks the masked self-interaction.",
-             ha="center", fontsize=fs.MIN_PT, color=fs.MUTED_COLOR)
+        if sub:
+            ax.text(0.05, y + h / 2 - 0.2, sub, fontsize=fs.MIN_PT,
+                    color=fs.MUTED_COLOR, va="center")
+        x = x0
+        for role, w, label, mark in stages:
+            if role == "gone":
+                ax.add_patch(Rectangle((x, y), w, h, fill=False,
+                                       edgecolor=fs.ABSENT_EDGE,
+                                       linestyle=(0, (2, 2)), linewidth=0.8))
+                if w > 0.9:
+                    ax.text(x + w / 2, y + h / 2, "removed", ha="center",
+                            va="center", fontsize=fs.MIN_PT,
+                            color=fs.MUTED_COLOR, style="italic")
+            else:
+                ax.add_patch(Rectangle((x, y), w, h, facecolor=C[role],
+                                       edgecolor="white", linewidth=0.8,
+                                       hatch=("////" if mark == "zeros"
+                                              or role == "mem" else None)))
+                txt = label + (", zeros\nmultiplied too" if mark == "zeros"
+                               else "")
+                if txt:
+                    boxed = mark == "zeros" or role == "mem"
+                    ax.text(x + w / 2, y + h / 2, txt, ha="center",
+                            va="center", fontsize=fs.MIN_PT,
+                            color=fs.text_on(C[role]), linespacing=0.95,
+                            bbox=(dict(boxstyle="round,pad=0.12", fc=C[role],
+                                       ec="none") if boxed else None))
+            x += w
+        ax.text(8.35, y + h / 2 + 0.13, cost, fontsize=fs.MIN_PT + 0.5,
+                color=fs.ANNOT_COLOR, va="center")
+        ax.text(8.35, y + h / 2 - 0.2, verdict, fontsize=fs.MIN_PT,
+                color=fs.MUTED_COLOR, va="center", linespacing=0.95)
+    ax.text(x0, 6.08, "work executed per batch element and head (to scale "
+            "only in kind)", fontsize=fs.MIN_PT, color=fs.MUTED_COLOR,
+            va="center")
+    ax.text(8.35, 6.08, "multiply–accumulates", fontsize=fs.MIN_PT,
+            color=fs.MUTED_COLOR, va="center")
+    handles = [Rectangle((0, 0), 1, 1, facecolor=C[k], edgecolor="white",
+                         hatch="////" if k == "mem" else None)
+               for k in ("score", "select", "agg", "mem")]
+    handles.append(Rectangle((0, 0), 1, 1, fill=False,
+                             edgecolor=fs.ABSENT_EDGE, linestyle=(0, (2, 2))))
+    ax.legend(handles, ["form scores", "select", "aggregate",
+                        "intermediate written and re-read", "removed"],
+              loc="lower center", bbox_to_anchor=(0.5, -0.01), ncol=5,
+              frameon=False, fontsize=fs.MIN_PT, handlelength=1.4,
+              columnspacing=1.2)
     fs.savefig(fig, OUT / "fig1_taxonomy.pdf", W)
     plt.close(fig)
 
@@ -254,13 +279,14 @@ STAGE_LABEL = {"scores": "scores", "softmax_N": "softmax",
                "gather_v": "gather", "aggregate_sparse": "aggregate"}
 #: Colour by the role a stage plays, not by its name, so that the dense and
 #: sparse aggregations share a colour and the hatch distinguishes the path.
-STAGE_RAMP = {"scores": 0, "topk_select": 1, "aggregate_dense": 2,
-              "aggregate_sparse": 2, "gather_v": 3, "softmax_N": 4,
-              "softmax_k": 4}
+STAGE_ROLE = {"scores": "score", "topk_select": "select",
+              "aggregate_dense": "aggregate", "aggregate_sparse": "aggregate",
+              "gather_v": "memory", "softmax_N": "softmax",
+              "softmax_k": "softmax"}
 
 
 def _stage_color(s: str) -> str:
-    return fs.STACK_RAMP[STAGE_RAMP[s]]
+    return fs.ROLE_COLOR[STAGE_ROLE[s]]
 
 
 def fig_stages() -> None:

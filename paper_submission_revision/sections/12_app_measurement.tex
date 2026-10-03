@@ -22,7 +22,7 @@ rather than removing it, and the whole timed block is repeated so that the
 spread of per-run medians is reported and not hidden
 (Appendix~\ref{app:dispersion}). A minimum estimates an uncontended envelope
 rather than a service time, so we checked what the choice buys: recomputing
-every comparison at $192$ agents and above from the paired medians of the same
+every comparison at $192$ agents and above from the medians of the same
 samples changes which implementation is faster at one of $24$ configurations,
 $384$ agents with a single retained peer, where the ratio moves from $0.94$ to
 $1.14$ and the group's recorded inter-run spread is $64\%$. Neither of the two
@@ -83,6 +83,24 @@ and the vendor library as the dense baseline, and report what fraction of the
 device's own matrix-multiply rate each kernel reaches beside its latency
 (Table~\ref{tab:autotune}).
 
+\begin{table}[t]
+\centering\small
+\caption{Both kernels searched over one parameter space --- query tile, key tile
+or head chunk, warp count and pipeline depth --- under one shared-memory
+admissibility filter, with the better of the search and the vendor library taken
+as the dense baseline. The \emph{cfgs} columns are how many configurations each
+search admitted; the sparse kernel must hold an $N$-wide score tile, so above
+$192$ agents only three fit. Efficiency is executed arithmetic over elapsed time,
+against the matrix-multiply rate the device attains in the same process. These
+are the search session's own timings, taken configuration by configuration
+rather than interleaved; the two search sessions measured peaks of $58$ and
+$71$~TFLOP/s, so the efficiency columns are comparable within a row but not
+across sessions. Every ratio elsewhere in the paper re-times the selected
+configurations in an interleaved sweep.}
+\label{tab:autotune}
+\resizebox{\linewidth}{!}{\input{tables/autotune}}
+\end{table}
+
 The search is not equal. All three of our sparse kernels keep the whole score
 row of a query resident --- two rank it in registers and one sorts it in place
 --- so their resident tile grows with the agent count, and above $192$ agents
@@ -111,7 +129,7 @@ is narrow: one GPU architecture, \texttt{fp32}, head widths $16$ and $32$, agent
 counts from $192$ upward where the sweep reproduces, a single retained peer with
 one configuration at two, and a dense baseline that reaches under half of the
 device's arithmetic rate at those head widths. At four retained peers the sparse
-kernel is already $1.3$ to $2.1$ times slower, and at a quarter of peers it is
+kernel is already $1.3$ to $2.3$ times slower, and at a quarter of peers it is
 more than an order of magnitude slower. The $k{=}1$ case is also degenerate as
 an attention mechanism, because a softmax over one element is identically one
 and the mechanism reduces to copying the highest-scoring peer's value. What the
@@ -200,8 +218,7 @@ width; it reverses.
 
 That is what the byte criterion predicts. Byte-neutrality requires
 $kd \le N$, so widening the head at fixed agent count tightens the bound on the
-retained set proportionally, and at head width $128$ the criterion permits only
-$k \le 4$ at $512$ agents --- by which point the selection cost of
+retained set proportionally, and at head width $128$ the criterion permits only $k \le 4$ at $512$ agents (exactly $k \le 3$) --- by which point the selection cost of
 Section~\ref{sec:fused} has already overtaken the saving. Widening the batch
 over a
 thirty-twofold range, by contrast, moves the ratio by up to a third --- from
@@ -250,8 +267,7 @@ sits on a worse hardware path. The sparse one is slower because it moves about
 four times the bytes, since the compacted operand carries $kd$ elements per
 query where the
 score row carries $N$. The corrected account is simpler, checkable before the
-code is written, and it is the $kd \le N$ criterion of
-Section~\ref{sec:composed}.
+code is written, and it is the $kd \le N$ criterion of Section~\ref{sec:roofline}.
 
 Selection is a different case, and it is the one stage where the raw
 decomposition is misleading in the opposite direction. It is the largest stage
@@ -286,9 +302,7 @@ half the question. Timing forward and backward under the same protocol leaves
 the ordering intact and roughly a third of the margin
 (Table~\ref{tab:backward}). The gathered path's backward costs about half its
 own forward, because the
-expensive stage --- selection --- has almost no adjoint: the retained indices
-are recorded in the forward pass and the backward is a scatter of gradients
-into them. Dense attention's backward costs several times its forward. At
+expensive stage --- selection --- has almost no adjoint: the retained indices are recorded in the forward pass, and the backward is a scatter of gradients into the retained positions followed by two dense products. Dense attention's backward costs several times its forward. At
 $512$ agents the gathered path is $18.4$ times the fused dense path on the
 forward alone and $6.2$ times on forward and backward together, and the same
 narrowing appears at every agent count in the table. The sparse path's
@@ -374,6 +388,22 @@ faster.}
 \resizebox{\linewidth}{!}{\input{tables/prescore}}
 \end{table}
 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{figures/fig5_prescore.pdf}
+\caption{First pre-score sweep. \textbf{Left:} the operation-count saving the
+accounting of Section~\ref{sec:escape} promises. The dotted line is $N/k$, the
+figure a free selector would reach; the sub-quadratic selector stays below it by
+a factor that widens with $N$, and the all-pairs selector is capped by a
+constant (Corollary~\ref{cor:taxonomy}). \textbf{Middle:} what the same
+configurations cost. Fused, the attention over pre-chosen peers is more than an
+order of magnitude faster than dense attention at the largest agent count, and
+the total is then governed by the selector, which is where the two selectors
+diverge. \textbf{Right:} how far the end-to-end crossing extends. It holds at
+two and four retained peers, is level with dense at eight and gone by sixteen.}
+\label{fig:prescore}
+\end{figure}
+
 Fused, the escape delivers, and how much depends on how many peers are kept. At
 two retained peers the attention stage costs $0.60$, $0.44$, $0.19$, $0.08$ and
 $0.06$ times dense attention from $48$ to $512$ agents; at four, $0.79$, $0.46$,
@@ -410,7 +440,7 @@ estimator. Every latency in this paper is a minimum over interleaved samples, an
 estimate of what the configuration costs when the shared device is not being
 disturbed. Under that estimator the Z-order path costs $0.83$ times dense at two
 retained peers and $0.94$ at eight, and the two runs of the sweep agree to
-within $2.3\%$. Under the paired median of the same samples it costs $2.06$
+within $2.3\%$. Under the ratio of medians of the same samples it costs $2.06$
 times dense instead. The reason is visible in the dispersion: the pre-score path
 is several library kernels behind one selector, and on a contended device the
 tail of a multi-launch path is much heavier than the tail of a single dense
@@ -423,7 +453,7 @@ medians.
 Three things follow, and together they are the paper's constructive result.
 
 Escaping the operation-count ceiling is necessary and not sufficient. Both
-selectors escape it, by between $7$ and $108$ times in operations at
+selectors escape it, by between $7$ and $107$ times in operations at
 four retained peers, and one of
 them is an order of magnitude slower than dense attention while the other is
 faster. What separates them is whether the selector reaches its decision through
@@ -441,9 +471,7 @@ Both conditions are needed, and an operation count expresses neither.
 
 And the regime matters, in a way that limits what this result recommends. The
 crossing appears at $512$ agents, the largest count we measure, and we do not
-extrapolate past it. Most of the multi-agent communication systems we surveyed
-run with two to thirty agents, and the graph-structured ones reach the low
-hundreds (Section~\ref{sec:related}); at those counts our own measurements put
+extrapolate past it. Most of the multi-agent communication methods we cite are evaluated with two to roughly thirty agents, and DGN and ATOC with about a hundred (Section~\ref{sec:related}); at those counts our own measurements put
 the pre-score path behind dense attention, by $13.9$ times at $48$ agents and
 $1.28$ at $384$. So the negative result of Section~\ref{sec:measurement} is the
 one that bears on current practice, and this section is a demonstration of a

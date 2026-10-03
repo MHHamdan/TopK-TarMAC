@@ -1,83 +1,69 @@
 Cooperative multi-agent systems increasingly exchange learned messages, and
-attention is the usual mechanism for deciding whose message matters
-\citep{das2019tarmac,jiang2018atoc,jiang2018dgn}. Attention over $N$ agents is
-pairwise, so its cost grows quadratically, and a large part of the literature on
-learned communication restricts who attends to whom. The restriction is
-commonly justified by an operation count: if each agent aggregates messages from
-$k$ peers instead of $N-1$, the aggregation shrinks by a factor of about $N/k$.
+attention is a common way of deciding whose message matters
+\citep{das2019tarmac,jiang2018atoc,jiang2018dgn}.\footnote{\LLMDisclosure}
+Attention over $N$ agents is pairwise, so its cost grows quadratically, and
+several methods restrict who attends to whom, citing communication or
+computational cost among their reasons
+\citep{jiang2018dgn,sun2020sparsecomm}. The computational
+argument is an operation count: if each agent aggregates messages from $k$ peers
+instead of $N-1$, the aggregation shrinks by a factor of about $N/k$.
 
-This paper asks when that saving becomes elapsed time. The question has two
-parts that an operation count conflates. The first is \emph{which operations
-can be removed at all}. Selecting peers by their attention scores requires the
-scores, so by the time the selection is made every pairwise interaction has
-been evaluated; only the aggregation can shrink. The second is \emph{whether
-the removed operations were what the time was spent on}. At the agent counts
-and head widths multi-agent communication uses, attention is memory-bound, so
-an implementation that removes arithmetic while adding data movement can become
-slower. We study both parts for centralised inference on a single device, the
-setting in which most of this literature is trained and evaluated, and not for
-bandwidth-constrained distributed deployment, where reducing transmitted
-messages is itself the objective.
+This paper asks when that saving becomes elapsed time. Three costs have to be
+separated, and an operation count conflates them. The first is \emph{what can
+be removed at all}: a rule that selects peers by their attention scores needs
+the scores, so every pairwise score has been computed by the time the selection
+is made, and only the aggregation can shrink. The second is \emph{what the
+implementation executes}: masking the discarded weights to zero leaves the
+dense multiplication in place, while gathering the retained values removes it
+and writes new intermediates instead. The third is \emph{what the hardware
+spends its time on}: at the agent counts and head widths of this setting,
+attention is memory-bound, so an implementation that removes arithmetic while
+adding data movement can become slower. We study centralised inference on a
+single device, the setting in which the methods we cite are trained and
+evaluated, and not bandwidth-constrained distributed deployment, where reducing
+transmitted messages is itself the objective.
 
-\paragraph{Approach.} We develop a cost model that charges a peer-selection
-rule for what it costs to run, and test each of its predictions against
-measurements of implementations that compute the same function. The model has
-three parts. For \emph{score-then-select} rules, which form every score before
-keeping the $k$ largest, the removable forward-pass arithmetic is at most half,
-whatever the sparsity. For rules that fix the retained set before any score
-exists, the achievable saving is determined by the selector's own cost, which
-separates mechanisms that are bounded by a constant from those that are not.
-And a byte-count criterion, $kd \le N$, predicts when compacting the retained
-peers is traffic-neutral. We then measure six implementations of top-$k$
-attention, verified equivalent at every reported configuration, against a dense
-baseline that is the best of a vendor library and a dense kernel we wrote and
-tuned over the same parameter space as the sparse kernels, and repeat the
-comparison in three numerical formats with FlexAttention added.
-
-\paragraph{Findings.} Composed from general-purpose tensor operations, top-$k$
-attention is slower than dense attention at every agent count and sparsity we
-measure, by up to a factor of thirty-seven, because of memory traffic.
-A fused kernel removes most of that overhead. It is faster than the best dense
-implementation only when one peer is retained (two at a single configuration),
-only at head widths $16$ and $32$, and only without tensor cores: in TF32 and
-bf16 dense attention gains three to eight times, and the advantage is gone from
-$384$ agents upward. From four retained peers upward the fused kernel is slower
-in every configuration we could compare, because ranking candidates costs more
-than aggregating over survivors saves. Selecting before scoring changes the
-picture: fused, the attention stage becomes up to sixteen times faster than
-dense attention, and the selector then decides the outcome. An all-pairs
-nearest-neighbour selector is capped by a constant and ends far behind dense
-attention; a grid-based one removes the quadratic growth but not a large
-constant; and a space-filling-curve selector, cheap in absolute terms, reaches
-parity with dense attention at five hundred agents on best-case timings.
+\paragraph{Findings.} For \emph{score-then-select} rules, which form every score
+before keeping the $k$ largest, at most half of the forward-pass attention
+multiply--accumulates are removable at any sparsity, a limit noted before in a
+memory-access model \citep{chen2023dfss}. Composed from library operators, such a rule is slower than dense attention at every agent count and sparsity we measure, the gathered form by up to thirty-seven times, because of memory traffic. A fused kernel
+is faster than the best dense implementation only when one peer is retained (two
+at a single configuration), at head widths $16$ and $32$, and without tensor
+cores; in TF32 and bf16 the advantage is gone from $384$ agents upward. One
+retained peer is a degenerate attention, since a softmax over one element is
+identically one. Handing the fused kernel's own retained set to a kernel for free
+shows where its time goes: from $384$ agents upward, at least nine tenths is
+spent finding the set. Rules that \emph{select before scoring} escape the bound,
+and attention over a pre-selected set is then up to sixteen times faster than
+dense attention, but the selector decides the outcome: of an all-pairs, a grid
+and a space-filling-curve selector, only the last reaches parity with dense
+attention, at $512$ agents on best-case timings, and the ratio of medians
+reverses that in one of our two sweeps.
 
 \paragraph{Contributions.}
 \begin{itemize}
-  \item A cost model for peer selection in attention-based communication
-    (Section~\ref{sec:analysis}). Under a multiply--accumulate count, any
-    score-then-select rule removes at most half of the forward-pass attention
-    arithmetic (Proposition~\ref{prop:ceiling}); charging a selector for its
-    own cost places existing mechanisms into four classes with different
-    asymptotic savings (Proposition~\ref{prop:escape},
-    Corollary~\ref{cor:taxonomy}); and a byte criterion predicts when compaction
-    is traffic-neutral.
+  \item A cost model for peer selection (Section~\ref{sec:analysis}): a
+    closed-form multiply--accumulate limit on score-then-select for the forward
+    and backward passes (Proposition~\ref{prop:ceiling}); a selector-cost
+    accounting that sorts selection mechanisms into four asymptotic classes
+    (Proposition~\ref{prop:escape}, Corollary~\ref{cor:taxonomy}); and a byte
+    criterion, $kd \le N$, that screens compaction before implementation.
   \item A measurement of what is executed (Section~\ref{sec:measurement}):
-    masked, gathered and fused implementations of one function, a dense
-    baseline searched over one parameter space under one admissibility filter
-    with the achieved fraction of device throughput reported for both, and a
-    check of whether the conclusions depend on numerical precision.
+    masked, gathered and fused implementations of one function, verified
+    equivalent, against the best of a vendor library, FlexAttention and a dense
+    kernel searched over the sparse kernels' parameter space; three numerical
+    formats; and a fixed-set comparison that separates the cost of finding the
+    retained peers from the cost of using them.
   \item A characterisation of when sparse attention is faster in this regime:
-    narrowly for score-then-select (one or two retained peers, narrow heads,
-    no tensor cores), and more broadly for selection before scoring, provided the selector
-    is sub-quadratic and the remaining attention is fused
-    (Sections~\ref{sec:fused}--\ref{sec:prescore}).
+    narrowly for score-then-select, and more broadly for selection before
+    scoring when the selector is cheap in absolute terms and the remaining
+    attention is fused (Sections~\ref{sec:fused}--\ref{sec:prescore}).
 \end{itemize}
 
-We release the kernels, the measurement harness and a script that re-derives
-every number in the text from the released artifacts. A secondary
-pre-registered training study (Appendix~\ref{app:training}) establishes that the
-communication architecture being sparsified improves return, so that the cost
-comparisons concern a mechanism that does something; it is not powered to
-compare sparsification variants, and no claim in the main text rests on it.
-Section~\ref{sec:limitations} states the measured envelope: one GPU
-architecture, head widths $16$ to $512$, and at most $512$ agents.
+We release the kernels, the harness and the scripts that regenerate every table
+and figure and check the quoted numbers. A pre-registered training study
+(Appendix~\ref{app:training}) shows that the communicating architecture improves
+return under the evaluated setup; it is not powered to rank sparsification
+variants, and no claim in the main text rests on it. The measured envelope is
+one GPU architecture, head widths $16$ to $512$ and at most $512$ agents
+(Section~\ref{sec:limitations}).

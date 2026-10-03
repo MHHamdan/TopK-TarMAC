@@ -98,6 +98,19 @@ STACK_RAMP: Final[list[str]] = [
     "#10243a", "#254c73", "#3f77a8", "#6a9fc7", "#9cc0dc", "#c6dcec", "#e6f0f7",
 ]
 
+#: The role a pipeline stage plays, used wherever stages are drawn (the
+#: schematic of Figure 1 and the per-stage decomposition), so that a colour
+#: means the same kind of work in every figure. Distinct in hue and, except
+#: aggregate against select, in luminance; the intermediate also carries a
+#: hatch wherever it appears.
+ROLE_COLOR: Final[dict[str, str]] = {
+    "score": "#34527F",       # forming scores
+    "select": "#D9962B",      # ranking / selecting peers
+    "aggregate": "#4E9A78",   # weighted sum over values
+    "memory": "#C0675A",      # an intermediate written and read back
+    "softmax": "#A9A9A9",     # normalisation
+}
+
 #: Sequential single hue for heatmaps, anchored at the meaningful floor.
 HEAT_CMAP: Final[str] = "Blues"
 
