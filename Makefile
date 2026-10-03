@@ -1,20 +1,22 @@
 PYTHON ?= .venv/bin/python
 export PYTHONPATH := $(CURDIR)
+PAPER := paper_submission_revision
 
-.PHONY: help test check check-bib check-configs check-log provenance \
-        figures tables paper reproduce dry-run clean
+.PHONY: help test check check-bib check-numbers figures tables paper \
+        equivalence fixed-set supplement clean
 
 help:
-	@echo "test          run the pytest suite"
-	@echo "check         all gates: tests + bib + config drift + master log"
-	@echo "check-bib     fail if any .bib entry is uncited or any citation dangles"
-	@echo "check-configs fail if a YAML disagrees with the runs made from it"
-	@echo "check-log     fail if a completed run is absent from MASTER_LOG.csv"
-	@echo "provenance    regenerate results/provenance.json"
-	@echo "figures       regenerate paper/figures/*.pdf"
-	@echo "tables        regenerate paper/tables/*"
-	@echo "paper         compile paper/main.pdf"
-	@echo "dry-run       print the reproduction plan without executing it"
+	@echo "test           run the pytest suite"
+	@echo "check          tests + bibliography + every number in the manuscript"
+	@echo "check-bib      fail if any .bib entry is uncited or any citation dangles"
+	@echo "check-numbers  regenerate tables, re-derive prose numbers, verify the"
+	@echo "               main-text number manifest (scripts/paper_numbers.py)"
+	@echo "tables         regenerate $(PAPER)/tables/*.tex from results/"
+	@echo "figures        regenerate $(PAPER)/figures/*.pdf from results/"
+	@echo "paper          tables + figures + compile $(PAPER)/main.pdf"
+	@echo "equivalence    re-check every timed configuration against the reference (GPU)"
+	@echo "fixed-set      re-run the fixed-retained-set sweep (GPU, ~2 min)"
+	@echo "supplement     build the anonymised supplementary archive"
 
 test:
 	$(PYTHON) -m pytest -q
@@ -22,37 +24,30 @@ test:
 check-bib:
 	$(PYTHON) scripts/check_bib.py
 
-check-configs:
-	$(PYTHON) scripts/check_config_drift.py
+check-numbers:
+	$(PYTHON) scripts/check_revision_numbers.py --verify-paper-numbers
 
-check-log:
-	$(PYTHON) scripts/rebuild_master_log.py --check
-
-check: test check-bib check-configs check-log
+check: test check-bib check-numbers
 	@echo "all gates passed"
 
-provenance:
-	$(PYTHON) scripts/collect_provenance.py
+tables:
+	$(PYTHON) scripts/make_revision_tables.py
 
 figures:
-	$(PYTHON) scripts/make_fig1_schematic.py
-	$(PYTHON) scripts/make_figures.py --n 6 --n-list 3 6 12
+	$(PYTHON) scripts/make_revision_figures.py
 
-tables:
-	$(PYTHON) scripts/make_tables.py --n-list 3 6 12
+paper: tables figures
+	cd $(PAPER) && tectonic --keep-logs main.tex
 
-paper: figures tables
-	cd paper && ( command -v tectonic >/dev/null 2>&1 \
-	  && tectonic --keep-logs main.tex \
-	  || ( pdflatex -interaction=nonstopmode main.tex && bibtex main; \
-	       pdflatex -interaction=nonstopmode main.tex; \
-	       pdflatex -interaction=nonstopmode main.tex ) )
+equivalence:
+	$(PYTHON) scripts/verify_all_configurations.py --device cuda:0
 
-reproduce:
-	bash scripts/reproduce.sh
+fixed-set:
+	$(PYTHON) scripts/bench_fixed_set.py --device cuda:0
 
-dry-run:
-	bash scripts/reproduce.sh --dry-run
+supplement:
+	bash scripts/make_supplement.sh
 
 clean:
-	rm -f paper/main.aux paper/main.bbl paper/main.blg paper/main.out paper/main.log
+	rm -f $(PAPER)/main.aux $(PAPER)/main.bbl $(PAPER)/main.blg \
+	      $(PAPER)/main.out $(PAPER)/main.log

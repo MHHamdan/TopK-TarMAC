@@ -26,6 +26,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 R = ROOT / "results"
 PAPER = ROOT / "paper_submission_revision"
 SEC = PAPER / "sections"
@@ -72,6 +73,10 @@ def _word(n: int) -> str:
 
 
 def main() -> int:
+    if "--verify-paper-numbers" in sys.argv[1:]:
+        from scripts.paper_numbers import main as verify_manifest
+        if verify_manifest():
+            return 1
     fails: list[str] = []
     checks = 0
     prose = {p.name: p.read_text() for p in SEC.glob("*.tex")}
@@ -80,6 +85,8 @@ def main() -> int:
     everything = " ".join(flat.values())
 
     # ---- 1. the generated tables are not stale -------------------------
+    # Regenerating writes the tables in place, so restore any table that
+    # changed: otherwise a stale table fails once and passes on the next run.
     before = {p.name: p.read_text() for p in TAB.glob("*.tex")}
     subprocess.run([sys.executable, str(ROOT / "scripts" /
                                         "make_revision_tables.py")],
@@ -88,7 +95,9 @@ def main() -> int:
         checks += 1
         new = (TAB / name).read_text()
         if old != new:
-            fails.append(f"table {name} is stale: regenerating changes it")
+            fails.append(f"table {name} is stale: regenerating changes it "
+                         "(restored; rerun make_revision_tables.py to update)")
+            (TAB / name).write_text(old)
 
     # ---- 2. every implementation computes the same function ------------
     core = load("attention_core_d16.json")
@@ -431,7 +440,7 @@ def main() -> int:
               r"window costs \$([\d.]+)\$ times dense", tol=0.04)
     check_num("grid recall, worst", 100 * min(
         r["recall_vs_exact_knn"] for r in ps if r["selector"] == "grid_knn"),
-              r"at least\s*\$([\d.]+)\\%\$", tol=0.0001)
+              r"at least\s*\$([\d.]+)\\%\$\s+of\s+cases", tol=0.0001)
     for sel in ("radius_knn", "grid_knn"):
         checks += 1
         r16 = [psel(sel, N, 16) for N in (384, 512)]

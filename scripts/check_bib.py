@@ -16,8 +16,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BIB = ROOT / "literature" / "references.bib"
-PAPER = ROOT / "paper"
+BIB = ROOT / "paper_submission_revision" / "references.bib"
+PAPER = ROOT / "paper_submission_revision"
 
 #: Matches \cite, \citep, \citet, \citealp, \cite*, and optional-arg forms
 #: such as \citep[see][p.~3]{key1,key2}.
