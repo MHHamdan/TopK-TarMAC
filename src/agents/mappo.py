@@ -18,6 +18,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from src.kernels.prescore_selection import select_morton_window
+
+
+#: Slice of a simple_spread observation holding the agent's own absolute
+#: position: obs = [self_vel(2), self_pos(2), ...]. Each agent observes its own
+#: position; the visibility mask touches only the peer block, so this slice is
+#: never zeroed.
+SELF_POS = slice(2, 4)
+
 
 @dataclass
 class MAPPOConfig:
@@ -60,8 +69,18 @@ class MAPPOConfig:
     #                   rather than from a hard cutoff. Tests the manuscript's
     #                   own diagnosis that the gate is the wrong mechanism.
     #   adaptive_topk — top-k with k produced by a per-agent Gumbel gate.
+    #   zorder_k      — the manuscript's pre-score Z-order selector: agents
+    #                   are ordered along a Morton curve of their 2-D
+    #                   positions and each keeps the k agents adjacent to it
+    #                   in that order (self excluded), BEFORE any score is
+    #                   formed; attention is then scored over those k peers
+    #                   only (src/kernels/prescore_selection.py). Positions
+    #                   are each agent's own obs[..., SELF_POS], i.e. every
+    #                   agent contributes its self-observed position to the
+    #                   selector the same way it contributes its key/value.
     attn_mode: str = "dense"
-    topk: int = 0  # used only when attn_mode in {"topk", "topk_gather", "random_k"}
+    # used only when attn_mode in {"topk", "topk_gather", "random_k", "zorder_k"}
+    topk: int = 0
     # alpha for attn_mode == "entmax": 1.0 -> softmax, 1.5 -> entmax-1.5,
     # 2.0 -> sparsemax. Larger alpha gives sparser attention.
     entmax_alpha: float = 1.5
@@ -243,6 +262,35 @@ class AttentionComm(nn.Module):
         info: dict = {"effective_k": float(k_eff)}
         return msg, info
 
+    def _forward_zorder_k(self, q: torch.Tensor, k: torch.Tensor,
+                          v: torch.Tensor, pos: torch.Tensor,
+                          N: int) -> tuple[torch.Tensor, dict]:
+        """Aggregate over the k peers adjacent in Morton (Z-order) curve order.
+
+        The retained set is fixed from positions alone, before any attention
+        score exists, using the same selector the cost study benchmarks
+        (``select_morton_window``); only the k retained pairs are scored. Same
+        k and same gather-path aggregation as `topk_gather` and `random_k`, so
+        the three arms differ only in which peers are kept.
+        """
+        k_eff = self._k_eff(N)
+        idx = select_morton_window(pos, k_eff)            # (B, N, k)
+        B, _, d = k.shape
+        # Same contraction as prescore_attention, inlined so the weights are
+        # available for the entropy diagnostic: k scored pairs per agent.
+        flat = idx.reshape(B, N * k_eff, 1).expand(B, N * k_eff, d)
+        k_g = k.gather(1, flat).view(B, N, k_eff, d)
+        v_g = v.gather(1, flat).view(B, N, k_eff, d)
+        scores = torch.matmul(q.unsqueeze(-2), k_g.transpose(-1, -2)) / (d ** 0.5)
+        w = F.softmax(scores, dim=-1)                     # (B, N, 1, k)
+        msg = torch.matmul(w, v_g).squeeze(-2)            # (B, N, d)
+        info: dict = {"effective_k": float(k_eff)}
+        if self.collect_info:
+            info["mean_attn_entropy"] = (
+                -(w.clamp_min(1e-12) * w.clamp_min(1e-12).log()).sum(-1)
+            ).mean().item()
+        return msg, info
+
     def _forward_entmax(self, q: torch.Tensor, k: torch.Tensor,
                         v: torch.Tensor, eye_mask: torch.Tensor,
                         N: int) -> tuple[torch.Tensor, dict]:
@@ -281,11 +329,18 @@ class AttentionComm(nn.Module):
             info["effective_k"] = float((attn > 0).sum(-1).float().mean().item())
         return msg, info
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, dict]:
-        # x: (B, N, in_dim)
+    def forward(self, x: torch.Tensor,
+                pos: torch.Tensor | None = None) -> tuple[torch.Tensor, dict]:
+        # x: (B, N, in_dim); pos: (B, N, 2), required only by zorder_k.
         B, N, _ = x.shape
         qkv = self.qkv(x)  # (B, N, 3*msg_dim)
         q, k, v = qkv.chunk(3, dim=-1)
+
+        if self.cfg.attn_mode == "zorder_k":
+            if pos is None:
+                raise ValueError("attn_mode='zorder_k' needs agent positions")
+            msg, info = self._forward_zorder_k(q, k, v, pos, N)
+            return self.proj(F.gelu(msg)), info
 
         # Sparse and fused paths return before the dense (B, N, N) weight
         # matrix is ever built.
@@ -390,7 +445,9 @@ class MAPPOAgent(nn.Module):
         info: dict = {}
         if self.comm is not None:
             emb = F.gelu(self.obs_embed(obs))
-            msg, info = self.comm(emb)
+            pos = (obs[..., SELF_POS] if self.cfg.attn_mode == "zorder_k"
+                   else None)
+            msg, info = self.comm(emb, pos)
             actor_in = torch.cat([obs, msg], dim=-1)
         else:
             actor_in = obs

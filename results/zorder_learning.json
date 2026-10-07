@@ -1,0 +1,148 @@
+{
+  "arm": "red_po6_zorder_k2",
+  "status": "exploratory, post hoc, NOT pre-registered; descriptive only",
+  "n_seeds": 5,
+  "final_return_per_seed": [
+    -197.8132214806974,
+    -194.46123920753598,
+    -190.14180364087224,
+    -204.65983532741666,
+    -201.72648870572448
+  ],
+  "final_return_mean": -197.76051767244934,
+  "final_return_sd": 5.750268035411825,
+  "final_return_boot95": [
+    -202.11717390939594,
+    -193.32262776717545
+  ],
+  "wall_time_s_per_seed": [
+    3013.3614444732666,
+    2999.1220757961273,
+    3031.1378054618835,
+    3009.27032828331,
+    3005.236203432083
+  ],
+  "comparators": {
+    "red_po6_gather_k2": {
+      "label": "attention top-k (gather), k=2",
+      "n_seeds": 5,
+      "mean": -193.43976968303323,
+      "sd": 5.545251668730727,
+      "boot95": [
+        -197.75712396875025,
+        -189.12241539731622
+      ]
+    },
+    "red_po6_random_k2": {
+      "label": "random-k, k=2",
+      "n_seeds": 5,
+      "mean": -197.47471214011313,
+      "sd": 7.67447292083593,
+      "boot95": [
+        -203.2653286792338,
+        -191.43938603922726
+      ]
+    },
+    "red_po6_mappo": {
+      "label": "no communication",
+      "n_seeds": 5,
+      "mean": -204.42306252419948,
+      "sd": 3.2636737762779173,
+      "boot95": [
+        -206.97073939591647,
+        -201.90760989561676
+      ]
+    },
+    "red_po6_dense": {
+      "label": "dense attention",
+      "n_seeds": 5,
+      "mean": -192.83148397952317,
+      "sd": 4.920931969596461,
+      "boot95": [
+        -196.55354268848896,
+        -188.8786139719188
+      ]
+    }
+  },
+  "contrasts": {
+    "red_po6_zorder_k2 - red_po6_gather_k2": {
+      "mean_diff": -4.320747989416105,
+      "boot95_diff": [
+        -10.493822918087261,
+        2.089721045643074
+      ],
+      "hodges_lehmann": -5.117412023246288,
+      "cohens_d": -0.7649115018917162,
+      "perm_p_uncorrected_descriptive": 0.25396825396825395
+    },
+    "red_po6_zorder_k2 - red_po6_random_k2": {
+      "mean_diff": -0.2858055323362123,
+      "boot95_diff": [
+        -7.7114120855927695,
+        7.3621024951338825
+      ],
+      "hodges_lehmann": -1.0090306028723717,
+      "cohens_d": -0.04214817624120889,
+      "perm_p_uncorrected_descriptive": 0.9523809523809523
+    },
+    "red_po6_zorder_k2 - red_po6_mappo": {
+      "mean_diff": 6.662544851750141,
+      "boot95_diff": [
+        1.5207562156021766,
+        11.81741589307785
+      ],
+      "hodges_lehmann": 6.70087717846036,
+      "cohens_d": 1.4250471293148037,
+      "perm_p_uncorrected_descriptive": 0.06349206349206349
+    },
+    "red_po6_zorder_k2 - red_po6_dense": {
+      "mean_diff": -4.929033692926168,
+      "boot95_diff": [
+        -10.985248224437214,
+        0.8952573321759587
+      ],
+      "hodges_lehmann": -4.622176185250282,
+      "cohens_d": -0.9210239117118828,
+      "perm_p_uncorrected_descriptive": 0.15079365079365079
+    }
+  },
+  "selection": {
+    "per_seed": [
+      {
+        "knn_fraction": 0.471875,
+        "selected_within_radius": 0.39989583333333334,
+        "knn_within_radius": 0.6769791666666667,
+        "n_selections": 19200
+      },
+      {
+        "knn_fraction": 0.5422395833333333,
+        "selected_within_radius": 0.5073958333333334,
+        "knn_within_radius": 0.7322395833333334,
+        "n_selections": 19200
+      },
+      {
+        "knn_fraction": 0.48010416666666667,
+        "selected_within_radius": 0.4365625,
+        "knn_within_radius": 0.7271354166666667,
+        "n_selections": 19200
+      },
+      {
+        "knn_fraction": 0.53046875,
+        "selected_within_radius": 0.39645833333333336,
+        "knn_within_radius": 0.624375,
+        "n_selections": 19200
+      },
+      {
+        "knn_fraction": 0.45,
+        "selected_within_radius": 0.36302083333333335,
+        "knn_within_radius": 0.64359375,
+        "n_selections": 19200
+      }
+    ],
+    "knn_fraction_mean": 0.4949375,
+    "knn_fraction_chance_random_k": 0.4,
+    "selected_within_radius_mean": 0.4206666666666667,
+    "knn_within_radius_mean": 0.6808645833333333,
+    "protocol": "greedy rollouts of each trained Z-order policy on the 64 final-eval episodes (env seeds 10000-10063); true positions; ties impossible in continuous MPE"
+  }
+}
