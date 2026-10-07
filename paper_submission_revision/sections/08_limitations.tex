@@ -1,4 +1,7 @@
-\paragraph{What a designer can take from this.} Each of the following is a
+\subsection{What a designer can take from this}
+\label{sec:takeaways}
+
+Each of the following is a
 conclusion from the measurements above, inside their envelope, rather than a
 general law. Charge the selector: its cost decides whether pre-scoring pays, and
 an asymptotic class does not fix the ordering at the agent counts measured.
@@ -7,41 +10,112 @@ and in our fused kernels finding the retained set was most of the time. Check
 what the implementation executes: a masked implementation executes none of the
 counted saving. Check traffic before compacting, with $kd \le N$ as a necessary
 screen. Compare against the strongest dense kernel available for the format,
-including reduced precision, which removed the one positive score-then-select
-result. And keep attention-stage and end-to-end figures apart: a sixteenfold
+including reduced precision, which in bf16 confined the score-then-select
+advantage to a single retained peer. Count kernels at small agent counts, where
+the number launched orders latency. And keep attention-stage and end-to-end figures apart: a sixteenfold
 attention-stage speedup and a $2\%$ spread across implementations in a full
 training iteration are both true of this system.
 
-Appendix~\ref{sec:pitfalls} lists eight measurement errors that produced plausible but spurious results during this study before they were caught, with the practice that corrected each.
+\subsection{A checklist for benchmarking small kernels}
+\label{sec:checklist}
 
-\paragraph{Limitations.} Every cost result concerns centralised inference on a
+Attention over tens to hundreds of agents runs for microseconds, on a device
+that is often shared, against library kernels tuned for other shapes. Each of
+those conditions produced at least one error in this study that yielded a
+plausible number, and Table~\ref{tab:pitfalls} lists them with the practice that
+prevents each. Two of the eight deserve emphasis because nothing in the
+resulting numbers betrays them: a masked implementation benchmarked as sparse
+executes none of the counted saving, and a hand-written sparse kernel timed
+against a vendor's dense kernel measures authorship as well as sparsity. The
+first is caught by counting the operations the running program issues, the
+second by searching both kernels over one parameter space and reporting the
+fraction of the machine each reaches. Appendix~\ref{sec:pitfalls} describes each
+entry and how it was found.
+
+\begin{table}[t]
+\centering
+\small
+\caption{A checklist for benchmarking small attention kernels: eight ways a
+benchmark measures something other than the algorithm, each of which produced a
+spurious result in this study, and the practice that prevents it. The first five
+are caught by the shape of the result; the last three are not, because the
+numbers they produce are self-consistent. Appendix~\ref{sec:pitfalls} describes
+each.}
+\label{tab:pitfalls}
+\begin{tabular}{p{0.12\linewidth}p{0.26\linewidth}p{0.24\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{Kind} & \textbf{Cause} & \textbf{Symptom} & \textbf{Corrective practice} \\
+\midrule
+\multirow{3}{*}{\parbox{\linewidth}{Instrumen\-tation}}
+& Host transfer inside the timed region &
+Dense latency nearly flat in $N$ &
+Gate diagnostics behind a flag that is off while timing \\
+\addlinespace
+& Synchronisation without a device argument &
+Every kernel reports the event-resolution floor &
+Pin the device and pass it to every synchronisation \\
+\addlinespace
+& Host allocator returning large temporaries &
+Up to $8.8\times$ inflation and a non-monotone curve &
+Pin the heap; count minor faults per forward \\
+\midrule
+\multirow{2}{*}{Interference}
+& Timing implementations in sequential blocks &
+Swings above $100\%$ between identical configurations &
+Interleave repetition by repetition; report paired ratios \\
+\addlinespace
+& Changing which implementations share a sweep &
+Two sweeps disagree by $1.4\times$ at twelve agents &
+Fix the implementation set across comparable sweeps \\
+\midrule
+\multirow{2}{*}{\parbox{\linewidth}{Wrong algorithm}}
+& Benchmarking a masked implementation as sparse &
+The advertised saving is never executed &
+Assert executed FLOPs differ and trace the products issued \\
+\addlinespace
+& Comparing only against unfused dense &
+A $5.4\times$ more favourable comparison at $N{=}512$ &
+Report both baselines; check which backend serves the shape \\
+\midrule
+\parbox{\linewidth}{Wrong\\ baseline}
+& A hand-written sparse kernel against a vendor's dense kernel &
+An apparent speedup larger than the analytic ceiling permits &
+Write the dense baseline in the same framework and tiling \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Limitations}
+\label{sec:limits}
+
+Every cost result concerns centralised inference on a
 single device; the paper makes no claim about bandwidth-constrained distributed
 deployment, where reducing transmitted messages is itself the objective and
 top-$k$ selection may well be the right design. The analysis is single-round and single-head; the operation-count ratio is invariant to both, but $H$ heads of width $d/H$ change the per-head width, along which our timing result changes sign.
 
 The measured envelope is one GPU architecture (NVIDIA Blackwell, sm\_120), one
 x86\_64 CPU, PyTorch 2.11 with CUDA 12.8 and Triton 3.6, head widths $16$ to
-$512$, $N \le 512$, batch $32$ to $1024$, and fp32, TF32 and bf16. We could not
+$512$, $N \le 512$ ($1024$ for the streaming kernel), batch $32$ to $1024$, and fp32, TF32 and bf16. We could not
 replicate on a second GPU generation, because no other was available to us; the
 fixed-set sweep ran on the second card of the same model. Both cards were shared
-with other tenants throughout, and clocks could not be locked; every claim except the tiling search's efficiency figures is therefore a ratio between implementations timed in the same interleaved sweep, and no claim is read off an agent count below $192$. Timing a single call with
+with other tenants throughout, and clocks could not be locked; every claim except the tiling search's efficiency figures is therefore a ratio between implementations timed in the same interleaved sweep, and below $192$ agents only the CUDA-graph device times of Section~\ref{sec:smalln} are used. Timing a single call with
 device events measures host launch latency whenever the host is slower than the
 kernel; our kernels run for $5$ to $140$\,\textmu s, and during the fixed-set
 sweep the host launch path was slow enough that the eager figure for the fixed-set kernel was $1.7$ to $3.4$ times its graph-replay figure. The score-then-select
 ratios agreed under both protocols, but the smallest device times we report are
 not what an eager deployment on a slower host would see. 
 
-Our kernels are not optimal. The sparse kernels hold the whole score row of a
-query on chip, which caps them at $N \le 1024$ and admits only three tilings
-above $192$ agents against $28$ to $106$ for the dense kernel; a streaming exact
-top-$k$ that keeps a running candidate set would not have that constraint, and
-we did not write one. The sparse efficiency figures are therefore lower bounds,
-and the negative results at wide heads are weakly supported. The fused
-crossover at one retained peer is provisional in the other direction, and
-Section~\ref{sec:precision} shows how: a dense kernel that uses the tensor cores
-removes it from $384$ agents upward. The pre-score selectors attend to a
-different peer set than top-$k$ does, so their comparison is of cost and not of
-quality; their selectors are composed from library operators, so the selector
+Our kernels are not optimal. The resident-row kernels admit only three tilings
+above $192$ agents against $28$ to $106$ for the dense kernel, so their
+efficiency figures are lower bounds and the negative results at wide heads are
+weakly supported. The streaming kernel removes that constraint and moved the
+boundary from one retained peer to between two and four; it was searched at head
+widths $16$ and $32$ only, and its merge is a sequence of comparisons that a
+better selection network might shorten, so the boundary may move further. It
+cannot move past the score product, about half of dense attention. The pre-score selectors attend to a
+different peer set than top-$k$ does, so their comparison is of cost; the one
+quality check, Z-order in the learning study (Appendix~\ref{sec:training}), is
+descriptive at six agents and five seeds; their selectors are composed from library operators, so the selector
 costs we report are upper bounds; and their envelope is one head width, one
 batch and fp32, with uniformly placed agents. Finally, the learning study
 (Appendix~\ref{sec:training}) has five seeds per variant; it shows that the

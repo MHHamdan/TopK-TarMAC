@@ -1,13 +1,14 @@
-\begin{tabular}{rccrrrr}
+\begin{tabular}{rccrrcrr}
 \toprule
 & \multicolumn{2}{c}{\textbf{sparsity that pays}} &
   \multicolumn{2}{c}{\textbf{best ratio}} &
+  \textbf{replayed, $k{=}1$} &
   \multicolumn{2}{c}{\textbf{at the widest $k$}} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
-$N$ & $k$ & of peers & ratio & at $k$ & ratio & at $k$ \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-6}\cmidrule(lr){7-8}
+$N$ & $k$ & of peers & ratio & at $k$ & min / median & ratio & at $k$ \\
 \midrule
-192 & $\le 1$ & 0.5\% & 0.76 & 1 & 27.9 & 128 \\
-384 & $\le 1$ & 0.3\% & 0.94 & 1 & 18.8 & 128 \\
-512 & $\le 1$ & 0.2\% & 0.81 & 1 & 15.4 & 128 \\
+192 & $\le 1$ & 0.5\% & 0.76 & 1 & 0.76 / 0.77 & 27.9 & 128 \\
+384 & $\le 1$ & 0.3\% & 0.94 & 1 & 0.92 / 0.92 & 18.8 & 128 \\
+512 & $\le 1$ & 0.2\% & 0.81 & 1 & 0.77 / 0.77 & 15.4 & 128 \\
 \bottomrule
 \end{tabular}%

@@ -245,6 +245,39 @@ other.
 \section{Additional training analysis}
 \label{app:training}
 
+\subsection{Design and the registered comparisons}
+\label{app:design}
+
+Twelve variants at up to twelve agents were trained. Besides the communicating
+and non-communicating baselines they include fixed-$k$ attention, uniformly
+random peers at the same budget, an $\alpha$-entmax normalisation
+\citep{peters2019entmax} and a communication budget enforced by a Lagrangian
+\citep{stooke2020pidlagrangian} on a per-agent Gumbel-softmax gate
+\citep{jang2017gumbel}. Scaling in the number of agents is left to the
+training-free measurements of Section~\ref{sec:measurement}, because a training
+step in this pipeline is dominated by the environment
+(Appendix~\ref{app:backward}). On the partially observable task the fraction of
+peers visible falls with the agent count while the absolute number visible
+rises, because the world does not grow, so no comparison of returns across agent
+counts is made.
+
+The analysis plan fixes the endpoint, six comparisons and their direction, an
+exact two-sided permutation test, the effect sizes, a bootstrap interval flagged
+approximate at five seeds, and a Holm--Bonferroni correction. It also fixes the
+power expectation in advance: at five seeds a first rejection requires one
+variant's seeds to lie entirely above the other's, so any null in the family is
+under-powered and is not evidence of absence, and no equivalence claim is
+available because no equivalence margin was registered.
+
+The primary comparison holds the communication budget, the executed aggregation
+cost and every hyperparameter fixed, and varies only whether peers are chosen by
+attention score or uniformly at random. Attention-selected minus random peers is
+$+4.03$, with a $95\%$ interval of $[-3.35, +11.42]$, a standardised effect of
+$+0.60$ and $p = 0.357$. The point estimate favours attention by roughly two
+thirds of a standard deviation and the interval includes zero; the design lacked
+the power to resolve an effect of that size, as the registered calculation said
+in advance, and nothing follows about whether attention selects informatively.
+
 \subsection{Pre-registration chronology}
 \label{app:prereg}
 
@@ -259,7 +292,7 @@ and correction are byte-identical to the pre-unblinding version. Timestamps
 establish ordering and nothing more. Data generation had demonstrably already
 begun.
 
-The power statement in Section~\ref{sec:training} is arithmetic, not an
+The power statement in Appendix~\ref{app:design} is arithmetic, not an
 estimate. With five seeds per variant an exact two-sided permutation test over
 $\binom{10}{5} = 252$ assignments has smallest attainable $p$-value
 $2/252 = 0.0079$, against a first Holm threshold of $0.05/6 = 0.0083$: a margin
@@ -287,7 +320,9 @@ way. The evidence for the exclusion is this. A uniform-random policy scores
 $-758.9$ under a forty-episode evaluation,
 against $-864.9$ for the dense variant, which is worse, and $-717.9$ for the
 sparse variant, which is better but barely learning; the comparison is between a
-diverged run and a struggling one. Separately, for two comparisons the bootstrap
+diverged run and a struggling one. The centralised critic sees the same masked
+observations as the actors, with no privileged global state, which departs from
+standard practice for this learner and is a plausible contributor. Separately, for two comparisons the bootstrap
 interval excludes zero while the permutation test does not. The registration
 named the permutation test, so it governs; the disagreement is unsurprising at
 five seeds, where the interval is coarse, discrete and of uncertain coverage. We
@@ -323,34 +358,6 @@ parameters the baseline has no analogue for. The positive controls therefore
 establish that the communicating architecture outperforms the baseline, not that
 the channel alone accounts for the difference.
 
-\section{Literature audit}
-\label{app:audit}
-
-For each audited paper we read the full text, including appendices and the
-official supplement where one exists --- through the ar5iv rendering of the
-arXiv version where the paper is on arXiv, and the venue's own copy
-otherwise --- searched it for seven temporal keywords,
-and recorded whether it makes a computational-efficiency or complexity claim
-about its mechanism, whether it reports any measured temporal quantity
-attributable to that mechanism, and the figure, table or sentence that settled
-the decision. A statement such as ``training took a few days'' does not qualify,
-since it is not attributable to the mechanism. Scope matters for at least one
-entry, whose affirmative verdict rests on a wall-clock figure in an appendix and
-would be negative on the main body alone. This is an audit of reporting practice
-in a small, deliberately selected set --- the papers we ourselves relied on ---
-and not a sample of either literature; a negative verdict means the argument
-rests on operation counts or asymptotics, not that it is wrong.
-
-\begin{table}[ht]
-\centering\small
-\caption{The twelve audited papers, their efficiency claim, the kind of evidence
-it rests on, and whether any measured temporal quantity attributable to the
-mechanism appears anywhere in the paper or its supplement. A ``no'' means the
-argument rests on operation counts or asymptotics, not that it is wrong.}
-\label{tab:audit}
-\input{tables/audit}
-\end{table}
-
 \section{Reproduction and provenance}
 \label{app:repro}
 
@@ -370,10 +377,10 @@ configuration the search selects; that is what makes each ratio in this paper a
 ratio against the best dense implementation we have rather than against
 whichever one a given sweep happened to build.
 
-The environment is one NVIDIA RTX PRO 6000 Blackwell Server Edition
-(\texttt{sm\_120}, $95$\,GiB, driver $610.43.02$) of the two on a host with two
-Intel Xeon 6507P processors, under PyTorch $2.11$ with CUDA $12.8$ and Triton
-$3.6$. Every latency outside the precision study of
+The environment is one NVIDIA RTX PRO 6000 Blackwell GPU
+(\texttt{sm\_120}) in a shared multi-GPU x86\_64 server, under PyTorch $2.11$
+with CUDA $12.8$ and Triton $3.6$; the driver version and the full software
+environment are recorded in the supplementary archive. Every latency outside the precision study of
 Section~\ref{sec:precision} is \texttt{fp32}, timed with CUDA events
 around a single call, interleaved implementation by implementation and
 repetition by repetition, with $20$ warm-up repetitions discarded, $40$ to $60$
@@ -388,10 +395,8 @@ called through \texttt{torch.compile} with the recompilation limit raised and
 fallback to the unfused path disabled, since past the default limit it silently
 executes an implementation that materialises the score matrix.
 
-Three provenance caveats. The hardware description and the aggregate provenance
-record were written before this project's environment was upgraded and describe
-a superseded software stack and a host that is no longer available; both have
-been corrected, and the run-level provenance for the training variants lives in
+Three provenance caveats. The aggregate provenance record predates an upgrade of the
+software environment and has been corrected; the run-level provenance for the training variants lives in
 the per-run configuration files rather than in the aggregate record. The GPUs
 used for every measurement in this paper are shared with other tenants, so
 absolute latencies are not reproducible to better than the drift reported in

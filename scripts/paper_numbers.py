@@ -27,7 +27,8 @@ sys.path.insert(0, str(ROOT))
 SEC = ROOT / "paper_submission_revision" / "sections"
 
 from scripts.make_revision_tables import (  # noqa: E402
-    at, best_dense, live, load, ms)
+    at, best_dense, crossover_replay, live, load, ms,
+    streaming_find_share, streaming_macros)
 
 WORDS = {w: i for i, w in enumerate(
     "zero one two three four five six seven eight nine ten eleven twelve "
@@ -262,28 +263,26 @@ def backward_ratio(field: str) -> float:
 # --------------------------------------------------------------------------
 
 R = r"([\d.]+)"
+
+
+def macro(name: str) -> str:
+    return streaming_macros()[name]
+
 MANIFEST: list[Number] = [
     # abstract
-    Number("abs.reduced_precision_gone", "00_abstract.tex",
-           r"advantage is gone from (\d+) agents",
-           lambda: float(min(r["n_agents"] for r in _precision()
-                             if r["mode"] != "fp32" and all(
-                                 x["timed"]["fused_topk:1"]["min_ms"]
-                                 > x["best_dense_ms"]
-                                 for x in _precision()
-                                 if x["mode"] != "fp32"
-                                 and x["n_agents"] >= r["n_agents"]))),
-           "agents", "k=1, TF32 and bf16, d in {16,32}", "precision.json", 0),
-    Number("abs.k4_range", "00_abstract.tex",
-           r"four retained peers they are ([\d.]+) to ([\d.]+) times slower",
-           best_fused_k4_range, "x best dense", "k=4 fused, fp32, N>=192",
-           "precision.json; attention_core_d16.json", 0.03),
+    Number("abs.thirty_seven", "00_abstract.tex", r"up to (\d+) times, because",
+           lambda: core_ratio("topk_gather", 512, 128), "x",
+           "composed gathered, N=512, k=128, d=16", "attention_core_d16.json",
+           0.03),
+    Number("abs.k4_parity", "00_abstract.tex", r"within\s+(\d+)\\% of parity",
+           lambda: float(macro("StreamKFourDev")), "%",
+           "streaming k=4, fp32, N<=512, graph replay", "streaming_topk.json", 0),
     Number("abs.find_share", "00_abstract.tex",
-           r"at least (\d+)\\% of the fused kernel's device time",
-           lambda: 100 * fixed_share_min(), "%",
-           "graph replay, N>=384, d in {16,32}, k in {1,2,4,16,32}",
-           "fixed_set.json", 0.05),
-    Number("abs.sixteen", "00_abstract.tex", r"up to (sixteen) times faster",
+           r"at least (\d+)\\% of its time",
+           lambda: 100 * streaming_find_share()[0], "%",
+           "streaming kernel, graph replay, N in {384,512}, d in {16,32}, min over k",
+           "streaming_topk.json", 0.02),
+    Number("abs.sixteen", "00_abstract.tex", r"up to (\d+) times\s+faster than dense",
            lambda: 1 / pre_attn("prescore.json", 512, 2), "x",
            "pre-score fused attention, N=512, k=2", "prescore.json", 0.06),
     # introduction
@@ -291,13 +290,12 @@ MANIFEST: list[Number] = [
            lambda: core_ratio("topk_gather", 512, 128), "x",
            "composed gathered, N=512, k=128, d=16", "attention_core_d16.json",
            0.03),
-    Number("intro.gone", "01_intro.tex", r"advantage is gone from \$(\d+)\$",
-           lambda: 384.0, "agents", "see abs.reduced_precision_gone",
-           "precision.json", 0),
-    Number("intro.nine_tenths", "01_intro.tex", r"at least (nine tenths)",
-           fixed_share_min, "share", "as abs.find_share", "fixed_set.json",
-           0.05),
     # section 4
+    Number("s4.replay_384", "04_measurement.tex",
+           r"medians alike \(\$([\d.]+)\$ on both",
+           lambda: crossover_replay(16, 384, 1)[1], "x best dense",
+           "fused k=1, d=16, N=384, CUDA-graph replay, 3 sessions",
+           "crossover_graph.json", 0.02),
     Number("s4.masked_credit", "04_measurement.tex",
            r"credits it with a \$(\d+)\\%\$ saving",
            lambda: 100 * (1 - 127 / 511), "%", "N=512, k=127", "analytic", 0.01),

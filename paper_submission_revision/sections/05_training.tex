@@ -1,90 +1,68 @@
-Sparsification would still be worth having if it cost nothing in return. Testing
-that requires care, because on a task where the channel is not needed
-``sparsification is free'' and ``the channel was never used'' make identical
-predictions, so we gate the study on positive controls and register the analysis
-plan before the outcomes are inspected. The study is secondary, and its role is
-narrow: to establish that the architecture being sparsified does something, so
-that the sparsification comparisons are not vacuous, and to report what a
-five-seed design can and cannot resolve. No claim elsewhere in this paper rests
-on it.
+Sparsification would still be worth having if it cost nothing in return, and
+testing that requires a channel that is actually used: on a task where it is not
+needed, ``sparsification is free'' and ``the channel was never used'' make
+identical predictions. The role of this study is therefore narrow --- to
+establish that the architecture being sparsified does something --- and no claim
+elsewhere in this paper rests on it.
 
-Twelve variants at up to twelve agents, five seeds each, two million environment
+We train with MAPPO \citep{yu2022mappo} on PettingZoo/MPE
+\citep{terry2020pettingzoo}, five seeds per variant and two million environment
 steps, following the protocols of \citet{papoudakis2021epymarl} and
-\citet{agarwal2021rliable}, with environments from PettingZoo/MPE
-\citep{terry2020pettingzoo} and MAPPO \citep{yu2022mappo} as the learner. The variants include an $\alpha$-entmax normalisation
-\citep{peters2019entmax} and a communication budget enforced by a Lagrangian
-\citep{stooke2020pidlagrangian} on a per-agent Gumbel-softmax
-gate \citep{jang2017gumbel}. Scaling in the number of agents is left to the training-free measurements
-of Section~\ref{sec:measurement}, because a training step in this pipeline is
-dominated by the environment (Section~\ref{sec:backward}) and cannot attribute a
-latency difference to the communication module. Two positive controls establish
-that the channel carries something: a reference task in which each agent
-observes only its partner's goal, fixed at two agents where selection is
-degenerate, and a partially observable variant of a standard cooperative task,
-introduced here, in which a peer's relative position is withheld beyond a fixed
-radius. In the second, the fraction of peers visible falls with the agent count
-while the absolute number visible rises, because the world does not grow; that
-confound is why no claim here compares returns across agent counts.
-
-The plan fixes the endpoint, six comparisons and their direction, an exact
-two-sided permutation test, the effect sizes, a bootstrap interval flagged
-approximate at five seeds, and a Holm--Bonferroni correction. It also fixes the
-power expectation in advance: at five seeds a first rejection requires one
-variant's seeds to lie entirely above the other's, so any null in the family is
-under-powered and is not evidence of absence, and no equivalence claim is
-available because no equivalence margin was registered.
-Appendix~\ref{app:prereg} gives the chronology, the arithmetic behind that
-power statement, and the single amendment.
+\citet{agarwal2021rliable}. Two positive controls test whether the channel
+carries something: a reference task in which each agent observes only its
+partner's goal, fixed at two agents where selection is degenerate, and a
+partially observable variant of a standard cooperative task, introduced here, in
+which a peer's relative position is withheld beyond a fixed radius
+(Appendix~\ref{app:env}).
 
 \begin{table}[t]
 \centering\small
-\caption{The two positive controls, which were inspected before registration and
-are excluded from the correction, and the primary pre-registered comparison.
-$A-B$ is the difference of means and $d$ the standardised effect.
-Appendix~\ref{app:training} gives the remaining five comparisons.}
+\caption{The two positive controls: final return of the communicating variant
+minus the non-communicating one, five seeds each. Both were inspected before the
+analysis plan for the remaining comparisons was registered and are reported
+descriptively.}
 \label{tab:training}
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrr}
 \toprule
-& $A-B$ & 95\% interval & $d$ & $p$ \\
+& $A-B$ & 95\% interval & $p$ \\
 \midrule
-\multicolumn{5}{l}{\emph{Positive controls, descriptive}} \\
 communicating $-$ non-communicating, reference task
-  & $+4.26$ & $[+3.15, +5.23]$ & --- & $0.0079$ \\
+  & $+4.26$ & $[+3.15, +5.23]$ & $0.0079$ \\
 communicating $-$ non-communicating, partially observable
-  & $+11.59$ & $[+7.13, +16.44]$ & --- & $0.0079$ \\
-\midrule
-\multicolumn{5}{l}{\emph{Primary pre-registered comparison}} \\
-attention-selected peers $-$ uniformly random peers, same budget
-  & $+4.03$ & $[-3.35, +11.42]$ & $+0.60$ & $0.357$ \\
+  & $+11.59$ & $[+7.13, +16.44]$ & $0.0079$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Both positive controls separate completely, each attaining the floor of the
-permutation test for this design (Table~\ref{tab:training}), and measured
+Both controls separate completely, each attaining the floor of an exact
+permutation test at five seeds (Table~\ref{tab:training}), and the measured
 attention entropy on the partially observable control is $0.35$ nats against a
 ceiling of $1.61$, so the learned weighting is peaked rather than uniform.
-Sparsification is therefore being applied to an architecture whose communication
+Sparsification is therefore applied to an architecture whose communication
 machinery improves return under the evaluated setup. It does not follow that the
-learned attention channel alone accounts for the difference: the communicating
-variants carry $7$--$19\%$ more trainable parameters and the reference task
-supplies a discrete utterance channel of its own, so the channel-specific causal
-claim would need a parameter-matched sham variant, which we do not have and do
-not claim.
+attention channel alone accounts for the difference: the communicating variants
+carry $7$--$19\%$ more trainable parameters, and the channel-specific claim
+would need a parameter-matched sham variant, which we do not have. Comparisons
+between sparsification variants were pre-registered with a power calculation
+that showed in advance they could resolve only complete separation at five
+seeds; all are Holm-adjusted nulls, and they are reported with the
+pre-registration in Appendix~\ref{app:training}.
 
-The comparison the design exists for holds the communication budget, the
-executed aggregation cost and every hyperparameter fixed, and varies only
-whether peers are chosen by attention score or uniformly at random. Its point
-estimate favours attention by roughly two thirds of a standard deviation and its
-interval includes zero. The design lacked the power to resolve an effect of that
-size, which the pre-registered calculation said in advance; nothing follows
-about whether attention selects informatively. The remaining five comparisons
-are in Appendix~\ref{app:training} as point estimates with intervals
-\citep{agarwal2021rliable}, and all six are Holm-adjusted nulls.
-
-Two environment limits bound the study further. At twelve agents neither variant
-learns the task well --- the dense variant scores below a uniform-random policy
-and the sparse variant only just above it --- so no comparison at that agent
-count is interpretable; and the centralised critic sees the same masked
-observations as the actors, with no privileged global state, which departs from
-standard practice for this learner and is a plausible contributor.
+\paragraph{A selector chosen before scoring, in training.} The Z-order selector
+of Section~\ref{sec:prescore} is compared there on cost alone, so we added it to
+this study after the fact, as a descriptive and unregistered variant on the
+partially observable task at six agents and two retained peers, identical to
+the attention top-$k$ variant except for the selector. It reads each agent's
+own position from its observation, pooled across agents through the channel,
+and no other simulator state. Over five seeds its final return is
+$-197.8 \pm 5.8$, against $-193.4 \pm 5.5$ for attention top-$k$,
+$-197.5 \pm 7.7$ for uniformly random peers and $-204.4 \pm 3.3$ without
+communication. The difference from no communication is $+6.7$, with a $95\%$
+interval of $[+1.5, +11.8]$; from random peers $-0.3$ $[-7.7, +7.4]$, and from
+attention top-$k$ $-4.3$ $[-10.5, +2.1]$. The cheap selector therefore keeps the
+benefit of communicating, but on this evidence no more than random peers do: at
+six agents $49.5\%$ of the peers a Morton window selects are among the two true
+nearest neighbours, against $40\%$ for a random choice, so curve locality is weak at
+this size. Whether a selector cheap enough to pay in time is also informative
+enough to matter is a question for larger populations, where this one has more
+locality to exploit.

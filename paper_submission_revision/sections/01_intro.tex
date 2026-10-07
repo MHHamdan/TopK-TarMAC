@@ -23,42 +23,76 @@ single device, the setting in which the methods we cite are trained and
 evaluated, and not bandwidth-constrained distributed deployment, where reducing
 transmitted messages is itself the objective.
 
+The object of the paper is that accounting rather than any one mechanism. Most
+multi-agent methods that restrict communication choose peers before scoring
+them, from positions, per-agent gates or a separate network
+(Section~\ref{sec:related}). \emph{Score-then-select}, which ranks the attention
+scores themselves, is uncommon in this literature, and the cost argument made for
+it is a reduction in complexity \citep{sun2020sparsecomm}, so this paper does not
+set out to correct a measured result. We treat it as the limiting case of a selector-cost accounting that
+covers every rule, and measure each case with a protocol built for kernels that
+run for microseconds.
+
 \paragraph{Findings.} For \emph{score-then-select} rules, which form every score
 before keeping the $k$ largest, at most half of the forward-pass attention
 multiply--accumulates are removable at any sparsity, a limit noted before in a
-memory-access model \citep{chen2023dfss}. Composed from library operators, such a rule is slower than dense attention at every agent count and sparsity we measure, the gathered form by up to thirty-seven times, because of memory traffic. A fused kernel
-is faster than the best dense implementation only when one peer is retained (two
-at a single configuration), at head widths $16$ and $32$, and without tensor
-cores; in TF32 and bf16 the advantage is gone from $384$ agents upward. One
-retained peer is a degenerate attention, since a softmax over one element is
-identically one. Handing the fused kernel's own retained set to a kernel for free
-shows where its time goes: from $384$ agents upward, at least nine tenths is
-spent finding the set. Rules that \emph{select before scoring} escape the bound,
-and attention over a pre-selected set is then up to sixteen times faster than
-dense attention, but the selector decides the outcome: of an all-pairs, a grid
-and a space-filling-curve selector, only the last reaches parity with dense
-attention, at $512$ agents on best-case timings, and the ratio of medians
-reverses that in one of our two sweeps.
+memory-access model \citep{chen2023dfss}. Composed from library operators, such
+a rule is slower than dense attention at every agent count and sparsity we
+measure, the gathered form by up to thirty-seven times, because of memory
+traffic. Fused kernels that hold each query's score row on chip are faster only
+with one retained peer; a kernel that streams the selection through a running
+candidate set is faster with one or two in fp32 and close to parity with four,
+but in every kernel most of the time from $384$ agents upward is spent finding
+the retained set; in bf16, which accelerates the products and not the
+selection, only a single retained peer breaks even. Rules that \emph{select
+before scoring} escape the bound: attention over a pre-selected set is up to
+sixteen times faster than dense attention, and the selector then decides the
+outcome, with only the cheapest of three reaching parity, at $512$ agents. Below
+a hundred agents, where the methods we cite are evaluated, none of this governs
+latency: the number of kernels a communication step launches does.
 
 \paragraph{Contributions.}
 \begin{itemize}
-  \item A cost model for peer selection (Section~\ref{sec:analysis}): a
-    closed-form multiply--accumulate limit on score-then-select for the forward
-    and backward passes (Proposition~\ref{prop:ceiling}); a selector-cost
-    accounting that sorts selection mechanisms into four asymptotic classes
-    (Proposition~\ref{prop:escape}, Corollary~\ref{cor:taxonomy}); and a byte
-    criterion, $kd \le N$, that screens compaction before implementation.
-  \item A measurement of what is executed (Section~\ref{sec:measurement}):
-    masked, gathered and fused implementations of one function, verified
-    equivalent, against the best of a vendor library, FlexAttention and a dense
-    kernel searched over the sparse kernels' parameter space; three numerical
-    formats; and a fixed-set comparison that separates the cost of finding the
-    retained peers from the cost of using them.
+  \item A selector-cost accounting (Section~\ref{sec:analysis}) that charges
+    every peer-selection rule for deciding what to keep and sorts mechanisms
+    into four asymptotic classes (Proposition~\ref{prop:escape},
+    Corollary~\ref{cor:taxonomy}). Its limiting case, score-then-select, has a
+    closed-form multiply--accumulate limit for the forward and backward passes
+    (Proposition~\ref{prop:ceiling}), and a byte criterion, $kd \le N$, screens
+    compaction before implementation.
+  \item A measurement protocol for microsecond-scale attention kernels
+    (Section~\ref{sec:measurement}): masked, gathered and fused implementations
+    of one function, verified equivalent, timed interleaved against the best of
+    a vendor library, FlexAttention and a dense kernel searched over the sparse
+    kernels' parameter space, in three numerical formats; a fixed-set comparison
+    that separates finding the retained peers from using them; and a checklist of
+    eight errors that each produced a plausible but spurious result
+    (Section~\ref{sec:checklist}).
   \item A characterisation of when sparse attention is faster in this regime:
     narrowly for score-then-select, and more broadly for selection before
     scoring when the selector is cheap in absolute terms and the remaining
     attention is fused (Sections~\ref{sec:fused}--\ref{sec:prescore}).
 \end{itemize}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig0_methodology.pdf}
+\caption{The study at a glance. \textbf{(1)} The communication module:
+observations are embedded and projected to queries, keys and values, a
+peer-selection step keeps $k$ of the $N{-}1$ peers, and the aggregated message
+$m_i$ joins the observation at the shared MAPPO actor; every latency we report
+is of the attention core bracketed at left. \textbf{(2)} Where the retained set
+is fixed, with the operation counts of Section~\ref{sec:analysis}:
+score-then-select (A) forms all $N^2$ scores before ranking them and admits
+three implementations of one function, while selecting before scoring (B) pays a
+selector cost $C_{\mathrm{sel}}$ and then attends over $Nk$ pairs only; the
+dashed arrow is the fixed-set comparison, which hands the exact top-$k$ set to
+the same fused kernel at no cost. \textbf{(3)} Every implementation is verified
+against a reference and timed interleaved against the best dense
+implementation, and every table, figure and quoted number is generated from, or
+checked against, the resulting artifacts.}
+\label{fig:methodology}
+\end{figure}
 
 We release the kernels, the harness and the scripts that regenerate every table
 and figure and check the quoted numbers. A pre-registered training study

@@ -96,6 +96,197 @@ $N$ & $k$ & unfused & fused & ours & ours & gathered & fused & fused & best spar
 \end{tabular}"""
 
 
+def crossover_replay(d: int, N: int, k: int) -> tuple[float, float]:
+    """Fused score-then-select over the best dense kernel under CUDA-graph
+    replay, pooled over three sessions: (ratio of minima, ratio of medians)."""
+    g = [g for g in load("crossover_graph.json")["groups"]
+         if g["mode"] == "graph" and g["head_dim"] == d
+         and g["n_agents"] == N and g["k"] == k][0]["pooled"]
+    return g["ratio_of_minima"], g["ratio_of_medians"]
+
+
+SMALL_N_COLS = (("fused_stsel@1", "fused, $k{=}1$"),
+                ("fused_stsel@2", "fused, $k{=}2$"),
+                ("fixed_set@1", "fixed set, $k{=}1$"),
+                ("topk_gather@1", "gathered, $k{=}1$"),
+                ("dense_unfused", "dense, unfused"),
+                ("prescore_morton@1", "Z-order, $k{=}1$"))
+
+
+def small_n_macros() -> dict[str, str]:
+    """Prose figures for the small-N subsection, from the same artifact."""
+    pay = load("small_n.json")
+    pred = pay["analysis"]["predictors"]
+    host = pred["host_issue_med"]["launches"]
+    composed, zorder = [], []
+    for g in pay["groups"]:
+        if g["batch"] != 256 or g["n_agents"] > 96:
+            continue
+        im = g["impls"]
+        bd = min(im[i]["graph"]["median_ms"] for i in ("dense_fused", "dense_tuned"))
+        for v in im.values():
+            r = v["graph"]["median_ms"] / bd
+            if v["impl"] in ("dense_unfused", "topk_gather", "topk_masked"):
+                composed.append(r)
+            elif v["impl"] == "prescore_morton":
+                zorder.append(r)
+    return {
+        "SmallNRhoLaunch": f"{pred['graph_med']['launches']['within_group_spearman_median']:.2f}",
+        "SmallNRhoFlops": f"{pred['graph_med']['flops']['within_group_spearman_median']:.2f}",
+        "SmallNPerLaunch": f"{1000 * host['slope_ms_per_unit']:.0f}",
+        "SmallNHostFixed": f"{1000 * host['intercept_ms']:.0f}",
+        "SmallNComposedLo": f"{min(composed):.1f}",
+        "SmallNComposedHi": f"{max(composed):.1f}",
+        "SmallNZorderLo": f"{min(zorder):.0f}",
+        "SmallNZorderHi": f"{max(zorder):.0f}",
+    }
+
+
+def table_small_n() -> str:
+    """Device time at realistic agent counts, under CUDA-graph replay."""
+    groups = [g for g in load("small_n.json")["groups"] if g["batch"] == 256]
+    first = groups[0]["impls"]
+    head = " & ".join(f"\\shortstack{{{lab}\\\\({first[i]['launches']})}}"
+                      for i, lab in SMALL_N_COLS)
+    body = []
+    for g in sorted(groups, key=lambda g: g["n_agents"]):
+        im = g["impls"]
+        bd = min(im[i]["graph"]["median_ms"] for i in ("dense_fused", "dense_tuned"))
+        cells = [f"{im[i]['graph']['vs_best_dense']['paired_median']:.2f}"
+                 for i, _ in SMALL_N_COLS]
+        body.append(f"{g['n_agents']} & {1000 * bd:.1f} & " + " & ".join(cells)
+                    + r" \\")
+    return (r"""\begin{tabular}{rr""" + "c" * len(SMALL_N_COLS) + r"""}
+\toprule
+$N$ & \shortstack{best dense\\(\textmu s)} & """ + head + r""" \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}""")
+
+
+def streaming_rows(max_n: int = 1024) -> list[dict]:
+    """Graph-replay groups of the streaming sweep. Above 1024 agents a call
+    outlasts the device's time slice against co-tenants and the samples are
+    bimodal, so those rows are not tabulated."""
+    return [g for g in load("streaming_topk.json")["groups"]
+            if g["mode"] == "graph" and g["n_agents"] <= max_n]
+
+
+def streaming_find_share(min_n: int = 384) -> tuple[float, float]:
+    """Share of the streaming kernel's time not explained by attending over the
+    set, 1 - fixed_set / streaming, on minima."""
+    v = [1 - g["ratios"]["fixed_set"]["ratio_of_minima"]
+         / g["ratios"]["streaming"]["ratio_of_minima"]
+         for g in streaming_rows() if g["n_agents"] >= min_n
+         and "fixed_set" in g["ratios"]]
+    return min(v), max(v)
+
+
+def streaming_macros() -> dict[str, str]:
+    """Prose figures for the streaming kernel, from the same artifact."""
+    rows = streaming_rows(512)
+    r = lambda k: [g["ratios"]["streaming"]["ratio_of_minima"]
+                   for g in rows if g["k"] == k]
+    k4 = r(4)
+    lo, hi = streaming_find_share()
+    eq = load("streaming_topk.json")["groups"]
+    n_rows = sum(g["equivalence"]["timed_inputs"]["rows"]
+                 + sum(e["rows"] for e in g["equivalence"]["extra_seeds"])
+                 for g in eq if g["mode"] == "graph")
+    return {
+        "StreamKOneLo": f"{min(r(1)):.2f}",
+        "StreamKTwoHi": f"{max(r(2)):.2f}",
+        "StreamKFourLo": f"{min(k4):.2f}",
+        "StreamKFourHi": f"{max(k4):.2f}",
+        "StreamKFourDev": f"{100 * max(abs(x - 1) for x in k4):.0f}",
+        "StreamFindLo": f"{100 * lo:.0f}",
+        "StreamFindHi": f"{100 * hi:.0f}",
+        "StreamRowsM": f"{n_rows / 1e6:.0f}",
+    }
+
+
+def table_streaming() -> str:
+    """Streaming exact top-k against the resident-row kernel and dense."""
+    rows = streaming_rows()
+    ks = sorted({g["k"] for g in rows})
+    body, last_d = [], None
+    for d, N in sorted({(g["head_dim"], g["n_agents"]) for g in rows}):
+        at_ = {g["k"]: g for g in rows if g["head_dim"] == d and g["n_agents"] == N}
+        if last_d is not None and d != last_d:
+            body.append(r"\midrule")
+        cells = [f"{at_[k]['ratios']['streaming']['ratio_of_minima']:.2f}" for k in ks]
+        res = at_[4]["ratios"].get("fused_stsel")
+        cells.append(f"{res['ratio_of_minima']:.2f}" if res else "---")
+        fs = [1 - g["ratios"]["fixed_set"]["ratio_of_minima"]
+              / g["ratios"]["streaming"]["ratio_of_minima"]
+              for g in at_.values() if "fixed_set" in g["ratios"]]
+        cells.append(f"{100 * min(fs):.0f}--{100 * max(fs):.0f}\\%" if fs else "---")
+        body.append(f"{d if d != last_d else ''} & {N} & " + " & ".join(cells) + r" \\")
+        last_d = d
+    return (r"""\begin{tabular}{rr""" + "c" * len(ks) + r"""cr}
+\toprule
+& & \multicolumn{""" + str(len(ks)) + r"""}{c}{\textbf{streaming}, $\div$ best dense} & \textbf{resident} & \textbf{finding} \\
+\cmidrule(lr){3-""" + str(2 + len(ks)) + r"""}
+$d$ & $N$ & """ + " & ".join(f"$k{{=}}{k}$" for k in ks) + r""" & $k{=}4$ & \textbf{the set} \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}""")
+
+
+def streaming_precision_rows() -> list[dict]:
+    return [g for g in load("streaming_precision.json")["groups"]
+            if g["mode"] == "graph"]
+
+
+def streaming_precision_macros() -> dict[str, str]:
+    rows = streaming_precision_rows()
+    def rng(fmt, k):
+        v = [g["ratios"]["streaming"]["ratio_of_minima"] for g in rows
+             if g["format"] == fmt and g["k"] == k and not g["excluded"]]
+        return f"{min(v):.2f}", f"{max(v):.2f}"
+    out = {}
+    for fmt, F in (("tf32", "Tf"), ("bf16", "Bf")):
+        for k, K in ((1, "One"), (2, "Two"), (4, "Four")):
+            try:
+                out[f"SP{F}{K}Lo"], out[f"SP{F}{K}Hi"] = rng(fmt, k)
+            except ValueError:
+                pass
+    return out
+
+
+def table_streaming_precision() -> str:
+    """The streaming kernel in TF32 and bf16, against the best dense of each."""
+    rows = streaming_precision_rows()
+    ks = sorted({g["k"] for g in rows})
+    name = {"tf32": "TF32", "bf16": "bf16"}
+    body, last = [], None
+    for fmt in ("tf32", "bf16"):
+        for d, N in sorted({(g["head_dim"], g["n_agents"]) for g in rows
+                            if g["format"] == fmt}):
+            at_ = {g["k"]: g for g in rows if g["format"] == fmt
+                   and g["head_dim"] == d and g["n_agents"] == N}
+            if last is not None and fmt != last:
+                body.append(r"\midrule")
+            cells = ["---" if at_[k]["excluded"] else
+                     f"{at_[k]['ratios']['streaming']['ratio_of_minima']:.2f}"
+                     for k in ks]
+            res = at_[1]["ratios"]["fused_resident"]["ratio_of_minima"]
+            body.append(f"{name[fmt] if fmt != last else ''} & {d} & {N} & "
+                        + " & ".join(cells) + f" & {res:.2f} \\\\")
+            last = fmt
+    return (r"""\begin{tabular}{lrr""" + "c" * len(ks) + r"""c}
+\toprule
+& & & \multicolumn{""" + str(len(ks)) + r"""}{c}{\textbf{streaming}, $\div$ best dense} & \textbf{resident} \\
+\cmidrule(lr){4-""" + str(3 + len(ks)) + r"""}
+format & $d$ & $N$ & """ + " & ".join(f"$k{{=}}{k}$" for k in ks) + r""" & $k{=}1$ \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}""")
+
+
 def table_crossover() -> str:
     """The k at which the best sparse implementation stops being faster."""
     pay = load("attention_core_d16.json")
@@ -122,16 +313,19 @@ def table_crossover() -> str:
         kstar = (f"$\\le {max(below)}$" if below else "none")
         frac = (f"{100 * max(below) / N:.1f}\\%" if below else "---")
         worst = max(ratios, key=lambda t: t[0])
+        rep = crossover_replay(16, N, 1)
         body.append(
             f"{N} & {kstar} & {frac} & {best_r:.2f} & {best_k} & "
+            f"{rep[0]:.2f} / {rep[1]:.2f} & "
             f"{worst[1]:.1f} & {worst[0]} \\\\")
-    return r"""\begin{tabular}{rccrrrr}
+    return r"""\begin{tabular}{rccrrcrr}
 \toprule
 & \multicolumn{2}{c}{\textbf{sparsity that pays}} &
   \multicolumn{2}{c}{\textbf{best ratio}} &
+  \textbf{replayed, $k{=}1$} &
   \multicolumn{2}{c}{\textbf{at the widest $k$}} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
-$N$ & $k$ & of peers & ratio & at $k$ & ratio & at $k$ \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-6}\cmidrule(lr){7-8}
+$N$ & $k$ & of peers & ratio & at $k$ & min / median & ratio & at $k$ \\
 \midrule
 """ + "\n".join(body) + r"""
 \bottomrule
@@ -341,53 +535,6 @@ $N$ & selector & saved & select & composed & fused & dense & composed & fused
 """ + "\n".join(body) + r"""
 \bottomrule
 \end{tabular}""", k
-
-
-def table_audit() -> str:
-    """The reporting audit, from the released sheet rather than from prose."""
-    pay = load("literature_latency_audit.json")
-    # Two groups, matching the split the manuscript reports, rather than the
-    # four sub-fields the sheet records.
-    marl = ("MARL communication", "MARL attention")
-    groups: dict[str, list] = {
-        "Multi-agent communication and attention": [],
-        "Efficient attention and sparse mixture-of-experts": []}
-    for r in pay["papers"]:
-        key = ("Multi-agent communication and attention" if r["field"] in marl
-               else "Efficient attention and sparse mixture-of-experts")
-        groups[key].append(r)
-    label = {"qualitative": "qualitative", "counts": "counts",
-             "asymptotic": "asymptotic", "flops": "FLOPs", "none": "---",
-             "None": "---"}
-    body = []
-    for field in groups:
-        body.append(r"\multicolumn{4}{l}{\emph{" + field + r"}} \\")
-        for r in sorted(groups[field], key=lambda x: x["bibkey"]):
-            ct = label.get(r.get("claim_type", "none"),
-                           r.get("claim_type", "---"))
-            yes = r.get("reports_measured_latency")
-            mark = (r"\textbf{yes}" if yes else
-                    ("n/a" if ct == "---" else "no"))
-            claim = r.get("efficiency_claim", "")
-            claim = "none explicit" if ct == "---" else claim.split(":")[0]
-            claim = claim.split(".")[0].strip().strip("'")
-            if len(claim) > 46:                      # truncate on a word break
-                claim = claim[:46].rsplit(" ", 1)[0] + r"\,\ldots"
-            # The sheet quotes papers verbatim, so it contains characters that
-            # are markup in LaTeX and mathematics outside maths mode.
-            for a, b in (("&", r"\&"), ("%", r"\%"), ("_", r"\_"),
-                         ("#", r"\#"), ("^2", "$^2$"), ("^", "")):
-                claim = claim.replace(a, b)
-            body.append(f"\\citet{{{r['bibkey']}}} & {claim} & {ct} & {mark} "
-                        + r"\\")
-    return r"""\begin{tabular}{p{0.29\linewidth}p{0.36\linewidth}p{0.14\linewidth}l}
-\toprule
-\textbf{Paper} & \textbf{Efficiency claim} & \textbf{Type} &
-\begin{tabular}[b]{@{}l@{}}\textbf{Measured}\\\textbf{time?}\end{tabular} \\
-\midrule
-""" + "\n".join(body) + r"""
-\bottomrule
-\end{tabular}"""
 
 
 def table_grid() -> str:
@@ -672,11 +819,16 @@ def main() -> int:
                      ("autotune", table_autotune),
                      ("precision", table_precision),
                      ("fixed_set", table_fixed_set),
-                     ("audit", table_audit)):
+                     ("small_n", table_small_n),
+                     ("streaming", table_streaming),
+                     ("streaming_precision", table_streaming_precision)):
         try:
             put(name, fn())
         except SystemExit as exc:
             print(f"  (skipped {name}: {exc})")
+    macros.update(small_n_macros())
+    macros.update(streaming_macros())
+    macros.update(streaming_precision_macros())
     try:
         sel, sk = table_selectors()
         put("selectors", sel)

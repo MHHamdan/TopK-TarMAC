@@ -1,9 +1,8 @@
-Each error described below produced a spurious result during this study before
-it was caught, and in each case the first symptom was a plausible number rather
-than an obvious error. The causes
-group into four kinds, and the grouping is useful because the kinds differ in
-how they are caught. Table~\ref{tab:pitfalls} lists them with the corrective
-practice each forced.
+This appendix expands the checklist of Table~\ref{tab:pitfalls}. Each entry
+produced a spurious result during this study before it was caught, and in each
+case the first symptom was a plausible number rather than an obvious error. The
+causes group into four kinds, and the grouping is useful because the kinds
+differ in how they are caught.
 
 \paragraph{Instrumentation.} A diagnostic that synchronises the device inside
 the timed region measures the synchronisation. Our attention module computed an
@@ -68,57 +67,6 @@ reveals when neither implementation is near the machine, which is a different
 warning and one worth having: a comparison between two kernels at a third of
 peak resolves the algorithms only if the margin exceeds the headroom, and ours
 does not everywhere.
-
-\begin{table}[t]
-\centering
-\small
-\caption{Eight ways a benchmark measures something other than the algorithm,
-each of which produced a spurious result in this study. The first five are
-caught by the shape of the result; the last three are not, because the numbers
-they produce are self-consistent.}
-\label{tab:pitfalls}
-\begin{tabular}{p{0.12\linewidth}p{0.26\linewidth}p{0.24\linewidth}p{0.26\linewidth}}
-\toprule
-\textbf{Kind} & \textbf{Cause} & \textbf{Symptom} & \textbf{Corrective practice} \\
-\midrule
-\multirow{3}{*}{\parbox{\linewidth}{Instrumen\-tation}}
-& Host transfer inside the timed region &
-Dense latency nearly flat in $N$ &
-Gate diagnostics behind a flag that is off while timing \\
-\addlinespace
-& Synchronisation without a device argument &
-Every kernel reports the event-resolution floor &
-Pin the device and pass it to every synchronisation \\
-\addlinespace
-& Host allocator returning large temporaries &
-Up to $8.8\times$ inflation and a non-monotone curve &
-Pin the heap; count minor faults per forward \\
-\midrule
-\multirow{2}{*}{Interference}
-& Timing implementations in sequential blocks &
-Swings above $100\%$ between identical configurations &
-Interleave repetition by repetition; report paired ratios \\
-\addlinespace
-& Changing which implementations share a sweep &
-Two sweeps disagree by $1.4\times$ at twelve agents &
-Fix the implementation set across comparable sweeps \\
-\midrule
-\multirow{2}{*}{\parbox{\linewidth}{Wrong algorithm}}
-& Benchmarking a masked implementation as sparse &
-The advertised saving is never executed &
-Assert executed FLOPs differ and trace the products issued \\
-\addlinespace
-& Comparing only against unfused dense &
-A $5.4\times$ more favourable comparison at $N{=}512$ &
-Report both baselines; check which backend serves the shape \\
-\midrule
-\parbox{\linewidth}{Wrong\\ baseline}
-& A hand-written sparse kernel against a vendor's dense kernel &
-An apparent speedup larger than the analytic ceiling permits &
-Write the dense baseline in the same framework and tiling \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 One belief of our own also needed correcting. We assumed that standard counters
 are blind to fused attention kernels, which would make a FLOPs-only comparison

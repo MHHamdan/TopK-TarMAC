@@ -68,7 +68,7 @@ shared with other tenants.
 
 \begin{table}[t]
 \centering\small
-\caption{The sparsity at which the best sparse implementation stops being faster than the best dense one, and how far it is from parity at a quarter of the peers. Both ratio columns are a minimum over the composed path and the two fused kernels that rank in registers, so the widest-$k$ column is sometimes the composed path; the sorted kernel of Table~\ref{tab:selection} is faster than all three from sixteen retained peers upward and is reported there. Restricted to the agent counts at which the kernels are not launch-bound.}
+\caption{The sparsity at which the best sparse implementation stops being faster than the best dense one, and how far it is from parity at a quarter of the peers. Both ratio columns are a minimum over the composed path and the two fused kernels that rank in registers, so the widest-$k$ column is sometimes the composed path; the sorted kernel of Table~\ref{tab:selection} is faster than all three from sixteen retained peers upward and is reported there. Restricted to the agent counts at which per-kernel cost does not dominate. The replayed column is the fused kernel at one retained peer under CUDA-graph replay, pooled over three further sessions of three interleaved blocks each, as ratio of minima and ratio of medians.}
 \label{tab:crossover}
 \input{tables/crossover}
 \end{table}
@@ -105,10 +105,10 @@ The search is not equal. All three of our sparse kernels keep the whole score
 row of a query resident --- two rank it in registers and one sorts it in place
 --- so their resident tile grows with the agent count, and above $192$ agents
 the shared-memory filter admits only three configurations against the dense
-kernel's twenty-eight to a hundred and six. That is a property of the kernels we
-wrote and not of exact top-$k$: a selector may compute all $N$ scores without
-holding them, maintaining a running candidate set as it streams. We did not
-write one, so the search counts below describe what our implementations admit. We
+kernel's twenty-eight to a hundred and six. That is a property of these kernels and not
+of exact top-$k$: the streaming kernel of Section~\ref{sec:fused} computes all
+$N$ scores without holding them and admits the dense kernel's tilings, so the
+search counts here describe the resident kernels only. We
 report the counts in the table rather than describing the two searches as
 equivalent, and the consequence runs in two directions. The sparse kernel's
 efficiency figure is a lower bound on what a sparse kernel of this shape could
@@ -128,9 +128,11 @@ The crossover is an existence result inside a stated envelope, and the envelope
 is narrow: one GPU architecture, \texttt{fp32}, head widths $16$ and $32$, agent
 counts from $192$ upward where the sweep reproduces, a single retained peer with
 one configuration at two, and a dense baseline that reaches under half of the
-device's arithmetic rate at those head widths. At four retained peers the sparse
+device's arithmetic rate at those head widths. At four retained peers the resident
 kernel is already $1.3$ to $2.3$ times slower, and at a quarter of peers it is
-more than an order of magnitude slower. The $k{=}1$ case is also degenerate as
+more than an order of magnitude slower; the streaming kernel of
+Section~\ref{sec:fused} moves the boundary to between two and four retained
+peers. The $k{=}1$ case is also degenerate as
 an attention mechanism, because a softmax over one element is identically one
 and the mechanism reduces to copying the highest-scoring peer's value. What the
 crossover establishes is that the penalty measured earlier is not irreducible;
@@ -190,18 +192,34 @@ both properties does not help. The sort that buys independence from $k$ costs
 more than the argmax rounds it replaces throughout the range in which sparsity
 would otherwise pay.
 
-The second obstacle is one dense attention avoids and none of our sparse kernels
-does. Dense attention streams keys and values in blocks under an online softmax,
-keeping a small tile resident whatever $N$ is. Each of our sparse kernels
+The second obstacle is one dense attention avoids and none of the resident-row
+kernels does. Dense attention streams keys and values in blocks under an online softmax,
+keeping a small tile resident whatever $N$ is. Each of those kernels
 instead holds the $N$-wide score row --- in registers to rank it, or in place to
 sort it --- so fewer queries can be in flight per streaming multiprocessor as
 $N$ grows, and the tiling the search chooses for it is narrower at every size.
 What is fundamental to exact score-then-select is that all $N$ scores must be
 \emph{computed} before the retained set is known; that they must all be
 \emph{resident} is not, and a streaming exact top-$k$ that keeps a running
-candidate set would relax it. We report the constraint we measured and mark it
-as ours.
+candidate set relaxes it. The streaming kernel of Section~\ref{sec:fused} does
+exactly that, and is faster than every resident kernel at every configuration
+both cover (Table~\ref{tab:streaming}).
 
+
+\subsection{The streaming kernel in reduced precision}
+\label{app:streamprec}
+
+\begin{table}[t]
+\centering\small
+\caption{The streaming kernel of Table~\ref{tab:streaming} in reduced
+precision, searched separately in each format, against the best dense
+implementation of the same format and interleaved sweep (ratios of minima under
+CUDA-graph replay); the resident kernel at one retained peer is re-timed in the
+same sweep. A dash marks a configuration in which TF32 rounding changed the
+retained set in more than $0.1\%$ of query rows; bf16 changed none.}
+\label{tab:streamprec}
+\input{tables/streaming_precision}
+\end{table}
 
 \subsection{Sensitivity to head width and batch}
 \label{sec:sensitivity}
