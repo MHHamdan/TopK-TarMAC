@@ -1,6 +1,7 @@
 Sparse attention in multi-agent communication is usually justified by the
 operations it removes. We charge each peer-selection rule for what deciding
-costs, and measure on one GPU architecture when the saving becomes elapsed time.
+costs, and measure on four GPUs, from A100 to Blackwell, when the saving becomes
+elapsed time.
 First, a rule that ranks attention scores must compute all of them, so it
 removes at most half of the forward-pass multiply--accumulates at any sparsity;
 rules that select before scoring escape this ceiling by as much as their
@@ -10,10 +11,12 @@ up to 37 times, because compacting the retained peers adds more memory traffic
 than it removes. A fused kernel that streams the selection is faster than dense
 attention with one or two retained peers in fp32 and, up to 512 agents, within
 15\% of parity with four and slower with eight; and from 384 agents upward at least 85\% of its time is spent
-finding the retained set; in bf16 only one retained peer breaks even. Third,
+finding the retained set; in bf16 only one retained peer breaks even. On A100,
+H100 and H200 the streaming kernel wins everywhere only with one retained peer,
+and in bf16 not at all. Third,
 once the set is known without scoring, attention over it is up to 16 times
 faster than dense attention, and the selector decides the outcome: of three
-selectors, only the cheapest reaches parity, at 512 agents and on best-case
-timings. Below 100 agents, where multi-agent methods are usually evaluated, the
+selectors, only the cheapest reaches parity, at 512 agents, on best-case
+timings and on the Blackwell card only. Below 100 agents, where multi-agent methods are usually evaluated, the
 number of kernels a step launches orders latency, and its operation count does
 not.

@@ -186,7 +186,12 @@ cost $2N$. Gathering is therefore byte-neutral only if $k(d+4) \le N$, to
 leading order $kd \le N$. At $d{=}16$ and $N{=}512$ the leading-order form admits
 $k \le 32$ ($k \le 25$ exactly); at $d{=}128$, $k \le 4$ ($k \le 3$). Unlike
 the operation count, this criterion depends on $d$ and can be checked before
-any code is written. It is a screen under a simplified accounting that ignores
-caches and fusion, not a model of GPU time.
+any code is written. With int32 indices the index term halves and the exact
+condition becomes $k(d+2) \le N$; in a narrower value format the index term
+grows relative to the rest. The leading-order form is unchanged in every case,
+and the composed path cannot use int32 in any event, since PyTorch's gather
+takes int64 indices. It is a screen under a simplified accounting that ignores
+caches and fusion, not a model of GPU time; hardware counters on two GPUs agree
+with it (Appendix~\ref{app:portability}).
 Section~\ref{sec:measurement} tests the ceiling, the selector classes and the
 byte criterion against measurements.

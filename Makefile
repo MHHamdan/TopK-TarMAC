@@ -11,7 +11,8 @@ help:
 	@echo "check-bib      fail if any .bib entry is uncited or any citation dangles"
 	@echo "check-numbers  regenerate tables, re-derive prose numbers, verify the"
 	@echo "               main-text number manifest (scripts/paper_numbers.py)"
-	@echo "tables         regenerate $(PAPER)/tables/*.tex from results/"
+	@echo "tables         regenerate $(PAPER)/tables/*.tex from results/ (and"
+	@echo "               results/portability/ for the other-GPU appendix)"
 	@echo "figures        regenerate $(PAPER)/figures/*.pdf from results/"
 	@echo "paper          tables + figures + compile $(PAPER)/main.pdf"
 	@echo "equivalence    re-check every timed configuration against the reference (GPU)"
@@ -32,6 +33,7 @@ check: test check-bib check-numbers
 
 tables:
 	$(PYTHON) scripts/make_revision_tables.py
+	$(PYTHON) scripts/summarise_portability.py
 
 figures:
 	$(PYTHON) scripts/make_revision_figures.py

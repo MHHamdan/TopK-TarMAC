@@ -427,3 +427,76 @@ fused sparse kernel is still faster than the best dense implementation.
 - **A dense kernel at $d{=}16$ reaching library-at-$d{=}128$ efficiency.** We
   could not write one and neither could the search. This is the single
   outstanding threat to the positive result and it is stated as such.
+
+---
+
+## TMLR review, 2026-10-09 (minor revision)
+
+### Single GPU architecture; portability to A100/H100 (weakness 1, Q1)
+
+- **Action.** Repeat the headline measurements on three further devices.
+- **New experiment.** `scripts/run_portability_campaign.sh` on an A100-SXM4-40GB
+  (sm_80), an H100 80GB HBM3 SXM (sm_90) and an H200 141GB (sm_90), each one GPU
+  allocated exclusively, every tiling searched again on the device; device
+  description (SKU, memory, clocks, power limit, driver) in
+  `results/portability/<gpu>/device.csv` and `nvidia_smi_q.txt`.
+- **Location.** Appendix "Other GPU generations" (Tables portability, portbatch);
+  one sentence each in Setup, Q3, Q4, Q5; abstract; limitations.
+- **Result.** The ordering holds on all four. Composed path ≥6.6× dense
+  everywhere; finding the set is 91–97% of fused time. The streaming kernel's
+  window narrows off Blackwell: k=1 0.56–0.68, k=2 0.76–1.13, k=4 1.03–1.50;
+  bf16 k=1 1.03–1.52, so it never breaks even in bf16. The Z-order pre-score
+  crossing at N=512 does not reproduce (1.12–1.45 against 0.85).
+- **Remaining limitation.** No CPU or non-NVIDIA accelerator. The A100 uses the
+  cluster's own torch 2.11/triton 3.6 build against CUDA 12.9.
+
+### Sensitivity to batch and multi-head packing (Q2)
+
+- **Action.** Batch sweep with both kernels searched per batch.
+- **New experiment.** B ∈ {32, 256, 1024, 4096} on A100, H100, H200. Heads are
+  independent, so H heads over batch B is the same launch as batch BH.
+- **Result.** From B=256 upward the threshold does not move (k=1 0.57–0.65,
+  k=2 0.83–0.96). At B=32 the k=1 ratio widens to 0.60–1.17. Packing heads
+  cannot widen the window; it only restores a small batch to the large-batch
+  ratio.
+
+### CUDA-graph capture of the streaming kernel under ragged N or per-row k (Q3)
+
+- **Action.** State it; no new code.
+- **Result.** Captured and replayed at fixed (B, N, k) in every graph-mode
+  sweep. k is a compile-time constant and N uniform per launch, so per-row k and
+  ragged N are not supported; added to limitations.
+
+### Hardware-counter evidence for the byte argument (weakness 3, Q4)
+
+- **New experiment.** `scripts/ncu_counters.py`: Nsight Compute counters for
+  every kernel each implementation launches, on H100 and H200 (narval's A100
+  nodes do not expose counters to users).
+- **Result.** At N=512, k=4 the composed path moves 4.4 GB in 27 kernels against
+  28 MB for tuned dense; 17 of those kernels are torch.topk's multi-block radix
+  select (four passes over the score matrix, 81–82% of the path's time). The
+  fused and streaming kernels move about as many bytes as dense and reach
+  0.9–1.6% of peak DRAM throughput against 52–60% of peak SM throughput.
+
+### Modern exact top-k / amortized indexers (Q5, missing comparisons)
+
+- **Action.** Partly answered by the counters: the composed baseline already is
+  a production radix-select top-k (PyTorch's multi-block radix kernel).
+- **Remaining limitation.** Sample-guided exact top-k and amortised or
+  cross-layer indexers are not benchmarked; the fixed-set split bounds what any
+  selector can gain (attention over the given set is 0.04–0.82× dense for k = 1–32,
+  N ≥ 192, on A100, H100 and H200), which is the most such a selector could
+  recover.
+
+### bf16/TF32 retained-set deviations and training (Q6)
+
+- **Result.** In the reported configurations bf16 changed no retained set; TF32
+  configurations changing more than 0.1% of rows are excluded. The effect on
+  training is not measured; stated in limitations.
+
+### int32 indices in the byte criterion (Q7)
+
+- **Action.** Analytic, added to the byte-criterion paragraph.
+- **Result.** int32 halves the index term: k(d+2) ≤ N exactly, kd ≤ N at leading
+  order unchanged. The composed path cannot use int32 (PyTorch's gather takes
+  int64); the fused kernels never write indices.

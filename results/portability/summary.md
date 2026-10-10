@@ -11,5 +11,5 @@
 | streaming TF32 k=1 ÷ best TF32 dense | 0.62--0.82 | 0.83--1.05 | 0.83--1.03 | 0.88--1.33 |
 | streaming bf16 k=1 ÷ best bf16 dense | 0.85--1.06 | 1.03--1.30 | 1.10--1.32 | 1.11--1.52 |
 | small N: best dense at N=12 (µs); composed ÷ dense at N≤96 | 4.0; 2.7--9.8 | 21.0; 1.7--9.1 | 13.3; 1.6--9.4 | 9.5; 2.0--9.0 |
-| pre-score Z-order, N=512 k=2: attend; select+attend ÷ best dense | 0.06; 0.83 | 0.20; 1.19 | 0.23; 1.44 | 0.14; 1.10 |
+| pre-score Z-order, N=512 k=4: attend; select+attend ÷ best dense | 0.09; 0.85 | 0.22; 1.22 | 0.24; 1.45 | 0.16; 1.12 |
 | measured matmul TFLOP/s (roofline probe); DRAM copy GB/s | 77; 1461 | 19; 1363 | 52; 2987 | 51; 4205 |

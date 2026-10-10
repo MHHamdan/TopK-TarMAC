@@ -42,6 +42,9 @@ latency is reported, and all agree to fp32 rounding except at exact ties at the
 $k$-th score (Appendix~\ref{app:verification}). Appendix~\ref{sec:protocol}
 gives the full protocol, including the tiling search, and
 Appendix~\ref{sec:pitfalls} the errors it guards against.
+Appendix~\ref{app:portability} repeats the headline measurements on an A100, an
+H100 and an H200, each allocated exclusively and with every tiling searched
+again on the device, and reports where they differ from the Blackwell card.
 
 \subsection{Q1: Is the reduction executed?}
 \label{sec:composed}
@@ -204,6 +207,11 @@ score-then-select over dense attention in fp32 is not confined to the
 degenerate case. It remains bounded: the floor is the score product, about half
 of dense attention, and from $384$ agents upward \StreamFindLo{} to
 \StreamFindHi{}\% of the streaming kernel's time is still finding the set.
+The window is device-dependent. On the A100, H100 and H200 the streaming kernel
+is faster than dense at one retained peer (\PortStreamOneLo{} to
+\PortStreamOneHi{}), ranges from \PortStreamTwoLo{} to \PortStreamTwoHi{} at
+two, and is slower at four everywhere (Appendix~\ref{app:portability}); the
+share spent finding the set is \PortFindLo{} to \PortFindHi{}\% there.
 
 \subsection{Q4: Does the crossover depend on precision?}
 \label{sec:precision}
@@ -264,7 +272,10 @@ retained-set filter (\SPTfTwoLo{} to \SPTfTwoHi{}) and is slower in bf16
 times slower in bf16, and no TF32 configuration passes. Reduced precision
 accelerates every matrix product, the score product included, but not the
 integer comparisons of selection, so the narrower the format the larger the
-share of the sparse kernel's time that selection takes.
+share of the sparse kernel's time that selection takes. On the A100, H100 and
+H200 the one-peer ratio is \PortTfOneLo{} to \PortTfOneHi{} in TF32 and
+\PortBfOneLo{} to \PortBfOneHi{} in bf16: with tensor cores the selection no
+longer pays for itself (Appendix~\ref{app:portability}).
 
 \subsection{Q5: Selecting before scoring}
 \label{sec:prescore}
@@ -333,7 +344,11 @@ has a heavier tail on a contended device than a single dense kernel
 measure; at $48$ agents the Z-order path is $16$ times slower than dense. The
 section therefore identifies conditions --- a selector cheap in absolute terms,
 not only asymptotically, and a fused attention stage behind it --- rather than
-recommending this implementation.
+recommending this implementation. The crossing is also specific to the
+Blackwell card: on the A100, H100 and H200 the fused attention stage is still
+\PortZorderAttendLo{} to \PortZorderAttendHi{} times dense, but the whole
+Z-order path costs \PortZorderTotalLo{} to \PortZorderTotalHi{}
+(Appendix~\ref{app:portability}).
 
 \subsection{Q6: What governs latency at the agent counts of current methods?}
 \label{sec:smalln}
