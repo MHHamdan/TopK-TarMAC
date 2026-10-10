@@ -1,0 +1,10 @@
+{
+ "name": "NVIDIA A100-SXM4-40GB",
+ "capability": "8.0",
+ "sm_count": 108,
+ "total_memory_gib": 39.4925537109375,
+ "l2_cache_bytes": 41943040,
+ "torch": "2.11.0",
+ "cuda": "12.9",
+ "triton": "3.6.0"
+}

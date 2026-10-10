@@ -1,0 +1,13 @@
+{
+  "device": "cuda:0",
+  "device_name": "NVIDIA A100-SXM4-40GB",
+  "torch": "2.11.0",
+  "triton": "3.6.0",
+  "reps": 500,
+  "warmup": 200,
+  "timing": "cuda_events_single_call",
+  "empty_kernel_min_ms": 0.022816000506281853,
+  "empty_kernel_median_ms": 0.02425600029528141,
+  "empty_kernel_p90_ms": 0.025280000641942024,
+  "note": "one program writing one float; an estimate of the fixed per-call cost as this harness measures it, not of the driver's launch latency in isolation"
+}

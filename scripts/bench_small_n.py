@@ -81,7 +81,18 @@ def _cudart() -> ctypes.CDLL | None:
     try:
         return ctypes.CDLL("libcudart.so")
     except OSError:
-        return None
+        pass
+    # Builds without the nvidia-* wheels (e.g. a cluster's own torch) link a
+    # libcudart outside site-packages; torch has loaded it by now.
+    try:
+        with open("/proc/self/maps") as maps:
+            for line in maps:
+                path = line.split()[-1]
+                if "/libcudart.so" in path:
+                    return ctypes.CDLL(path)
+    except OSError:
+        pass
+    return None
 
 
 _RT = _cudart()
