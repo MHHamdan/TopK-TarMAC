@@ -1,0 +1,2 @@
+name, memory.total [MiB], clocks.max.sm [MHz], clocks.max.memory [MHz], power.limit [W], driver_version
+NVIDIA H100 80GB HBM3, 81559 MiB, 1980 MHz, 2619 MHz, 700.00 W, 580.178.04

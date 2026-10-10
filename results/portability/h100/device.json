@@ -1,0 +1,10 @@
+{
+ "name": "NVIDIA H100 80GB HBM3",
+ "capability": "9.0",
+ "sm_count": 132,
+ "total_memory_gib": 79.1787109375,
+ "l2_cache_bytes": 52428800,
+ "torch": "2.11.0+cu128",
+ "cuda": "12.8",
+ "triton": "3.6.0"
+}

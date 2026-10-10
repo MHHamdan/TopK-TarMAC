@@ -1,0 +1,13 @@
+{
+  "device": "cuda:0",
+  "device_name": "NVIDIA H100 80GB HBM3",
+  "torch": "2.11.0+cu128",
+  "triton": "3.6.0",
+  "reps": 500,
+  "warmup": 200,
+  "timing": "cuda_events_single_call",
+  "empty_kernel_min_ms": 0.012703999876976013,
+  "empty_kernel_median_ms": 0.013472000136971474,
+  "empty_kernel_p90_ms": 0.013952000066637993,
+  "note": "one program writing one float; an estimate of the fixed per-call cost as this harness measures it, not of the driver's launch latency in isolation"
+}

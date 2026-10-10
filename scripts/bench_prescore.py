@@ -104,7 +104,11 @@ def tuned_dense(N: int, d: int, batch: int) -> dict[str, int] | None:
                     and r["head_dim"] == d and r["batch"] == batch):
                 if best is None or r["best"]["ms"] < best["ms"]:
                     best = r["best"]
-    return best["cfg"] if best else None
+    # Where the search's winner is the library kernel its record has no Triton
+    # tiling; the library path is timed separately as dense_fused, so fall back
+    # to the default tiling here, as scripts/bench_attention_core.py does.
+    cfg = best["cfg"] if best else None
+    return cfg if cfg and "BLOCK_M" in cfg else None
 
 
 def _stats(s: list[float]) -> dict[str, float]:
@@ -197,6 +201,8 @@ def main() -> int:
         cfg = tuned_dense(N, d, B)
 
         def dense_tuned(cfg=cfg):
+            if cfg is None:
+                return fused_dense_attention(q, kt, v)
             return fused_dense_attention(
                 q, kt, v, block_m=cfg["BLOCK_M"], block_kn=cfg["BLOCK_KN"],
                 num_warps=cfg["num_warps"], num_stages=cfg["num_stages"])
