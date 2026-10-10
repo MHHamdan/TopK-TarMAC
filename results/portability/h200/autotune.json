@@ -1,0 +1,2399 @@
+{
+  "device": "cuda:0",
+  "device_name": "NVIDIA H200",
+  "peak_flops": 51389345349965.97,
+  "batch": 256,
+  "reps": 30,
+  "torch": "2.11.0+cu128",
+  "triton": "3.6.0",
+  "elapsed_s": 225.7,
+  "rows": [
+    {
+      "kind": "dense",
+      "head_dim": 16,
+      "n_agents": 192,
+      "batch": 256,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m64_n64_w4_s1",
+        "cfg": {
+          "BLOCK_M": 64,
+          "BLOCK_KN": 64,
+          "num_warps": 4,
+          "num_stages": 1
+        },
+        "ms": 0.06032000109553337,
+        "deviation": 9.5367431640625e-07
+      },
+      "n_configs": 109,
+      "n_ran": 109,
+      "all": [
+        {
+          "name": "triton_m64_n64_w4_s1",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 64,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.06032000109553337,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m64_n64_w4_s3",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 64,
+            "num_warps": 4,
+            "num_stages": 3
+          },
+          "ms": 0.060447998344898224,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m32_n64_w2_s3",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 3
+          },
+          "ms": 0.0607680007815361,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m32_n64_w2_s2",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.060896001756191254,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m64_n64_w4_s2",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 64,
+            "num_warps": 4,
+            "num_stages": 2
+          },
+          "ms": 0.06124800071120262,
+          "deviation": 9.5367431640625e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 1,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m32_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 32,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.04614400118589401,
+        "deviation": 0.0
+      },
+      "best_dense_ms": 0.06032000109553337,
+      "n_configs": 12,
+      "n_ran": 12,
+      "all": [
+        {
+          "name": "triton_m32_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.04614400118589401,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m64_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.04873599857091904,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.0496320016682148,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m32_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.04982399940490723,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w2_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.05027199909090996,
+          "deviation": 0.0
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 2,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s2",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 2
+        },
+        "ms": 0.07148800045251846,
+        "deviation": 5.960464477539062e-07
+      },
+      "best_dense_ms": 0.06032000109553337,
+      "n_configs": 12,
+      "n_ran": 12,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.07148800045251846,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.07158400118350983,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m32_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.07283200323581696,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m32_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.07369600236415863,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m64_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.0751039981842041,
+          "deviation": 5.960464477539062e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 4,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.09785600006580353,
+        "deviation": 4.76837158203125e-07
+      },
+      "best_dense_ms": 0.06032000109553337,
+      "n_configs": 12,
+      "n_ran": 12,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.09785600006580353,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.09788800030946732,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m32_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.10204800218343735,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m32_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.10473600029945374,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 2
+          },
+          "ms": 0.10512000322341919,
+          "deviation": 4.76837158203125e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 8,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s2",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 2
+        },
+        "ms": 0.1502400040626526,
+        "deviation": 7.152557373046875e-07
+      },
+      "best_dense_ms": 0.06032000109553337,
+      "n_configs": 12,
+      "n_ran": 12,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.1502400040626526,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.15039999783039093,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.1576319932937622,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 2
+          },
+          "ms": 0.15772800147533417,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m32_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.1581760048866272,
+          "deviation": 7.152557373046875e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 16,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.25545600056648254,
+        "deviation": 5.960464477539062e-07
+      },
+      "best_dense_ms": 0.06032000109553337,
+      "n_configs": 12,
+      "n_ran": 12,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.25545600056648254,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.2555519938468933,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 2
+          },
+          "ms": 0.2637760043144226,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.26393601298332214,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m32_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.27215999364852905,
+          "deviation": 5.960464477539062e-07
+        }
+      ]
+    },
+    {
+      "kind": "dense",
+      "head_dim": 16,
+      "n_agents": 384,
+      "batch": 256,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m64_n128_w4_s2",
+        "cfg": {
+          "BLOCK_M": 64,
+          "BLOCK_KN": 128,
+          "num_warps": 4,
+          "num_stages": 2
+        },
+        "ms": 0.16335999965667725,
+        "deviation": 1.0132789611816406e-06
+      },
+      "n_configs": 109,
+      "n_ran": 109,
+      "all": [
+        {
+          "name": "triton_m64_n128_w4_s2",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 128,
+            "num_warps": 4,
+            "num_stages": 2
+          },
+          "ms": 0.16335999965667725,
+          "deviation": 1.0132789611816406e-06
+        },
+        {
+          "name": "triton_m64_n128_w4_s3",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 128,
+            "num_warps": 4,
+            "num_stages": 3
+          },
+          "ms": 0.16476799547672272,
+          "deviation": 1.0132789611816406e-06
+        },
+        {
+          "name": "triton_m128_n128_w8_s3",
+          "cfg": {
+            "BLOCK_M": 128,
+            "BLOCK_KN": 128,
+            "num_warps": 8,
+            "num_stages": 3
+          },
+          "ms": 0.16476799547672272,
+          "deviation": 1.0132789611816406e-06
+        },
+        {
+          "name": "triton_m128_n128_w8_s2",
+          "cfg": {
+            "BLOCK_M": 128,
+            "BLOCK_KN": 128,
+            "num_warps": 8,
+            "num_stages": 2
+          },
+          "ms": 0.16518400609493256,
+          "deviation": 1.0132789611816406e-06
+        },
+        {
+          "name": "triton_m64_n128_w4_s1",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 128,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.16646400094032288,
+          "deviation": 1.0132789611816406e-06
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 1,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.14691199362277985,
+        "deviation": 0.0
+      },
+      "best_dense_ms": 0.16335999965667725,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.14691199362277985,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.15139199793338776,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.1976960003376007,
+          "deviation": 0.0
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 2,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w4_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 4,
+          "num_stages": 1
+        },
+        "ms": 0.22991999983787537,
+        "deviation": 4.76837158203125e-07
+      },
+      "best_dense_ms": 0.16335999965667725,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.22991999983787537,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.24499200284481049,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.2842560112476349,
+          "deviation": 4.76837158203125e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 4,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.31884801387786865,
+        "deviation": 4.76837158203125e-07
+      },
+      "best_dense_ms": 0.16335999965667725,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.31884801387786865,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.3307519853115082,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.40428799390792847,
+          "deviation": 4.76837158203125e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 8,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.4742079973220825,
+        "deviation": 7.152557373046875e-07
+      },
+      "best_dense_ms": 0.16335999965667725,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.4742079973220825,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.5331839919090271,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.620959997177124,
+          "deviation": 7.152557373046875e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 16,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.7842559814453125,
+        "deviation": 4.76837158203125e-07
+      },
+      "best_dense_ms": 0.16335999965667725,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.7842559814453125,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.9512320160865784,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 1.1041280031204224,
+          "deviation": 4.76837158203125e-07
+        }
+      ]
+    },
+    {
+      "kind": "dense",
+      "head_dim": 16,
+      "n_agents": 512,
+      "batch": 256,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m64_n128_w4_s2",
+        "cfg": {
+          "BLOCK_M": 64,
+          "BLOCK_KN": 128,
+          "num_warps": 4,
+          "num_stages": 2
+        },
+        "ms": 0.27775999903678894,
+        "deviation": 1.3113021850585938e-06
+      },
+      "n_configs": 109,
+      "n_ran": 109,
+      "all": [
+        {
+          "name": "triton_m64_n128_w4_s2",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 128,
+            "num_warps": 4,
+            "num_stages": 2
+          },
+          "ms": 0.27775999903678894,
+          "deviation": 1.3113021850585938e-06
+        },
+        {
+          "name": "triton_m64_n128_w4_s3",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 128,
+            "num_warps": 4,
+            "num_stages": 3
+          },
+          "ms": 0.27852800488471985,
+          "deviation": 1.3113021850585938e-06
+        },
+        {
+          "name": "triton_m128_n128_w8_s3",
+          "cfg": {
+            "BLOCK_M": 128,
+            "BLOCK_KN": 128,
+            "num_warps": 8,
+            "num_stages": 3
+          },
+          "ms": 0.278656005859375,
+          "deviation": 1.3113021850585938e-06
+        },
+        {
+          "name": "triton_m128_n128_w8_s2",
+          "cfg": {
+            "BLOCK_M": 128,
+            "BLOCK_KN": 128,
+            "num_warps": 8,
+            "num_stages": 2
+          },
+          "ms": 0.2831040024757385,
+          "deviation": 1.3113021850585938e-06
+        },
+        {
+          "name": "triton_m64_n128_w4_s1",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 128,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.2831999957561493,
+          "deviation": 1.3113021850585938e-06
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 1,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.19283199310302734,
+        "deviation": 0.0
+      },
+      "best_dense_ms": 0.27775999903678894,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.19283199310302734,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.1971839964389801,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.25884801149368286,
+          "deviation": 0.0
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 2,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w4_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 4,
+          "num_stages": 1
+        },
+        "ms": 0.30191999673843384,
+        "deviation": 4.76837158203125e-07
+      },
+      "best_dense_ms": 0.27775999903678894,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.30191999673843384,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.3214400112628937,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.3747200071811676,
+          "deviation": 4.76837158203125e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 4,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.419295996427536,
+        "deviation": 5.960464477539062e-07
+      },
+      "best_dense_ms": 0.27775999903678894,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.419295996427536,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.4375999867916107,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.5374079942703247,
+          "deviation": 5.960464477539062e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 8,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.6220800280570984,
+        "deviation": 4.76837158203125e-07
+      },
+      "best_dense_ms": 0.27775999903678894,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.6220800280570984,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.7055040001869202,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.8255360126495361,
+          "deviation": 4.76837158203125e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 16,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 16,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 1.0299839973449707,
+        "deviation": 5.960464477539062e-07
+      },
+      "best_dense_ms": 0.27775999903678894,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 1.0299839973449707,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 1.264415979385376,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 1.4718079566955566,
+          "deviation": 5.960464477539062e-07
+        }
+      ]
+    },
+    {
+      "kind": "dense",
+      "head_dim": 32,
+      "n_agents": 192,
+      "batch": 256,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m32_n64_w2_s2",
+        "cfg": {
+          "BLOCK_M": 32,
+          "BLOCK_KN": 64,
+          "num_warps": 2,
+          "num_stages": 2
+        },
+        "ms": 0.08720000088214874,
+        "deviation": 1.430511474609375e-06
+      },
+      "n_configs": 97,
+      "n_ran": 97,
+      "all": [
+        {
+          "name": "triton_m32_n64_w2_s2",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.08720000088214874,
+          "deviation": 1.430511474609375e-06
+        },
+        {
+          "name": "sdpa",
+          "cfg": {},
+          "ms": 0.09030400216579437,
+          "deviation": 2.5033950805664062e-06
+        },
+        {
+          "name": "triton_m32_n64_w2_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.09139200299978256,
+          "deviation": 1.430511474609375e-06
+        },
+        {
+          "name": "triton_m32_n64_w2_s3",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 3
+          },
+          "ms": 0.09587199985980988,
+          "deviation": 1.430511474609375e-06
+        },
+        {
+          "name": "triton_m64_n64_w4_s1",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 64,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.0997759997844696,
+          "deviation": 1.430511474609375e-06
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 1,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m32_dc32_w4_s1",
+        "cfg": {
+          "BLOCK_M": 32,
+          "BLOCK_DC": 32,
+          "num_warps": 4,
+          "num_stages": 1
+        },
+        "ms": 0.06697600334882736,
+        "deviation": 0.0
+      },
+      "best_dense_ms": 0.08720000088214874,
+      "n_configs": 18,
+      "n_ran": 18,
+      "all": [
+        {
+          "name": "triton_m32_dc32_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 32,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.06697600334882736,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m32_dc32_w2_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 32,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.07020799815654755,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc32_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 32,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.07043199986219406,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m32_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.07088000327348709,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m64_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.07539200037717819,
+          "deviation": 0.0
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 2,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m32_dc32_w4_s1",
+        "cfg": {
+          "BLOCK_M": 32,
+          "BLOCK_DC": 32,
+          "num_warps": 4,
+          "num_stages": 1
+        },
+        "ms": 0.09363199770450592,
+        "deviation": 7.152557373046875e-07
+      },
+      "best_dense_ms": 0.08720000088214874,
+      "n_configs": 18,
+      "n_ran": 18,
+      "all": [
+        {
+          "name": "triton_m32_dc32_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 32,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.09363199770450592,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.0942080020904541,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m32_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.09529600292444229,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc32_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 32,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.09612800180912018,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.09779199957847595,
+          "deviation": 7.152557373046875e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 4,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc32_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 32,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.12284799665212631,
+        "deviation": 4.76837158203125e-07
+      },
+      "best_dense_ms": 0.08720000088214874,
+      "n_configs": 18,
+      "n_ran": 18,
+      "all": [
+        {
+          "name": "triton_m16_dc32_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 32,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.12284799665212631,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m32_dc32_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 32,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.12319999933242798,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.1260800063610077,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.12649600207805634,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m32_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.12848000228405,
+          "deviation": 4.76837158203125e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 8,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc32_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 32,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.17712000012397766,
+        "deviation": 4.76837158203125e-07
+      },
+      "best_dense_ms": 0.08720000088214874,
+      "n_configs": 18,
+      "n_ran": 18,
+      "all": [
+        {
+          "name": "triton_m16_dc32_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 32,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.17712000012397766,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m32_dc32_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 32,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.18236799538135529,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.18323199450969696,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.18332800269126892,
+          "deviation": 4.76837158203125e-07
+        },
+        {
+          "name": "triton_m32_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.18780800700187683,
+          "deviation": 4.76837158203125e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 192,
+      "batch": 256,
+      "k": 16,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc32_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 32,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.285535991191864,
+        "deviation": 7.152557373046875e-07
+      },
+      "best_dense_ms": 0.08720000088214874,
+      "n_configs": 18,
+      "n_ran": 18,
+      "all": [
+        {
+          "name": "triton_m16_dc32_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 32,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.285535991191864,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc32_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 32,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.2962239980697632,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.29843199253082275,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w2_s2",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.2988159954547882,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m32_dc32_w4_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_DC": 32,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.2991040050983429,
+          "deviation": 7.152557373046875e-07
+        }
+      ]
+    },
+    {
+      "kind": "dense",
+      "head_dim": 32,
+      "n_agents": 384,
+      "batch": 256,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m32_n128_w2_s1",
+        "cfg": {
+          "BLOCK_M": 32,
+          "BLOCK_KN": 128,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.2773120105266571,
+        "deviation": 8.642673492431641e-07
+      },
+      "n_configs": 97,
+      "n_ran": 97,
+      "all": [
+        {
+          "name": "triton_m32_n128_w2_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 128,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.2773120105266571,
+          "deviation": 8.642673492431641e-07
+        },
+        {
+          "name": "triton_m64_n64_w2_s1",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.2956480085849762,
+          "deviation": 8.940696716308594e-07
+        },
+        {
+          "name": "triton_m32_n64_w2_s2",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.29657599329948425,
+          "deviation": 8.940696716308594e-07
+        },
+        {
+          "name": "triton_m32_n64_w2_s3",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 3
+          },
+          "ms": 0.30511999130249023,
+          "deviation": 8.940696716308594e-07
+        },
+        {
+          "name": "triton_m128_n64_w4_s1",
+          "cfg": {
+            "BLOCK_M": 128,
+            "BLOCK_KN": 64,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.3068479895591736,
+          "deviation": 8.940696716308594e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 1,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w4_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 4,
+          "num_stages": 1
+        },
+        "ms": 0.26051199436187744,
+        "deviation": 0.0
+      },
+      "best_dense_ms": 0.2773120105266571,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.26051199436187744,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.3463039994239807,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.401856005191803,
+          "deviation": 0.0
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 2,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.31567999720573425,
+        "deviation": 7.152557373046875e-07
+      },
+      "best_dense_ms": 0.2773120105266571,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.31567999720573425,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.3440319895744324,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.5375360250473022,
+          "deviation": 7.152557373046875e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 4,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.4054720103740692,
+        "deviation": 7.152557373046875e-07
+      },
+      "best_dense_ms": 0.2773120105266571,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.4054720103740692,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.4646399915218353,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.7026879787445068,
+          "deviation": 7.152557373046875e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 8,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.5532479882240295,
+        "deviation": 7.152557373046875e-07
+      },
+      "best_dense_ms": 0.2773120105266571,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.5532479882240295,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.688543975353241,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 1.0233919620513916,
+          "deviation": 7.152557373046875e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 384,
+      "batch": 256,
+      "k": 16,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.8647040128707886,
+        "deviation": 5.960464477539062e-07
+      },
+      "best_dense_ms": 0.2773120105266571,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.8647040128707886,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 1.1394879817962646,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 1.6425600051879883,
+          "deviation": 5.960464477539062e-07
+        }
+      ]
+    },
+    {
+      "kind": "dense",
+      "head_dim": 32,
+      "n_agents": 512,
+      "batch": 256,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m32_n128_w2_s1",
+        "cfg": {
+          "BLOCK_M": 32,
+          "BLOCK_KN": 128,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.47433599829673767,
+        "deviation": 9.5367431640625e-07
+      },
+      "n_configs": 97,
+      "n_ran": 97,
+      "all": [
+        {
+          "name": "triton_m32_n128_w2_s1",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 128,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.47433599829673767,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m64_n64_w2_s1",
+          "cfg": {
+            "BLOCK_M": 64,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.5046079754829407,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m32_n64_w2_s2",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 2
+          },
+          "ms": 0.5174720287322998,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m128_n64_w4_s1",
+          "cfg": {
+            "BLOCK_M": 128,
+            "BLOCK_KN": 64,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.5256320238113403,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m32_n64_w2_s3",
+          "cfg": {
+            "BLOCK_M": 32,
+            "BLOCK_KN": 64,
+            "num_warps": 2,
+            "num_stages": 3
+          },
+          "ms": 0.5358399748802185,
+          "deviation": 9.5367431640625e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 1,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w4_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 4,
+          "num_stages": 1
+        },
+        "ms": 0.3447679877281189,
+        "deviation": 0.0
+      },
+      "best_dense_ms": 0.47433599829673767,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.3447679877281189,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.45689600706100464,
+          "deviation": 0.0
+        },
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.5401600003242493,
+          "deviation": 0.0
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 2,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.4246079921722412,
+        "deviation": 7.152557373046875e-07
+      },
+      "best_dense_ms": 0.47433599829673767,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.4246079921722412,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.4607039988040924,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.7164160013198853,
+          "deviation": 7.152557373046875e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 4,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.5486080050468445,
+        "deviation": 5.960464477539062e-07
+      },
+      "best_dense_ms": 0.47433599829673767,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.5486080050468445,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.6170560121536255,
+          "deviation": 5.960464477539062e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 0.9365760087966919,
+          "deviation": 5.960464477539062e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 8,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 0.7415040135383606,
+        "deviation": 9.5367431640625e-07
+      },
+      "best_dense_ms": 0.47433599829673767,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 0.7415040135383606,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 0.9178239703178406,
+          "deviation": 9.5367431640625e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 1.3611520528793335,
+          "deviation": 9.5367431640625e-07
+        }
+      ]
+    },
+    {
+      "kind": "sparse",
+      "head_dim": 32,
+      "n_agents": 512,
+      "batch": 256,
+      "k": 16,
+      "peak_flops": 51389345349965.97,
+      "best": {
+        "name": "triton_m16_dc16_w2_s1",
+        "cfg": {
+          "BLOCK_M": 16,
+          "BLOCK_DC": 16,
+          "num_warps": 2,
+          "num_stages": 1
+        },
+        "ms": 1.146239995956421,
+        "deviation": 7.152557373046875e-07
+      },
+      "best_dense_ms": 0.47433599829673767,
+      "n_configs": 3,
+      "n_ran": 3,
+      "all": [
+        {
+          "name": "triton_m16_dc16_w2_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 2,
+            "num_stages": 1
+          },
+          "ms": 1.146239995956421,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w4_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 4,
+            "num_stages": 1
+          },
+          "ms": 1.5202239751815796,
+          "deviation": 7.152557373046875e-07
+        },
+        {
+          "name": "triton_m16_dc16_w8_s1",
+          "cfg": {
+            "BLOCK_M": 16,
+            "BLOCK_DC": 16,
+            "num_warps": 8,
+            "num_stages": 1
+          },
+          "ms": 2.1868159770965576,
+          "deviation": 7.152557373046875e-07
+        }
+      ]
+    }
+  ]
+}

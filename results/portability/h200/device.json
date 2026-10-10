@@ -1,0 +1,10 @@
+{
+ "name": "NVIDIA H200",
+ "capability": "9.0",
+ "sm_count": 132,
+ "total_memory_gib": 139.80072021484375,
+ "l2_cache_bytes": 62914560,
+ "torch": "2.11.0+cu128",
+ "cuda": "12.8",
+ "triton": "3.6.0"
+}

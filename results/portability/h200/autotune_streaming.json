@@ -1,0 +1,6964 @@
+{
+ "device_name": "NVIDIA H200",
+ "torch": "2.11.0+cu128",
+ "triton": "3.6.0",
+ "reps": 40,
+ "rows": [
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 256,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m64_n64_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 64,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.0451200008392334,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0451200008392334,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.045184001326560974,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.047839999198913574,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.04800000041723251,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n32_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.04819199815392494,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 256,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.05523199960589409,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.05523199960589409,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.058240000158548355,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n32_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.058559998869895935,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.05913599953055382,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.059487998485565186,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 256,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.08111999928951263,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08111999928951263,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08329600095748901,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.08848000317811966,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.08912000060081482,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m32_n32_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.09353599697351456,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 256,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.11593600362539291,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.11593600362539291,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.11644800007343292,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.13504000008106232,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n32_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.13680000603199005,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.1371839940547943,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 256,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m128_n64_w4_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 64,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.1090560033917427,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.1090560033917427,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.11017599701881409,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.11075200140476227,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.11407999694347382,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.11433599889278412,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 256,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m128_n16_w4_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.15305599570274353,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.15305599570274353,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.15356799960136414,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.15571199357509613,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.16223999857902527,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m128_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.16495999693870544,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 256,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.24473600089550018,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.24473600089550018,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.2481600046157837,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.24857600033283234,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.2574079930782318,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.25859200954437256,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 256,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.333407998085022,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.333407998085022,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.3335359990596771,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.36323198676109314,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.36345601081848145,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n32_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.3983039855957031,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 256,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m128_n64_w4_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 64,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.1775680035352707,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.1775680035352707,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.17987200617790222,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.18540799617767334,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.18595199286937714,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.18697600066661835,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 256,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m128_n16_w4_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.2624959945678711,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.2624959945678711,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.26556798815727234,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.2686080038547516,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.27158400416374207,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.27219200134277344,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 256,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.3963199853897095,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.3963199853897095,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.397024005651474,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.4055359959602356,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.40755200386047363,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.41414400935173035,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 256,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m128_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.5368959903717041,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.5368959903717041,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.5371840000152588,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.5394560098648071,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.5395519733428955,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.5870400071144104,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 1024,
+   "batch": 256,
+   "best": {
+    "name": "triton_m64_n128_w4_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_KN": 128,
+     "num_warps": 4,
+     "num_stages": 2
+    },
+    "ms": 1.0502400398254395,
+    "deviation": 1.4603137969970703e-06
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 2
+     },
+     "ms": 1.0502400398254395,
+     "deviation": 1.4603137969970703e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s3",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 3
+     },
+     "ms": 1.0549119710922241,
+     "deviation": 1.4603137969970703e-06
+    },
+    {
+     "name": "triton_m128_n128_w8_s3",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 128,
+      "num_warps": 8,
+      "num_stages": 3
+     },
+     "ms": 1.0559680461883545,
+     "deviation": 1.4603137969970703e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 1
+     },
+     "ms": 1.0666879415512085,
+     "deviation": 1.4603137969970703e-06
+    },
+    {
+     "name": "triton_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 1.0911359786987305,
+     "deviation": 1.4603137969970703e-06
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 1024,
+   "batch": 256,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m128_n64_w4_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 64,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.6443520188331604,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6443520188331604,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6492800116539001,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6652479767799377,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6653119921684265,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6655359864234924,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 1024,
+   "batch": 256,
+   "k": 2,
+   "best": {
+    "name": "stream_bitonic_m128_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.933568000793457,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.933568000793457,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.9550079703330994,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.956991970539093,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.9815040230751038,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.0103679895401,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 1024,
+   "batch": 256,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 1.359231948852539,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.359231948852539,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.3609280586242676,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.3732160329818726,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.3738880157470703,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.5162559747695923,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 1024,
+   "batch": 256,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m128_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 1.7332799434661865,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.7332799434661865,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.733407974243164,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.7819520235061646,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.7828799486160278,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.9642879962921143,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 192,
+   "batch": 256,
+   "k": 1,
+   "best": {
+    "name": "stream_rounds_m64_n64_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 64,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.06540799885988235,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.06540799885988235,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.06851200014352798,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.06937599927186966,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.06947200000286102,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.06956800073385239,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 192,
+   "batch": 256,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m64_n64_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 64,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.08150400221347809,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08150400221347809,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08406399935483932,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0846719965338707,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08540800213813782,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08640000224113464,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 192,
+   "batch": 256,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.10518400371074677,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.10518400371074677,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.11366400122642517,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.11407999694347382,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.11423999816179276,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.11843200027942657,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 192,
+   "batch": 256,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.13980799913406372,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.13980799913406372,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.14051200449466705,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.16252799332141876,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.16892799735069275,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.17903999984264374,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 384,
+   "batch": 256,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 128,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.16838400065898895,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.16838400065898895,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.17283199727535248,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.17369599640369415,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.17481599748134613,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.18028800189495087,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 384,
+   "batch": 256,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 128,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.22675199806690216,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.22675199806690216,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.23571200668811798,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.24278399348258972,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.2443840056657791,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.24764800071716309,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 384,
+   "batch": 256,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.3517119884490967,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.3517119884490967,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.36051198840141296,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.3607040047645569,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.3680639863014221,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.3832319974899292,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 384,
+   "batch": 256,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.4299840033054352,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.4299840033054352,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.4302079975605011,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.47388800978660583,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.4747839868068695,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.533951997756958,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 512,
+   "batch": 256,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 128,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.2802880108356476,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.2802880108356476,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.2884800136089325,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.28963199257850647,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.2908479869365692,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m128_n32_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.3024959862232208,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 512,
+   "batch": 256,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 128,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.3786880075931549,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.3786880075931549,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.3970560133457184,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.3985919952392578,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.3993920087814331,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n32_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.40639999508857727,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 512,
+   "batch": 256,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_exit_m128_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.5538880228996277,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.5538880228996277,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.555072009563446,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.5980799794197083,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.6026239991188049,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.6033599972724915,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 512,
+   "batch": 256,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m128_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.6798400282859802,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.6798400282859802,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.6801919937133789,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.7099840044975281,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.7101439833641052,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.7825279831886292,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 32,
+   "n_agents": 1024,
+   "batch": 256,
+   "best": {
+    "name": "triton_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_KN": 128,
+     "num_warps": 2,
+     "num_stages": 1
+    },
+    "ms": 1.832095980644226,
+    "deviation": 1.2814998626708984e-06
+   },
+   "n_configs": 97,
+   "n_ran": 97,
+   "all": [
+    {
+     "name": "triton_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 1.832095980644226,
+     "deviation": 1.2814998626708984e-06
+    },
+    {
+     "name": "triton_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 1.928928017616272,
+     "deviation": 1.3709068298339844e-06
+    },
+    {
+     "name": "triton_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 2
+     },
+     "ms": 1.9537919759750366,
+     "deviation": 1.3709068298339844e-06
+    },
+    {
+     "name": "triton_m32_n64_w2_s3",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 3
+     },
+     "ms": 2.0103681087493896,
+     "deviation": 1.3709068298339844e-06
+    },
+    {
+     "name": "triton_m128_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 64,
+      "num_warps": 4,
+      "num_stages": 1
+     },
+     "ms": 2.010688066482544,
+     "deviation": 1.3709068298339844e-06
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 1024,
+   "batch": 256,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 128,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 1.0391039848327637,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.0391039848327637,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.0727039575576782,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.0757440328598022,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.0794559717178345,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.1150720119476318,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 1024,
+   "batch": 256,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 128,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 1.3959039449691772,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.3959039449691772,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.4947199821472168,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.501471996307373,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.5051519870758057,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.5266879796981812,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 1024,
+   "batch": 256,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_exit_m128_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 1.9187519550323486,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.9187519550323486,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.9189120531082153,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.182176113128662,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.1842880249023438,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.2499520778656006,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 32,
+   "n_agents": 1024,
+   "batch": 256,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m128_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 2.29036808013916,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.29036808013916,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.2911360263824463,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.462399959564209,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.462912082672119,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.720832109451294,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 32,
+   "best": {
+    "name": "triton_m16_n128_w2_s3",
+    "cfg": {
+     "BLOCK_M": 16,
+     "BLOCK_KN": 128,
+     "num_warps": 2,
+     "num_stages": 3
+    },
+    "ms": 0.02425600029528141,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m16_n128_w2_s3",
+     "cfg": {
+      "BLOCK_M": 16,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 3
+     },
+     "ms": 0.02425600029528141,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "triton_m16_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 16,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 2
+     },
+     "ms": 0.024447999894618988,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "triton_m16_n64_w2_s3",
+     "cfg": {
+      "BLOCK_M": 16,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 3
+     },
+     "ms": 0.024480000138282776,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "triton_m16_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 16,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 0.024639999493956566,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "triton_m16_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 16,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 2
+     },
+     "ms": 0.02473600022494793,
+     "deviation": 4.76837158203125e-07
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 32,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m32_n64_w2_s2",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 64,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.023679999634623528,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.023679999634623528,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.024032000452280045,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_rounds_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.02409599907696247,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.024224000051617622,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.02425600029528141,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 32,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m32_n64_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 64,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.026784000918269157,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m32_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.026784000918269157,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.026944000273942947,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.026976000517606735,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.027103999629616737,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_bitonic_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.02739199995994568,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 32,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m64_n64_w8_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 64,
+     "num_warps": 8,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.032735999673604965,
+    "deviation": 3.5762786865234375e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n64_w8_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 8,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.032735999673604965,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.03283200040459633,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.03315199911594391,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w8_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 8,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0331839993596077,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m32_n32_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.03347200155258179,
+     "deviation": 3.5762786865234375e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 32,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_m64_n128_w8_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 128,
+     "num_warps": 8,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.035679999738931656,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n128_w8_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 8,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.035679999738931656,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w8_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 8,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.04163200035691261,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w8_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 8,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0416640006005764,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.043487999588251114,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.04412800073623657,
+     "deviation": 3.5762786865234375e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 32,
+   "best": {
+    "name": "triton_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_KN": 128,
+     "num_warps": 2,
+     "num_stages": 1
+    },
+    "ms": 0.036896001547575,
+    "deviation": 1.1920928955078125e-06
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 0.036896001547575,
+     "deviation": 1.1920928955078125e-06
+    },
+    {
+     "name": "triton_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 2
+     },
+     "ms": 0.03750399872660637,
+     "deviation": 1.1920928955078125e-06
+    },
+    {
+     "name": "triton_m32_n128_w2_s3",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 3
+     },
+     "ms": 0.038047999143600464,
+     "deviation": 1.1920928955078125e-06
+    },
+    {
+     "name": "triton_m128_n128_w8_s3",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 128,
+      "num_warps": 8,
+      "num_stages": 3
+     },
+     "ms": 0.03977600112557411,
+     "deviation": 1.1920928955078125e-06
+    },
+    {
+     "name": "triton_m128_n128_w8_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 128,
+      "num_warps": 8,
+      "num_stages": 2
+     },
+     "ms": 0.0398080013692379,
+     "deviation": 1.1920928955078125e-06
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 32,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 128,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.032127998769283295,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.032127998769283295,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.03302399814128876,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.033055998384952545,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.03311999887228012,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.033824000507593155,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 32,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m128_n64_w8_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 64,
+     "num_warps": 8,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.033984001725912094,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m128_n64_w8_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 8,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.033984001725912094,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0342399999499321,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.039744000881910324,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.03999999910593033,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.04255999997258186,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 32,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m32_n64_w4_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 64,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.05936000123620033,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m32_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.05936000123620033,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.060447998344898224,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w8_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 8,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.06147199869155884,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w8_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 8,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.06275200098752975,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.06480000168085098,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 32,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m32_n64_w4_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 64,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.08463999629020691,
+    "deviation": 3.5762786865234375e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m32_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.08463999629020691,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.08479999750852585,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08822400122880936,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w8_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 8,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08841600269079208,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n32_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.08848000317811966,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 32,
+   "best": {
+    "name": "triton_m128_n128_w8_s3",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_KN": 128,
+     "num_warps": 8,
+     "num_stages": 3
+    },
+    "ms": 0.047648001462221146,
+    "deviation": 7.748603820800781e-07
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m128_n128_w8_s3",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 128,
+      "num_warps": 8,
+      "num_stages": 3
+     },
+     "ms": 0.047648001462221146,
+     "deviation": 7.748603820800781e-07
+    },
+    {
+     "name": "triton_m128_n128_w8_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 128,
+      "num_warps": 8,
+      "num_stages": 2
+     },
+     "ms": 0.04771199822425842,
+     "deviation": 7.748603820800781e-07
+    },
+    {
+     "name": "triton_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 2
+     },
+     "ms": 0.04819199815392494,
+     "deviation": 7.748603820800781e-07
+    },
+    {
+     "name": "triton_m64_n128_w4_s3",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 3
+     },
+     "ms": 0.04822399839758873,
+     "deviation": 7.748603820800781e-07
+    },
+    {
+     "name": "triton_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 1
+     },
+     "ms": 0.049247998744249344,
+     "deviation": 7.748603820800781e-07
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 32,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m32_n128_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 128,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.0390079990029335,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0390079990029335,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0390079990029335,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0390079990029335,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.03984000161290169,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m128_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.041728001087903976,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 32,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m64_n128_w4_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 128,
+     "num_warps": 4,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.051263999193906784,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.051263999193906784,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0522879995405674,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.053408000618219376,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0544000007212162,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m32_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.055456001311540604,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 32,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m64_n64_w4_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 64,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.08643200248479843,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08643200248479843,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m128_n64_w8_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 8,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08646400272846222,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m128_n64_w8_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 8,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08675199747085571,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.0875839963555336,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_m32_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.08819200098514557,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 32,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m32_n32_w2_s1",
+    "cfg": {
+     "BLOCK_M": 32,
+     "BLOCK_N": 32,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.11420799791812897,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m32_n32_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.11420799791812897,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n32_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.11427199840545654,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.11856000125408173,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.11872000247240067,
+     "deviation": 3.5762786865234375e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n32_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 32,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.1207360029220581,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 1024,
+   "best": {
+    "name": "triton_m64_n64_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_KN": 64,
+     "num_warps": 2,
+     "num_stages": 1
+    },
+    "ms": 0.17839999496936798,
+    "deviation": 1.0728836059570312e-06
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 0.17839999496936798,
+     "deviation": 1.0728836059570312e-06
+    },
+    {
+     "name": "triton_m64_n64_w2_s3",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 3
+     },
+     "ms": 0.18492799997329712,
+     "deviation": 1.0728836059570312e-06
+    },
+    {
+     "name": "triton_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 2
+     },
+     "ms": 0.1849599927663803,
+     "deviation": 1.0728836059570312e-06
+    },
+    {
+     "name": "triton_m64_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 64,
+      "num_warps": 4,
+      "num_stages": 1
+     },
+     "ms": 0.19155199825763702,
+     "deviation": 1.0728836059570312e-06
+    },
+    {
+     "name": "triton_m32_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 0.1921599954366684,
+     "deviation": 1.0728836059570312e-06
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 1024,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m64_n64_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 64,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.12041600048542023,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.12041600048542023,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.12080000340938568,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.1345279961824417,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.13465599715709686,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.13657599687576294,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 1024,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.15744000673294067,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.15744000673294067,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.16979199647903442,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.17366400361061096,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.1738560050725937,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n32_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.17404800653457642,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 1024,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.2441280037164688,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.2441280037164688,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.26022401452064514,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.2677119970321655,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.26822400093078613,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_bitonic_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.2901119887828827,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 1024,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 0.3875519931316376,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.3875519931316376,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.3880319893360138,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.44284799695014954,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.44972801208496094,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n32_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.45289599895477295,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 1024,
+   "best": {
+    "name": "triton_m64_n128_w4_s3",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_KN": 128,
+     "num_warps": 4,
+     "num_stages": 3
+    },
+    "ms": 0.6202880144119263,
+    "deviation": 1.6093254089355469e-06
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m64_n128_w4_s3",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 3
+     },
+     "ms": 0.6202880144119263,
+     "deviation": 1.6093254089355469e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 2
+     },
+     "ms": 0.620959997177124,
+     "deviation": 1.6093254089355469e-06
+    },
+    {
+     "name": "triton_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 0.6228160262107849,
+     "deviation": 1.6093254089355469e-06
+    },
+    {
+     "name": "triton_m128_n128_w8_s3",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 128,
+      "num_warps": 8,
+      "num_stages": 3
+     },
+     "ms": 0.6234560012817383,
+     "deviation": 1.6093254089355469e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 1
+     },
+     "ms": 0.6273279786109924,
+     "deviation": 1.6093254089355469e-06
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 1024,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m128_n64_w4_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 64,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.3776639997959137,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.3776639997959137,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.37836799025535583,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.39481601119041443,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.39507201313972473,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.40303999185562134,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 1024,
+   "k": 2,
+   "best": {
+    "name": "stream_bitonic_m128_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.5390400290489197,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.5390400290489197,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.5511680245399475,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.5517759919166565,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.5861759781837463,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.5942720174789429,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 1024,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.8691840171813965,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.8691840171813965,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.8701760172843933,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.8709120154380798,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.9314240217208862,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.9314240217208862,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 1024,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 1.2234560251235962,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.2234560251235962,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.2235519886016846,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.2523200511932373,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.2533119916915894,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.3481279611587524,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 1024,
+   "best": {
+    "name": "triton_m64_n128_w4_s3",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_KN": 128,
+     "num_warps": 4,
+     "num_stages": 3
+    },
+    "ms": 1.058527946472168,
+    "deviation": 1.6689300537109375e-06
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m64_n128_w4_s3",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 3
+     },
+     "ms": 1.058527946472168,
+     "deviation": 1.6689300537109375e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 1
+     },
+     "ms": 1.0682239532470703,
+     "deviation": 1.6689300537109375e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 2
+     },
+     "ms": 1.069216012954712,
+     "deviation": 1.6689300537109375e-06
+    },
+    {
+     "name": "triton_m128_n128_w8_s3",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 128,
+      "num_warps": 8,
+      "num_stages": 3
+     },
+     "ms": 1.070847988128662,
+     "deviation": 1.6689300537109375e-06
+    },
+    {
+     "name": "triton_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 1.081984043121338,
+     "deviation": 1.6689300537109375e-06
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 1024,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m128_n64_w4_s1",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 64,
+     "num_warps": 4,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.6455680131912231,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6455680131912231,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6537920236587524,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6689280271530151,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.669152021408081,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 128,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6829760074615479,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 1024,
+   "k": 2,
+   "best": {
+    "name": "stream_bitonic_m128_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.9276160001754761,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.9276160001754761,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.9469119906425476,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.9523199796676636,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.0014400482177734,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.0190080404281616,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 1024,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 1.4466559886932373,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.4466559886932373,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.4481920003890991,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.5148799419403076,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.5434240102767944,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.5444159507751465,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 1024,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 2.0006721019744873,
+    "deviation": 5.960464477539062e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.0006721019744873,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.001408100128174,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.0367040634155273,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.0384318828582764,
+     "deviation": 5.960464477539062e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 2.2191359996795654,
+     "deviation": 5.960464477539062e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 4096,
+   "best": {
+    "name": "triton_m64_n64_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_KN": 64,
+     "num_warps": 2,
+     "num_stages": 1
+    },
+    "ms": 0.6540799736976624,
+    "deviation": 1.6093254089355469e-06
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 0.6540799736976624,
+     "deviation": 1.6093254089355469e-06
+    },
+    {
+     "name": "triton_m64_n64_w2_s3",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 3
+     },
+     "ms": 0.6635519862174988,
+     "deviation": 1.6093254089355469e-06
+    },
+    {
+     "name": "triton_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 2
+     },
+     "ms": 0.6666560173034668,
+     "deviation": 1.6093254089355469e-06
+    },
+    {
+     "name": "triton_m32_n64_w2_s3",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 64,
+      "num_warps": 2,
+      "num_stages": 3
+     },
+     "ms": 0.6997759938240051,
+     "deviation": 1.6093254089355469e-06
+    },
+    {
+     "name": "triton_m64_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 64,
+      "num_warps": 4,
+      "num_stages": 1
+     },
+     "ms": 0.7016639709472656,
+     "deviation": 1.6093254089355469e-06
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 4096,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m64_n64_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 64,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.4116159975528717,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.4116159975528717,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.412447988986969,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.4694719910621643,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.4710080027580261,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m32_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.4771200120449066,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 4096,
+   "k": 2,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.5517119765281677,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.5517119765281677,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.595583975315094,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.5961599946022034,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n32_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6100159883499146,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.6171839833259583,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 4096,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": false
+    },
+    "ms": 0.860480010509491,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.860480010509491,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 0.9268479943275452,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.9503679871559143,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 0.9529920220375061,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_bitonic_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.0285120010375977,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 192,
+   "batch": 4096,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 1.4106240272521973,
+    "deviation": 4.76837158203125e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.4106240272521973,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.4114559888839722,
+     "deviation": 4.76837158203125e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n32_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.679744005203247,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m32_n32_w2_s2",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_N": 32,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 1.6802560091018677,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.6838719844818115,
+     "deviation": 4.76837158203125e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 4096,
+   "best": {
+    "name": "triton_m64_n128_w4_s3",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_KN": 128,
+     "num_warps": 4,
+     "num_stages": 3
+    },
+    "ms": 2.3691840171813965,
+    "deviation": 1.9073486328125e-06
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m64_n128_w4_s3",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 3
+     },
+     "ms": 2.3691840171813965,
+     "deviation": 1.9073486328125e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 2
+     },
+     "ms": 2.3834879398345947,
+     "deviation": 1.9073486328125e-06
+    },
+    {
+     "name": "triton_m128_n128_w8_s3",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 128,
+      "num_warps": 8,
+      "num_stages": 3
+     },
+     "ms": 2.38588809967041,
+     "deviation": 1.9073486328125e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 1
+     },
+     "ms": 2.3963520526885986,
+     "deviation": 1.9073486328125e-06
+    },
+    {
+     "name": "triton_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 2.4148480892181396,
+     "deviation": 1.9073486328125e-06
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 4096,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m128_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 1.4082239866256714,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.4082239866256714,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m128_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.413472056388855,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.4754559993743896,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.4809600114822388,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_rounds_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.5255039930343628,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 4096,
+   "k": 2,
+   "best": {
+    "name": "stream_bitonic_m128_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 1.9984639883041382,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 1.9984639883041382,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 2.079200029373169,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 2.0848000049591064,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 2.237600088119507,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 2.2459518909454346,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 4096,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 3.29420804977417,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 3.29420804977417,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 3.2949440479278564,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 3.3132801055908203,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 3.536799907684326,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 3.5566399097442627,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 384,
+   "batch": 4096,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 4.652991771697998,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 4.652991771697998,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 4.653600215911865,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 4.7988481521606445,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 4.799424171447754,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 5.1447038650512695,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "dense",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 4096,
+   "best": {
+    "name": "triton_m64_n128_w4_s3",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_KN": 128,
+     "num_warps": 4,
+     "num_stages": 3
+    },
+    "ms": 4.139647960662842,
+    "deviation": 1.9073486328125e-06
+   },
+   "n_configs": 109,
+   "n_ran": 109,
+   "all": [
+    {
+     "name": "triton_m64_n128_w4_s3",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 3
+     },
+     "ms": 4.139647960662842,
+     "deviation": 1.9073486328125e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 2
+     },
+     "ms": 4.160319805145264,
+     "deviation": 1.9073486328125e-06
+    },
+    {
+     "name": "triton_m128_n128_w8_s3",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_KN": 128,
+      "num_warps": 8,
+      "num_stages": 3
+     },
+     "ms": 4.161856174468994,
+     "deviation": 1.9073486328125e-06
+    },
+    {
+     "name": "triton_m64_n128_w4_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_KN": 128,
+      "num_warps": 4,
+      "num_stages": 1
+     },
+     "ms": 4.202303886413574,
+     "deviation": 1.9073486328125e-06
+    },
+    {
+     "name": "triton_m32_n128_w2_s1",
+     "cfg": {
+      "BLOCK_M": 32,
+      "BLOCK_KN": 128,
+      "num_warps": 2,
+      "num_stages": 1
+     },
+     "ms": 4.254015922546387,
+     "deviation": 1.9073486328125e-06
+    }
+   ]
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 4096,
+   "k": 1,
+   "best": {
+    "name": "stream_bitonic_m128_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 2.460671901702881,
+    "deviation": 0.0
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 2.460671901702881,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m128_n64_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 64,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 2.46726393699646,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 2.5685760974884033,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_bitonic_m64_n64_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 64,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 2.570751905441284,
+     "deviation": 0.0
+    },
+    {
+     "name": "stream_rounds_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 2.661087989807129,
+     "deviation": 0.0
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 4096,
+   "k": 2,
+   "best": {
+    "name": "stream_bitonic_m128_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 128,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": true,
+     "EARLY_EXIT": false
+    },
+    "ms": 3.5107200145721436,
+    "deviation": 9.5367431640625e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_bitonic_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": true,
+      "EARLY_EXIT": false
+     },
+     "ms": 3.5107200145721436,
+     "deviation": 9.5367431640625e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w4_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 3.6433920860290527,
+     "deviation": 9.5367431640625e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 3.6565439701080322,
+     "deviation": 9.5367431640625e-07
+    },
+    {
+     "name": "stream_rounds_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 3.8948159217834473,
+     "deviation": 9.5367431640625e-07
+    },
+    {
+     "name": "stream_rounds_m64_n128_w4_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 128,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 3.908479928970337,
+     "deviation": 9.5367431640625e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 4096,
+   "k": 4,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s1",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 1,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 5.575808048248291,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 5.575808048248291,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 5.577439785003662,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": false
+     },
+     "ms": 5.877600193023682,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 5.955904006958008,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 5.95692777633667,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  },
+  {
+   "kind": "streaming",
+   "head_dim": 16,
+   "n_agents": 512,
+   "batch": 4096,
+   "k": 8,
+   "best": {
+    "name": "stream_rounds_exit_m64_n16_w2_s2",
+    "cfg": {
+     "BLOCK_M": 64,
+     "BLOCK_N": 16,
+     "num_warps": 2,
+     "num_stages": 2,
+     "BITONIC": false,
+     "EARLY_EXIT": true
+    },
+    "ms": 7.7123517990112305,
+    "deviation": 7.152557373046875e-07
+   },
+   "n_configs": 198,
+   "n_ran": 198,
+   "all": [
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 7.7123517990112305,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m64_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 64,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 7.713791847229004,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s1",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 1,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 7.853439807891846,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w2_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 2,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 7.855103969573975,
+     "deviation": 7.152557373046875e-07
+    },
+    {
+     "name": "stream_rounds_exit_m128_n16_w4_s2",
+     "cfg": {
+      "BLOCK_M": 128,
+      "BLOCK_N": 16,
+      "num_warps": 4,
+      "num_stages": 2,
+      "BITONIC": false,
+      "EARLY_EXIT": true
+     },
+     "ms": 8.53433609008789,
+     "deviation": 7.152557373046875e-07
+    }
+   ],
+   "failed": []
+  }
+ ]
+}
