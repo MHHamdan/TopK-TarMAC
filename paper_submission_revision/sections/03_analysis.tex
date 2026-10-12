@@ -191,7 +191,9 @@ condition becomes $k(d+2) \le N$; in a narrower value format the index term
 grows relative to the rest. The leading-order form is unchanged in every case,
 and the composed path cannot use int32 in any event, since PyTorch's gather
 takes int64 indices. It is a screen under a simplified accounting that ignores
-caches and fusion, not a model of GPU time; hardware counters on two GPUs agree
-with it (Appendix~\ref{app:portability}).
+caches and fusion, not a model of GPU time, and it counts selection as one read
+of the scores: hardware counters on two GPUs show that a library top-$k$ reads
+them several times, so passing the screen is necessary for a composed gathered
+path to win and not sufficient (Appendix~\ref{app:portability}).
 Section~\ref{sec:measurement} tests the ceiling, the selector classes and the
 byte criterion against measurements.

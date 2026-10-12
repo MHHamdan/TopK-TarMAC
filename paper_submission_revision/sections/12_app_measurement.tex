@@ -125,7 +125,8 @@ of the device's rate against $30$ to $47\%$ for dense --- and it is faster only
 because it performs about half the arithmetic.
 
 The crossover is an existence result inside a stated envelope, and the envelope
-is narrow: one GPU architecture, \texttt{fp32}, head widths $16$ and $32$, agent
+is narrow: one GPU architecture for the full sweep (the one-peer crossover itself
+recurs on three others, Appendix~\ref{app:portability}), \texttt{fp32}, head widths $16$ and $32$, agent
 counts from $192$ upward where the sweep reproduces, a single retained peer with
 one configuration at two, and a dense baseline that reaches under half of the
 device's arithmetic rate at those head widths. At four retained peers the resident
@@ -209,6 +210,11 @@ both cover (Table~\ref{tab:streaming}).
 \subsection{The streaming kernel in reduced precision}
 \label{app:streamprec}
 
+Table~\ref{tab:streamprec} gives the per-configuration ratios behind the
+reduced-precision paragraphs of Section~\ref{sec:precision} on the Blackwell
+card; Table~\ref{tab:portability} gives the one-peer ranges on the other three
+GPUs.
+
 \begin{table}[t]
 \centering\small
 \caption{The streaming kernel of Table~\ref{tab:streaming} in reduced
@@ -247,84 +253,132 @@ ratio of per-element costs.
 \subsection{Other GPU generations}
 \label{app:portability}
 
-\begin{table}[t]
-\centering\small
-\caption{The headline quantities on four GPUs. Each device's tilings are
-searched on that device before any sweep times them, and each quantity is
-computed by the function that computes it for the main text
-(\texttt{scripts/summarise\_portability.py}); every entry is a ratio against the
-best dense implementation of the same interleaved sweep, so a value below one
-means the sparse path is faster. Streaming ranges are over $d \in \{16, 32\}$
-and the agent counts of Table~\ref{tab:streaming}, under CUDA-graph replay;
-the other rows are defined as in the main-text tables they summarise. The
-Blackwell card was shared with other tenants; the other three were allocated
-exclusively, one GPU per job, on a shared node. The A100 runs PyTorch 2.11 and
-Triton 3.6 built against CUDA 12.9, the others the same versions built against
-CUDA 12.8.}
-\label{tab:portability}
-\resizebox{\linewidth}{!}{\input{tables/portability}}
-\end{table}
-
-\begin{table}[t]
-\centering\small
-\caption{The streaming kernel against the best dense implementation as the
-batch varies, $d{=}16$, agent counts $192$ to $512$, both kernels searched at
-every batch (ratios of minima under CUDA-graph replay). Heads are independent,
-so $H$ heads over a batch $B$ are one launch over a batch $BH$: this is also the
-multi-head packing sweep.}
-\label{tab:portbatch}
-\resizebox{\linewidth}{!}{\input{tables/port_batch}}
-\end{table}
-
 We repeated the measurements of Section~\ref{sec:measurement} on an A100-SXM4
 (40\,GB, sm\_80), an H100 SXM (80\,GB HBM3, sm\_90) and an H200 (141\,GB HBM3e,
 sm\_90), with every tiling searched again on each device
-(\texttt{scripts/run\_portability\_campaign.sh}). Table~\ref{tab:portability}
-collects the quantities the main text rests on. The ordering holds on all
-\PortDevices{} devices: the composed path is at least \PortComposedMin{} times
-slower than dense attention; from $384$ agents upward \PortFindLo{} to
-\PortFindHi{}\% of the fused kernel's time is finding the set; and the streaming
-kernel is faster than dense at one retained peer in fp32 (\PortStreamOneLo{} to
-\PortStreamOneHi{}). Beyond that the streaming kernel's advantage shrinks. At two retained peers the
-streaming kernel ranges from \PortStreamTwoLo{} to \PortStreamTwoHi{}, so it is
-no longer faster at every configuration; at four it is slower everywhere
-(\PortStreamFourLo{} to \PortStreamFourHi{}). At one retained peer it costs
-\PortTfOneLo{} to \PortTfOneHi{} times dense in TF32 and \PortBfOneLo{} to
-\PortBfOneHi{} in bf16, so in bf16 it does not break even on any of the three.
-The Z-order pre-score path at $512$ agents and four retained peers is not
-faster on any of them: its fused attention stage costs \PortZorderAttendLo{} to
-\PortZorderAttendHi{} times dense, but with the selector the path costs
-\PortZorderTotalLo{} to \PortZorderTotalHi{}. The resident kernel's one-peer ratio is
-the same on all four devices; for the streaming kernel and the pre-score path
-the Blackwell card is the most favourable of the four, and the crossovers the
-main text reports for them are best cases.
+(\texttt{scripts/run\_portability\_campaign.sh}), and read them against two
+questions: which conclusions are properties of the algorithm and the selector,
+and which are properties of one GPU.
+
+\begin{table}[tbp]
+\centering\small
+\caption{The headline quantities on four NVIDIA GPUs: RTX PRO 6000 Blackwell
+Server Edition (sm\_120), A100-SXM4-40GB (sm\_80), H100 80GB HBM3 SXM (sm\_90)
+and H200 (sm\_90). Upper block: latency divided by the best dense implementation
+of the same numerical format, timed in the same interleaved sweep on the same
+GPU (lower is better; below one the sparse path is faster); each GPU's tilings
+are searched on that GPU. The format is in each row label; fp32 uses IEEE
+products. Configuration: batch $256$. \emph{Resident} and
+\emph{Streaming} rows: the fused kernels at $d \in \{16, 32\}$ and the agent
+counts of Tables~\ref{tab:fixedset} and~\ref{tab:streaming}, under CUDA-graph
+replay. \emph{Composed}: the gathered path at $d{=}16$, best (lowest) ratio over
+$N \ge 192$ and every $k$ measured, forward pass and backward pass.
+\emph{Z-order}: $N{=}512$, $k{=}4$, the fused attention stage alone; selector
+plus attention (Table~\ref{tab:selectors}). Lower block: share of the fused
+kernel's time not accounted for by attending over the set, from $384$ agents up;
+and, at $N \le 96$ (Table~\ref{tab:smalln}), the median rank correlation $\rho$
+of device time with kernel count and with executed operations. Ranges are
+minimum to maximum over those configurations. Every entry is computed by the function that computes
+the corresponding main-text quantity (\texttt{scripts/summarise\_portability.py}).
+Software: PyTorch 2.11 and Triton 3.6 on all four, built against CUDA 12.8
+except on the A100 (CUDA 12.9, the cluster's own build). The Blackwell card was
+shared with other tenants; each of the others was allocated exclusively, one GPU
+per job.}
+\label{tab:portability}
+\input{tables/portability}
+\end{table}
+
+\begin{table}[tbp]
+\centering\small
+\caption{The streaming kernel's fp32 latency divided by the best dense
+implementation (lower is better; below one is a speedup) as the batch varies,
+at $d{=}16$ and agent counts $192$ to $512$, with both kernels searched at every
+batch (ratios of minima under CUDA-graph replay; ranges over agent count).
+Heads are independent, so $H$ heads over a batch $B$ are one launch over a batch
+$BH$: this is also the multi-head packing sweep.}
+\label{tab:portbatch}
+\input{tables/port_batch}
+\end{table}
+
+\paragraph{What replicates.} Everything that follows from charging the
+selector holds on all four GPUs (Table~\ref{tab:portability}). The
+composed gathered path is slower than dense attention at every configuration,
+by at least \PortComposedMin{} times. Finding the retained set takes
+\PortFindLo{} to \PortFindHi{}\% of the resident kernel's time and
+\PortStreamFindLo{} to \PortStreamFindHi{}\% of the streaming kernel's from $384$
+agents upward, as on the Blackwell card (Tables~\ref{tab:fixedset}
+and~\ref{tab:streaming}). In fp32 both fused
+kernels are faster than dense attention at one retained peer at every
+configuration, and the resident kernel is faster at two in one configuration
+only, the same one on every GPU. Below a hundred agents kernel count orders
+latency and executed operations do not (median rank correlations with kernel
+count of \PortSmallNRhoLaunchLo{} to \PortSmallNRhoLaunchHi{} on these three and
+\SmallNRhoLaunch{} on the Blackwell card, against at most
+\PortSmallNRhoFlopsHi{} with executed operations). Attention over a set chosen before scoring stays far
+cheaper than dense attention.
+
+\paragraph{What does not.} The crossovers of the streaming kernel beyond one
+retained peer, in reduced precision, and of the pre-score path are narrower off
+the Blackwell card.
+At two retained peers the streaming kernel is faster at every configuration on
+the A100 but at \PortStreamTwoHopperWins{} of \PortStreamTwoConfigs{} on the
+H100 and H200; at four it is slower everywhere (\PortStreamFourLo{} to
+\PortStreamFourHi{}), where on the Blackwell card it was within \StreamKFourDev{}\% of parity.
+In bf16 it is slower than dense at one retained peer on all three
+(\PortBfOneLo{} to \PortBfOneHi{}), and TF32 gives a mixed result
+(\PortTfOneLo{} to \PortTfOneHi{}). The Z-order pre-score path at $512$ agents and
+four retained peers, the one end-to-end crossing on the Blackwell card, does
+not reproduce: its fused attention stage still costs only \PortZorderAttendLo{}
+to \PortZorderAttendHi{} times dense, but the selector brings the path to
+\PortZorderTotalLo{} to \PortZorderTotalHi{}. For the streaming kernel and the
+pre-score path, then, the crossovers the main text reports are the best cases
+among the GPUs we measured, and the location of the crossover is a property of
+the GPU as well as of the algorithm. We do not attribute the difference to a
+single hardware feature: the four GPUs differ in matrix-multiply rate, bandwidth,
+clocks and, for the A100, the CUDA build, and the measurements here do not
+separate those.
 
 \paragraph{Batch and heads.} Table~\ref{tab:portbatch} varies the batch from
-$32$ to $4096$ on the three devices. From $256$ upward the threshold does not
-move: at one retained peer the streaming kernel costs \PortBatchOneLo{} to
-\PortBatchOneHi{} times dense and at two \PortBatchTwoLo{} to \PortBatchTwoHi{}.
-At a batch of $32$, where a launch has only a few programs per
-multiprocessor, the one-peer ratio widens to \PortBatchSmallOneLo{} to \PortBatchSmallOneHi{}. Packing more
-heads into a launch therefore cannot widen the window; it can only bring a small
-batch back to the large-batch ratio.
+$32$ to $4096$ on the three devices. Over the moderate-to-large range tested,
+$256$ to $4096$, the ratios move little and the profitable window does not
+widen: at one retained peer the streaming kernel costs \PortBatchOneLo{} to
+\PortBatchOneHi{} times dense and at two \PortBatchTwoLo{} to
+\PortBatchTwoHi{}. At a batch of $32$ the result is less favourable and less
+uniform: the one-peer ratio spans \PortBatchSmallOneLo{} to
+\PortBatchSmallOneHi{}, and at two retained peers the kernel is no longer faster
+at every agent count. Heads are independent, so $H$ heads over a batch $B$ are one
+launch over a batch $BH$; within the tested range, packing heads cannot widen
+the window, and can bring a small batch to the large-batch ratios.
 
 \paragraph{Hardware counters.} On the H100 and the H200 we recorded Nsight
-Compute counters for every kernel each implementation launches
-(\texttt{scripts/ncu\_counters.py}; the A100 nodes do not expose the profiling
-counters to users). At $512$ agents and four retained peers the composed path
-moves \PortNcuComposedGB{}\,GB through DRAM in \PortNcuKernels{} kernels,
-against \PortNcuDenseMB{}\,MB for the tuned dense kernel; \PortNcuSelectKernels{}
-of those kernels are \texttt{torch.topk}'s multi-block radix select, which makes
-four passes over the score matrix and takes \PortNcuSelectShareLo{} to
-\PortNcuSelectShareHi{}\% of the path's time. The composed baseline is thus
-already a production radix top-$k$, and its cost is the byte criterion's:
-compaction adds traffic. The fused and streaming kernels move about as many
-bytes as dense attention and reach only \PortNcuFusedDramLo{} to
-\PortNcuFusedDramHi{}\% of peak DRAM throughput, against \PortNcuFusedSmLo{} to
-\PortNcuFusedSmHi{}\% of peak SM throughput. Selection inside a fused kernel
-is bound on the multiprocessors, not by bandwidth, which is consistent with the
-H200, with \PortBwRatioHTwoHundred{} times the H100's measured DRAM bandwidth, giving the same
-ratios.
+Compute counters for every kernel each implementation launches, at $512$ agents
+and four retained peers (\texttt{scripts/ncu\_counters.py}; the A100 nodes do not
+expose the profiling counters to users). Under the profiler each kernel runs
+with cold caches and base clocks, so the counters describe the kernels rather
+than reproduce the timed sweeps. They support three statements. First, the
+composed path moves \PortNcuComposedGB{}\,GB through DRAM in
+\PortNcuKernels{} kernels, against \PortNcuDenseMB{}\,MB for the tuned dense
+kernel. Of those kernels, \PortNcuSelectKernels{} belong to \texttt{torch.topk},
+PyTorch's exact top-$k$ in the evaluated version, which here runs as a
+multi-block radix selection in \PortNcuRadixPasses{} passes over the scores;
+they account for \PortNcuSelectBytesLo{}\% of the path's DRAM traffic and
+\PortNcuSelectShareLo{} to \PortNcuSelectShareHi{}\% of its time. The composed
+baseline is therefore an optimised library selection, not a naive one, though
+not necessarily the fastest exact selection possible; and its traffic is
+dominated by forming and ranking the scores, which the byte criterion of
+Section~\ref{sec:roofline} counts once, rather than by compaction. Second, the
+fused and streaming kernels are not limited by DRAM bandwidth: they move about
+as many bytes as dense attention and reach \PortNcuFusedDramLo{} to
+\PortNcuFusedDramHi{}\% of peak DRAM throughput, and the H200, with
+\PortBwRatioHTwoHundred{} times the H100's measured bandwidth, gives the same
+ratios. Third, the counters do not show them to be compute-bound in the sense of
+saturating a unit: they reach \PortNcuFusedSmLo{} to \PortNcuFusedSmHi{}\% of peak
+SM throughput at \PortNcuFusedOccLo{} to \PortNcuFusedOccHi{}\% achieved
+occupancy, and the tuned dense kernel reaches \PortNcuDenseSmHi{}\% and
+\PortNcuDenseDramHi{}\%. What attributes the time to selection is the fixed-set
+comparison, which the profiler reproduces independently: given the set, the
+fixed-set kernels take \PortNcuFixedShareLo{} to \PortNcuFixedShareHi{}\% of the
+streaming kernel's device time at this shape.
 
 \subsection{Where the time goes}
 \label{sec:stages}\label{app:stages}
@@ -483,7 +537,7 @@ the search of Section~\ref{sec:fused} found. Composing the attention stage from
 library operators costs an order of magnitude more than fusing it, and the
 difference decides the conclusion: composed, the attention is slower than dense
 attention at every configuration measured; fused, it is up to sixteen times
-faster.}
+faster on this GPU (Appendix~\ref{app:portability} for the others).}
 \label{tab:prescore}
 \resizebox{\linewidth}{!}{\input{tables/prescore}}
 \end{table}

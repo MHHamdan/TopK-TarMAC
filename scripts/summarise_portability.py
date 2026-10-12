@@ -116,6 +116,13 @@ def small_n() -> tuple[float, float, float]:
     return 1000 * bd0, float(m["SmallNComposedLo"]), float(m["SmallNComposedHi"])
 
 
+def small_n_rho() -> tuple[float, float]:
+    """Median within-configuration rank correlation of device time with kernel
+    count and with executed operations, N <= 96 (graph replay)."""
+    m = mrt.small_n_macros()
+    return float(m["SmallNRhoLaunch"]), float(m["SmallNRhoFlops"])
+
+
 def prescore_zorder(k: int = 4) -> tuple[float, float] | None:
     """Z-order-window selection before scoring at the largest N and k retained
     peers (the setting Section 4 quotes): (fused attention alone, selector +
@@ -181,7 +188,18 @@ def ncu_figures(path: Path, N: int = 512, k: int = 4) -> dict | None:
     fused = [x for i in ("topk_fused_gather", "streaming") if i in G
              for x in G[i]["kernels"]]
     pct = lambda m: [x[m] for x in fused]
+    dense = G["dense_tuned"]["kernels"]
+    byt = lambda x: (x["dram__bytes_read.sum"] or 0) + (x["dram__bytes_write.sum"] or 0)
     return {
+        "radix_passes": sum("computeBlockDigitCounts" in x["kernel"] for x in sel),
+        "select_bytes_share": sum(byt(x) for x in sel) / comp["total"]["dram_bytes"],
+        "fused_occ_pct": (min(pct("sm__warps_active.avg.pct_of_peak_sustained_active")),
+                          max(pct("sm__warps_active.avg.pct_of_peak_sustained_active"))),
+        "dense_dram_pct": dense[0]["dram__throughput.avg.pct_of_peak_sustained_elapsed"],
+        "dense_sm_pct": dense[0]["sm__throughput.avg.pct_of_peak_sustained_elapsed"],
+        "fixed_over_streaming": (G["fixed_set"]["total"]["time_s"]
+                                 / G["streaming"]["total"]["time_s"])
+        if "fixed_set" in G and "streaming" in G else None,
         "composed_gb": comp["total"]["dram_bytes"] / 1e9,
         "dense_mb": G["dense_tuned"]["total"]["dram_bytes"] / 1e6,
         "kernels": comp["n_kernels"], "select_kernels": len(sel),
@@ -226,6 +244,82 @@ def write_macros(raw: dict, others: list[tuple[str, Path]]) -> None:
           for t in tags}
     if bw.get("h100") and bw.get("h200"):
         m["PortBwRatioHTwoHundred"] = f"{bw['h200'][1] / bw['h100'][1]:.1f}"
+    # Per-device detail for the statements that do not pool cleanly.
+    stream_two, find, attn, rho_l, rho_f = {}, [], [], [], []
+    for t, p in others:
+        mrt.RES = p
+        stream_two[t] = sorted(
+            (g["ratios"]["streaming"]["ratio_of_minima"], g["head_dim"],
+             g["n_agents"]) for g in mrt.streaming_rows() if g["k"] == 2)
+        find.append(mrt.streaming_find_share())
+        r = [x for x in mrt.load("prescore.json")["rows"]
+             if x["selector"] == "morton_window" and x["n_agents"] == 512
+             and x["k"] == 2][0]
+        attn.append(r["t_dense_best_ms"] / r["t_attention_fused_ms"])
+        sm = mrt.small_n_macros()
+        rho_l.append(float(sm["SmallNRhoLaunch"]))
+        rho_f.append(float(sm["SmallNRhoFlops"]))
+    if "a100" in stream_two:
+        v = [x[0] for x in stream_two["a100"]]
+        m["PortStreamTwoAHundredLo"] = f"{min(v):.2f}"
+        m["PortStreamTwoAHundredHi"] = f"{max(v):.2f}"
+    hop = [t for t in ("h100", "h200") if t in stream_two]
+    if hop:
+        wins = {sum(x[0] < 1 for x in stream_two[t]) for t in hop}
+        worst = [stream_two[t][-1] for t in hop]
+        m["PortStreamTwoConfigs"] = str(len(stream_two[hop[0]]))
+        m["PortStreamTwoHopperWins"] = "/".join(str(w) for w in sorted(wins))
+        m["PortStreamTwoHopperWorst"] = f"{max(w[0] for w in worst):.2f}"
+        m["PortStreamTwoHopperWorstD"] = str(worst[0][1])
+        m["PortStreamTwoHopperWorstN"] = str(worst[0][2])
+    prec: dict[tuple[str, int], list[float]] = {}
+    excluded_bf16 = 0
+    for t, p in others:
+        mrt.RES = p
+        for g in mrt.streaming_precision_rows():
+            if g["format"] == "bf16" and g["excluded"]:
+                excluded_bf16 += 1
+            if not g["excluded"]:
+                prec.setdefault((g["format"], g["k"]), []).append(
+                    g["ratios"]["streaming"]["ratio_of_minima"])
+    for (fmt, k), v in prec.items():
+        F = {"tf32": "Tf", "bf16": "Bf"}[fmt]
+        K = {1: "One", 2: "Two", 4: "Four"}[k]
+        m[f"Port{F}{K}Lo"], m[f"Port{F}{K}Hi"] = f"{min(v):.2f}", f"{max(v):.2f}"
+    m["PortBfExcluded"] = str(excluded_bf16)
+
+    def _count(x, acc):
+        """Sum set_mismatch_rows and rows over a nested retained-set record."""
+        if isinstance(x, dict):
+            for k, v in x.items():
+                if k.endswith("mismatch_rows") and isinstance(v, (int, float)):
+                    acc[0] += v
+                elif k == "rows" and isinstance(v, (int, float)):
+                    acc[1] += v
+                else:
+                    _count(v, acc)
+        elif isinstance(x, list):
+            for v in x:
+                _count(v, acc)
+        return acc
+
+    bf = []
+    for t, p in [("blackwell", ROOT / "results")] + list(others):
+        mrt.RES = p
+        acc = [0, 0]
+        for g in mrt.load("streaming_precision.json")["groups"]:
+            if g["format"] == "bf16":
+                _count(g["retained_set"], acc)
+        bf.append(acc)
+    m["PortBfMismatchMax"] = str(int(max(a[0] for a in bf)))
+    m["PortBfRowsM"] = f"{min(a[1] for a in bf) / 1e6:.0f}"
+    m["PortStreamFindLo"] = f"{100 * min(f[0] for f in find):.0f}"
+    m["PortStreamFindHi"] = f"{100 * max(f[1] for f in find):.0f}"
+    m["PortPreAttnLo"] = f"{min(attn):.0f}"
+    m["PortPreAttnHi"] = f"{max(attn):.0f}"
+    m["PortSmallNRhoLaunchLo"] = f"{min(rho_l):.2f}"
+    m["PortSmallNRhoLaunchHi"] = f"{max(rho_l):.2f}"
+    m["PortSmallNRhoFlopsHi"] = f"{max(rho_f):.2f}"
     br = {t: batch_ranges(p) for t, p in others}
     big = [br[t][b][k] for t in tags for b in (256, 1024, 4096) for k in (1,)
            if b in br[t]]
@@ -248,26 +342,36 @@ def write_macros(raw: dict, others: list[tuple[str, Path]]) -> None:
         m["PortNcuFusedDramLo"], m["PortNcuFusedDramHi"] = f"{lo:.1f}", f"{hi:.1f}"
         lo, hi = _span([f["fused_sm_pct"] for f in nc])
         m["PortNcuFusedSmLo"], m["PortNcuFusedSmHi"] = f"{lo:.0f}", f"{hi:.0f}"
+        lo, hi = _span([f["fused_occ_pct"] for f in nc])
+        m["PortNcuFusedOccLo"], m["PortNcuFusedOccHi"] = f"{lo:.0f}", f"{hi:.0f}"
+        m["PortNcuDenseDramHi"] = f"{max(f['dense_dram_pct'] for f in nc):.1f}"
+        m["PortNcuDenseSmLo"] = f"{min(f['dense_sm_pct'] for f in nc):.0f}"
+        m["PortNcuDenseSmHi"] = f"{max(f['dense_sm_pct'] for f in nc):.0f}"
+        m["PortNcuRadixPasses"] = str(nc[0]["radix_passes"])
+        m["PortNcuSelectBytesLo"] = f"{100 * min(f['select_bytes_share'] for f in nc):.0f}"
+        m["PortNcuSelectBytesHi"] = f"{100 * max(f['select_bytes_share'] for f in nc):.0f}"
+        fo = [f["fixed_over_streaming"] for f in nc if f["fixed_over_streaming"]]
+        m["PortNcuFixedShareLo"] = f"{100 * min(fo):.1f}"
+        m["PortNcuFixedShareHi"] = f"{100 * max(fo):.1f}"
     (mrt.OUT / "portability_macros.tex").write_text(
         "".join(f"\\newcommand{{\\{k}}}{{{v}}}\n" for k, v in sorted(m.items())))
 
-    # The batch table: streaming over best dense at k = 1, 2, 4, per device.
+    # The batch table: streaming over best dense at k = 1, 2, 4, one block of
+    # rows per device, so that it fits the text width at natural size.
+    short = {"a100": "A100", "h100": "H100", "h200": "H200", "b200": "B200"}
     body = []
-    for b, _ in BATCH_FILES:
-        cells = []
-        for t in tags:
-            for k in (1, 2, 4):
-                v = br[t].get(b, {}).get(k)
-                cells.append(rng(v) if v else "---")
-        body.append(f"{b} & " + " & ".join(cells) + r" \\")
-    head = " & ".join(rf"\multicolumn{{3}}{{c}}{{{LABEL.get(t, t)}}}" for t in tags)
-    rule = "".join(rf"\cmidrule(lr){{{2 + 3 * i}-{4 + 3 * i}}}"
-                   for i in range(len(tags)))
-    ks = " & ".join(["$k{=}1$ & $k{=}2$ & $k{=}4$"] * len(tags))
+    for i, t in enumerate(tags):
+        if i:
+            body.append(r"\midrule")
+        for j, (b, _) in enumerate(BATCH_FILES):
+            cells = [rng(br[t].get(b, {}).get(k)) for k in (1, 2, 4)]
+            body.append(f"{short.get(t, t) if j == 0 else ''} & {b} & "
+                        + " & ".join(cells) + r" \\")
     (mrt.OUT / "port_batch.tex").write_text(
-        r"\begin{tabular}{r" + "ccc" * len(tags) + "}\n\\toprule\n& " + head
-        + r" \\" + "\n" + rule + "\n$B$ & " + ks + r" \\" + "\n\\midrule\n"
-        + "\n".join(body) + "\n\\bottomrule\n\\end{tabular}%\n")
+        "\\begin{tabular}{lrccc}\n\\toprule\nGPU & $B$ & $k{=}1$ & $k{=}2$ & "
+        "$k{=}4$ \\\\\n\\midrule\n" + "\n".join(body)
+        + "\n\\bottomrule\n\\end{tabular}%\n")
+
 
 
 def rng(t, p=2):
@@ -291,6 +395,10 @@ def main() -> int:
             "streaming fp32 k=8 ÷ best dense": _try(stream_range, 8),
             "share of fused time spent finding the set (N≥384)":
                 _try(fixed_share),
+            "streaming kernel: share of time finding the set (N≥384)":
+                _try(mrt.streaming_find_share),
+            "small N: rank correlation with kernel count; with FLOPs":
+                _try(small_n_rho),
             "streaming TF32 k=1 ÷ best TF32 dense": _try(precision_k1, "tf32"),
             "streaming bf16 k=1 ÷ best bf16 dense": _try(precision_k1, "bf16"),
             "small N: best dense at N=12 (µs); composed ÷ dense at N≤96":
@@ -313,6 +421,8 @@ def main() -> int:
     def cell(v, key):
         if v is None:
             return "---"
+        if key.startswith("small N: rank"):
+            return f"{v[0]:.2f}; {v[1]:.2f}"
         if "share" in key:
             return f"{100 * v[0]:.0f}--{100 * v[1]:.0f}%"
         if key.startswith("measured"):
@@ -336,27 +446,42 @@ def main() -> int:
     print("\n".join(md))
 
     tex_rows = [
-        ("Composed gathered, min over $N{\\ge}192$ and $k$ (fwd)",
+        (r"\multicolumn{%d}{l}{\emph{Time $\div$ best dense, same format (lower is better)}} \\" % (len(cols) + 1), None),
+        ("Composed, fp32, forward, best",
          "composed gathered ÷ best dense, min over N≥192, all k (fwd)"),
-        ("Composed gathered, min (backward)",
+        ("Composed, fp32, backward, best",
          "composed gathered ÷ best dense, min (bwd)"),
-        ("Resident fused, $k{=}1$", "resident fused k=1 ÷ best dense (graph, N≥192)"),
-        ("Streaming fp32, $k{=}1$", "streaming fp32 k=1 ÷ best dense"),
-        ("Streaming fp32, $k{=}2$", "streaming fp32 k=2 ÷ best dense"),
-        ("Streaming fp32, $k{=}4$", "streaming fp32 k=4 ÷ best dense"),
-        ("Streaming fp32, $k{=}8$", "streaming fp32 k=8 ÷ best dense"),
-        ("Streaming TF32, $k{=}1$", "streaming TF32 k=1 ÷ best TF32 dense"),
-        ("Streaming bf16, $k{=}1$", "streaming bf16 k=1 ÷ best bf16 dense"),
-        ("Share of fused time finding the set ($N{\\ge}384$)",
+        ("Resident, fp32, $k{=}1$", "resident fused k=1 ÷ best dense (graph, N≥192)"),
+        ("Streaming, fp32, $k{=}1$", "streaming fp32 k=1 ÷ best dense"),
+        ("Streaming, fp32, $k{=}2$", "streaming fp32 k=2 ÷ best dense"),
+        ("Streaming, fp32, $k{=}4$", "streaming fp32 k=4 ÷ best dense"),
+        ("Streaming, fp32, $k{=}8$", "streaming fp32 k=8 ÷ best dense"),
+        ("Streaming, TF32, $k{=}1$", "streaming TF32 k=1 ÷ best TF32 dense"),
+        ("Streaming, bf16, $k{=}1$", "streaming bf16 k=1 ÷ best bf16 dense"),
+        ("Z-order, fp32: attend; total",
+         "pre-score Z-order, N=512 k=4: attend; select+attend ÷ best dense"),
+        (r"\midrule \multicolumn{%d}{l}{\emph{Where the time goes}} \\" % (len(cols) + 1), None),
+        ("Resident: finding the set",
          "share of fused time spent finding the set (N≥384)"),
+        ("Streaming: finding the set",
+         "streaming kernel: share of time finding the set (N≥384)"),
+        (r"$N{\le}96$: $\rho$ kernels; $\rho$ ops",
+         "small N: rank correlation with kernel count; with FLOPs"),
     ]
+    head = {"blackwell": r"\shortstack{RTX PRO 6000\\(sm\_120)}",
+            "a100": r"\shortstack{A100\\(sm\_80)}",
+            "h100": r"\shortstack{H100 SXM\\(sm\_90)}",
+            "h200": r"\shortstack{H200\\(sm\_90)}"}
     body = []
     for lab, key in tex_rows:
+        if key is None:
+            body.append(lab)
+            continue
         body.append(lab + " & " + " & ".join(
             cell(raw[c][key], key).replace("%", "\\%") for c in cols) + r" \\")
     tex = (r"\begin{tabular}{l" + "c" * len(cols) + "}\n\\toprule\n& "
-           + " & ".join(LABEL.get(c, c) for c in cols) + r" \\" + "\n\\midrule\n"
-           + "\n".join(body) + "\n\\bottomrule\n\\end{tabular}%\n")
+           + " & ".join(head.get(c, LABEL.get(c, c)) for c in cols) + r" \\"
+           + "\n\\midrule\n" + "\n".join(body) + "\n\\bottomrule\n\\end{tabular}%\n")
     (mrt.OUT / "portability.tex").write_text(tex)
     write_macros(raw, [(t, p) for t, p in devs if t != "blackwell"])
     return 0

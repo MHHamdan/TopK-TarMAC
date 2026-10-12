@@ -60,6 +60,40 @@
   "status": "ok"
  },
  {
+  "paper_number_id": "abs.bf16_k1",
+  "file": "00_abstract.tex",
+  "unit": "x",
+  "configuration": "streaming bf16 k=1, graph replay",
+  "source_artifact": "streaming_precision.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.85",
+   "1.06"
+  ],
+  "artifact": [
+   0.85,
+   1.06
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "abs.preattn_other_gpus",
+  "file": "00_abstract.tex",
+  "unit": "x faster",
+  "configuration": "pre-score fused attention, N=512, k=2, A100/H100/H200",
+  "source_artifact": "portability/*/prescore.json",
+  "tolerance": 0.1,
+  "printed": [
+   "4",
+   "7"
+  ],
+  "artifact": [
+   4.438103438125515,
+   7.030052383395974
+  ],
+  "status": "ok"
+ },
+ {
   "paper_number_id": "intro.thirty_seven",
   "file": "01_intro.tex",
   "unit": "x",

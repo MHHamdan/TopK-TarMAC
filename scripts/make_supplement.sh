@@ -34,13 +34,14 @@ rm -f "$OUT/scripts/make_supplement.sh"
 find "$OUT" -type f \( -name '*.lock' -o -name '*.json' -o -name '*.yaml' \
   -o -name '*.yml' -o -name '*.py' -o -name '*.md' -o -name '*.sh' \
   -o -name '*.csv' -o -name '*.toml' \) -print0 |
-  xargs -0 sed -i -E 's#/home/[A-Za-z0-9_.-]+#/home/anonymous#g'
+  xargs -0 sed -i -E -e 's#/home/[A-Za-z0-9_.-]+#/home/anonymous#g' \
+    -e 's#-home-[A-Za-z0-9_.]+-#-home-anonymous-#g'
 
 cat > "$OUT/README.md" <<'EOF2'
 # Supplementary material
 
-Code and measurement artifacts for "Score-Then-Select Sparse Attention in
-Multi-Agent Communication: Operation-Count Limits and Measured Latency".
+Code and measurement artifacts for "Charging the Selector: Peer-Selection Cost
+and Measured Latency of Sparse Attention in Multi-Agent Communication".
 
     make check      # tests, bibliography, every number in the manuscript
     make tables     # regenerate paper_submission_revision/tables from results/
@@ -49,7 +50,10 @@ Multi-Agent Communication: Operation-Count Limits and Measured Latency".
 
 GPU entry points: `scripts/run_revision_campaign.sh` (every sweep),
 `scripts/verify_all_configurations.py` (equivalence),
-`scripts/bench_fixed_set.py` (fixed-set sweep). The environment, timing protocol
+`scripts/bench_fixed_set.py` (fixed-set sweep),
+`scripts/run_portability_campaign.sh` (the headline sweeps on another GPU, into
+`results/portability/<gpu>/`), `scripts/ncu_counters.py` (Nsight Compute
+counters) and `scripts/summarise_portability.py` (the other-GPU tables). The environment, timing protocol
 and measurement parameters are in Appendix I of the manuscript; the package set
 is `configs/environment.lock`.
 EOF2

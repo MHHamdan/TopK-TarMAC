@@ -197,8 +197,8 @@ candidates held in registers, packing each score with its index so that one
 integer comparison orders both, as \texttt{torch.topk} does on ties. Nothing
 $N$-wide stays on chip, so the kernel admits the dense kernel's tilings and has
 no cap on $N$. It changes the picture for small $k$ (Table~\ref{tab:streaming}).
-At one and two retained peers it is faster than the best dense implementation at
-every configuration measured, at \StreamKOneLo{} to \StreamKTwoHi{} times
+On the Blackwell card, at one and two retained peers it is faster than the best
+dense implementation at every configuration measured, at \StreamKOneLo{} to \StreamKTwoHi{} times
 its latency; at four it is within about \StreamKFourDev{}\% of parity
 (\StreamKFourLo{} to \StreamKFourHi{} up to $512$ agents), where the resident
 kernel is $1.3$ to $2.3$ times slower; and at eight it is slower again up to
@@ -207,11 +207,17 @@ score-then-select over dense attention in fp32 is not confined to the
 degenerate case. It remains bounded: the floor is the score product, about half
 of dense attention, and from $384$ agents upward \StreamFindLo{} to
 \StreamFindHi{}\% of the streaming kernel's time is still finding the set.
-The window is device-dependent. On the A100, H100 and H200 the streaming kernel
-is faster than dense at one retained peer (\PortStreamOneLo{} to
-\PortStreamOneHi{}), ranges from \PortStreamTwoLo{} to \PortStreamTwoHi{} at
-two, and is slower at four everywhere (Appendix~\ref{app:portability}); the
-share spent finding the set is \PortFindLo{} to \PortFindHi{}\% there.
+Beyond one retained peer the window depends on the GPU
+(Appendix~\ref{app:portability}). On the A100, H100 and H200 the streaming
+kernel is faster than dense at one retained peer at every configuration
+(\PortStreamOneLo{} to \PortStreamOneHi{}); at two it is faster at every
+configuration on the A100 (\PortStreamTwoAHundredLo{} to
+\PortStreamTwoAHundredHi{}) and at \PortStreamTwoHopperWins{} of
+\PortStreamTwoConfigs{} on the H100 and H200, slower at $d{=}\PortStreamTwoHopperWorstD{}$,
+$N{=}\PortStreamTwoHopperWorstN{}$ (\PortStreamTwoHopperWorst{}); and at four it is
+slower at every configuration (\PortStreamFourLo{} to \PortStreamFourHi{}).
+Finding the set takes \PortStreamFindLo{} to \PortStreamFindHi{}\% of its time
+from $384$ agents upward there, as on the Blackwell card.
 
 \subsection{Q4: Does the crossover depend on precision?}
 \label{sec:precision}
@@ -272,10 +278,25 @@ retained-set filter (\SPTfTwoLo{} to \SPTfTwoHi{}) and is slower in bf16
 times slower in bf16, and no TF32 configuration passes. Reduced precision
 accelerates every matrix product, the score product included, but not the
 integer comparisons of selection, so the narrower the format the larger the
-share of the sparse kernel's time that selection takes. On the A100, H100 and
-H200 the one-peer ratio is \PortTfOneLo{} to \PortTfOneHi{} in TF32 and
-\PortBfOneLo{} to \PortBfOneHi{} in bf16: with tensor cores the selection no
-longer pays for itself (Appendix~\ref{app:portability}).
+share of the sparse kernel's time that selection takes.
+
+\paragraph{bf16 on four GPUs.} bf16 is the format in which attention commonly
+runs in mixed-precision training and inference, and it is the format in which
+the fp32 result does not transfer. On the A100, H100 and H200 the streaming
+kernel is slower than the best bf16 dense implementation at every configuration
+and retained count we measured: \PortBfOneLo{} to \PortBfOneHi{} times dense at
+one retained peer, \PortBfTwoLo{} to \PortBfTwoHi{} at two and \PortBfFourLo{}
+to \PortBfFourHi{} at four; on the Blackwell card it is near parity at one
+(\SPBfOneLo{} to \SPBfOneHi{}) and slower beyond. The retained set is not the
+cause: bf16 changed the retained peers in at most \PortBfMismatchMax{} of the
+\PortBfRowsM{} million query rows checked on any of the four GPUs, so the
+difference from fp32 is one of cost. TF32 sits between the two, at
+\PortTfOneLo{} to \PortTfOneHi{} at one retained peer off the Blackwell card
+(Appendix~\ref{app:portability}). What this says about mixed-precision training
+is limited by what we timed: the forward pass of the attention core in each
+format, not a bf16 backward pass or a training run. Within that scope, a
+score-then-select kernel of this design gives no latency gain over dense
+attention in bf16 on three of the four GPUs.
 
 \subsection{Q5: Selecting before scoring}
 \label{sec:prescore}
@@ -309,8 +330,9 @@ are dominated by per-kernel cost (Section~\ref{sec:smalln}).}
 
 \paragraph{The attention stage.} Once the retained set is known, the fused
 attention over it behaves as the accounting predicts: at two retained peers it
-costs $0.06$ times dense attention at $512$ agents, more than sixteen times
-faster, and its advantage grows with the agent count because the score term now shrinks with the aggregation (Figure~\ref{fig:prescore} in Appendix~\ref{app:prescore}). The ratio of medians is $0.064$ in that sweep but $0.18$ in the second, more contended one, and under CUDA-graph replay the same kernel over the exact top-$k$ set costs $0.07$ (Table~\ref{tab:fixedset}). The figure is a device time: the kernel runs for about ten microseconds, so an eager deployment whose
+costs $0.06$ times dense attention at $512$ agents on the Blackwell card, more
+than sixteen times faster (\PortPreAttnLo{} to \PortPreAttnHi{} times faster on
+the A100, H100 and H200), and its advantage grows with the agent count because the score term now shrinks with the aggregation (Figure~\ref{fig:prescore} in Appendix~\ref{app:prescore}). The ratio of medians is $0.064$ in that sweep but $0.18$ in the second, more contended one, and under CUDA-graph replay the same kernel over the exact top-$k$ set costs $0.07$ (Table~\ref{tab:fixedset}). The figure is a device time: the kernel runs for about ten microseconds, so an eager deployment whose
 host launch path is slower than that will not see it in full. Composed from
 library operators the same stage is slower than dense attention at every agent
 count and sparsity measured, and fusing it is worth a factor of $4$ to $17$
@@ -388,6 +410,10 @@ implementation. Among single-kernel paths the resident fused score-then-select k
 one retained peer is at parity at $12$ agents and $5$ to $15\%$ faster than
 dense from $24$ to $96$, and at two retained peers it is within $6\%$ of parity throughout;
 the fixed-set kernel, which issues two kernels, is slower than dense at $12$
-agents and faster from $48$. At realistic agent counts, then, the design
+agents and faster from $48$. The ordering by kernel count is not specific to the
+Blackwell card: on the A100, H100 and H200 the same median rank correlation is
+\PortSmallNRhoLaunchLo{} to \PortSmallNRhoLaunchHi{} for kernel count and at
+most \PortSmallNRhoFlopsHi{} for executed operations
+(Appendix~\ref{app:portability}). At realistic agent counts, then, the design
 question is how many kernels the communication step issues; whether it is
 sparse matters less.

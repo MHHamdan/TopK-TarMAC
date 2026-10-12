@@ -268,6 +268,24 @@ R = r"([\d.]+)"
 def macro(name: str) -> str:
     return streaming_macros()[name]
 
+def port_pre_attn(N: int = 512, k: int = 2) -> tuple[float, float]:
+    """Dense over fused pre-score attention (a speedup factor) on the GPUs of
+    results/portability/, at the setting the abstract quotes for Blackwell."""
+    v = []
+    for p in sorted((ROOT / "results" / "portability").glob("*/prescore.json")):
+        r = [x for x in json.loads(p.read_text())["rows"]
+             if x["selector"] == "morton_window" and x["n_agents"] == N
+             and x["k"] == k][0]
+        v.append(r["t_dense_best_ms"] / r["t_attention_fused_ms"])
+    return min(v), max(v)
+
+
+def bf16_k1_blackwell() -> tuple[float, float]:
+    from scripts.make_revision_tables import streaming_precision_macros
+    m = streaming_precision_macros()
+    return float(m["SPBfOneLo"]), float(m["SPBfOneHi"])
+
+
 MANIFEST: list[Number] = [
     # abstract
     Number("abs.thirty_seven", "00_abstract.tex", r"up to (\d+) times, because",
@@ -285,6 +303,14 @@ MANIFEST: list[Number] = [
     Number("abs.sixteen", "00_abstract.tex", r"up to (\d+) times\s+faster than dense",
            lambda: 1 / pre_attn("prescore.json", 512, 2), "x",
            "pre-score fused attention, N=512, k=2", "prescore.json", 0.06),
+    Number("abs.bf16_k1", "00_abstract.tex",
+           r"Blackwell card \(([\d.]+) to ([\d.]+) times dense\)",
+           bf16_k1_blackwell, "x", "streaming bf16 k=1, graph replay",
+           "streaming_precision.json", 0.02),
+    Number("abs.preattn_other_gpus", "00_abstract.tex",
+           r"Blackwell card and (\d+) to (\d+)\s+times on the others",
+           port_pre_attn, "x faster", "pre-score fused attention, N=512, k=2, "
+           "A100/H100/H200", "portability/*/prescore.json", 0.1),
     # introduction
     Number("intro.thirty_seven", "01_intro.tex", r"the gathered form by up to (thirty-seven) times",
            lambda: core_ratio("topk_gather", 512, 128), "x",

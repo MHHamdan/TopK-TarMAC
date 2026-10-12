@@ -17,8 +17,10 @@ implementation executes}: masking the discarded weights to zero leaves the
 dense multiplication in place, while gathering the retained values removes it
 and writes new intermediates instead. The third is \emph{what the hardware
 spends its time on}: at the agent counts and head widths of this setting,
-attention is memory-bound, so an implementation that removes arithmetic while
-adding data movement can become slower. We study centralised inference on a
+attention composed from library operators is memory-bound, so an implementation
+that removes arithmetic while adding data movement can become slower, and inside
+a fused kernel the comparisons of selection can cost more than the arithmetic
+they remove. We study centralised inference on a
 single device, the setting in which the methods we cite are trained and
 evaluated, and not bandwidth-constrained distributed deployment, where reducing
 transmitted messages is itself the objective.
@@ -38,18 +40,24 @@ before keeping the $k$ largest, at most half of the forward-pass attention
 multiply--accumulates are removable at any sparsity, a limit noted before in a
 memory-access model \citep{chen2023dfss}. Composed from library operators, such
 a rule is slower than dense attention at every agent count and sparsity we
-measure, the gathered form by up to thirty-seven times, because of memory
-traffic. Fused kernels that hold each query's score row on chip are faster only
-with one retained peer; a kernel that streams the selection through a running
-candidate set is faster with one or two in fp32 and close to parity with four,
-but in every kernel most of the time from $384$ agents upward is spent finding
-the retained set; in bf16, which accelerates the products and not the
-selection, only a single retained peer breaks even. Rules that \emph{select
-before scoring} escape the bound: attention over a pre-selected set is up to
-sixteen times faster than dense attention, and the selector then decides the
-outcome, with only the cheapest of three reaching parity, at $512$ agents. Below
-a hundred agents, where the methods we cite are evaluated, none of this governs
-latency: the number of kernels a communication step launches does.
+measure on four GPUs, the gathered form by up to thirty-seven times, because of
+memory traffic. Fused kernels that hold each query's score row on chip are
+faster with one retained peer, and with two in a single configuration. A kernel
+that streams the selection through a running candidate set is faster in fp32
+with one retained peer on all four GPUs; with two and four the outcome depends
+on the GPU, from faster with two and close to parity with four on the Blackwell
+card to slower with four on the A100, H100 and H200. In every kernel most of
+the time from $384$ agents upward is spent finding the retained set. In bf16,
+which accelerates the products and not the selection, the streaming kernel is
+near parity with one retained peer on the Blackwell card and slower than dense
+attention on the other three. Rules that \emph{select before scoring}
+escape the bound: attention over a pre-selected set is up to sixteen times
+faster than dense attention on the Blackwell card and \PortPreAttnLo{} to
+\PortPreAttnHi{} times on the other three, and the selector then decides the outcome, with
+only the cheapest of three reaching parity end to end, at $512$ agents and on
+the Blackwell card only. Below a hundred agents, where the methods we cite are
+evaluated, none of this governs latency on any of the four GPUs: the number of
+kernels a communication step launches does.
 
 \paragraph{Contributions.}
 \begin{itemize}
@@ -68,10 +76,17 @@ latency: the number of kernels a communication step launches does.
     that separates finding the retained peers from using them; and a checklist of
     eight errors that each produced a plausible but spurious result
     (Section~\ref{sec:checklist}).
-  \item A characterisation of when sparse attention is faster in this regime:
-    narrowly for score-then-select, and more broadly for selection before
-    scoring when the selector is cheap in absolute terms and the remaining
-    attention is fused (Sections~\ref{sec:fused}--\ref{sec:prescore}).
+  \item A characterisation, on four GPUs across three generations, of when
+    the arithmetic removed by exact top-$k$ attention between agents becomes
+    wall-clock time (Sections~\ref{sec:fused}--\ref{sec:smalln},
+    Appendix~\ref{app:portability}). The crossover is governed mainly by the
+    cost of selection, which takes most of a fused score-then-select kernel's
+    time, and it moves with the retained count, the numerical format and the
+    GPU: in fp32 one retained peer is faster than dense attention on every GPU
+    we measured, more than one only on some, and in bf16 one retained peer is at
+    best near parity, on the Blackwell card only.
+    Selection before scoring pays end to end only when the selector is cheap in
+    absolute terms, which we observed on one of the four GPUs.
 \end{itemize}
 
 \begin{figure}[t]

@@ -10,11 +10,15 @@ and in our fused kernels finding the retained set was most of the time. Check
 what the implementation executes: a masked implementation executes none of the
 counted saving. Check traffic before compacting, with $kd \le N$ as a necessary
 screen. Compare against the strongest dense kernel available for the format,
-including reduced precision, which in bf16 confined the score-then-select
-advantage to a single retained peer. Count kernels at small agent counts, where
+including reduced precision: in bf16 the score-then-select advantage was at
+best near parity at a single retained peer, and absent on three of the four
+GPUs. Count kernels at small agent counts, where
 the number launched orders latency. And keep attention-stage and end-to-end figures apart: a sixteenfold
-attention-stage speedup and a $2\%$ spread across implementations in a full
-training iteration are both true of this system.
+attention-stage speedup on the Blackwell card and a $2\%$ spread across
+implementations in a full training iteration are both true of this system.
+Finally, re-measure on the target GPU: on the three other GPUs we measured, the
+streaming kernel's crossover in fp32 and bf16 and the pre-score crossover were
+narrower than on the Blackwell card.
 
 \subsection{A checklist for benchmarking small kernels}
 \label{sec:checklist}
@@ -104,7 +108,9 @@ The resident kernel's one-peer crossover is the same on all four, and the
 streaming and pre-score crossovers are narrower on the other three than on the
 Blackwell card, so those in the main text are best cases across the devices we
 measured. We did not measure CPUs or non-NVIDIA accelerators. Both cards were shared
-with other tenants throughout, and clocks could not be locked; every claim except the tiling search's efficiency figures is therefore a ratio between implementations timed in the same interleaved sweep, and below $192$ agents only the CUDA-graph device times of Section~\ref{sec:smalln} are used. Timing a single call with
+with other tenants throughout, and clocks could not be locked; every claim except the tiling search's efficiency figures is therefore a ratio between implementations timed in the same interleaved sweep, and below $192$ agents only the CUDA-graph device times of Section~\ref{sec:smalln} are used. The A100, H100 and H200 were each allocated exclusively; the orderings that
+recur on them (Appendix~\ref{app:portability}) are therefore not artefacts of
+contention on the Blackwell card. Timing a single call with
 device events measures host launch latency whenever the host is slower than the
 kernel; our kernels run for $5$ to $140$\,\textmu s, and during the fixed-set
 sweep the host launch path was slow enough that the eager figure for the fixed-set kernel was $1.7$ to $3.4$ times its graph-replay figure. The score-then-select
@@ -118,12 +124,17 @@ weakly supported. The streaming kernel removes that constraint and moved the
 boundary from one retained peer to between two and four; it was searched at head
 widths $16$ and $32$ only, and its merge is a sequence of comparisons that a
 better selection network might shorten, so the boundary may move further. It
-cannot move past the score product, about half of dense attention. Its retained
+cannot move past the score product, about half of dense attention. The composed
+baseline's selection is \texttt{torch.topk} as PyTorch 2.11 implements it; we did
+not benchmark other exact top-$k$ designs, such as sample-guided or other radix
+selections, nor amortised or cross-layer indexers. Attention over a given set
+(Table~\ref{tab:fixedset}) bounds what any of them could recover. Its retained
 count is a compile-time constant and $N$ is uniform within a launch, so a
 captured CUDA graph serves one $(B, N, k)$; per-row $k$ or ragged agent counts
 would need a length argument per row, which we have not written. We did not
 measure how the retained-set changes of reduced precision affect training: in
-the formats and configurations we report, bf16 changed no retained set and TF32
+the formats and configurations we report, bf16 changed the retained peers in at
+most \PortBfMismatchMax{} of \PortBfRowsM{} million rows on any GPU, and TF32
 configurations that changed more than $0.1\%$ of rows are excluded. The pre-score selectors attend to a
 different peer set than top-$k$ does, so their comparison is of cost; the one
 quality check, Z-order in the learning study (Appendix~\ref{sec:training}), is

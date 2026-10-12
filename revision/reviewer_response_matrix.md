@@ -432,71 +432,120 @@ fused sparse kernel is still faster than the best dense implementation.
 
 ## TMLR review, 2026-10-09 (minor revision)
 
-### Single GPU architecture; portability to A100/H100 (weakness 1, Q1)
+Locations name sections and appendix subsections of
+`paper_submission_revision/main.pdf`. "Measured" marks a new experiment;
+"analytic" marks a response that is argued, not measured.
 
-- **Action.** Repeat the headline measurements on three further devices.
-- **New experiment.** `scripts/run_portability_campaign.sh` on an A100-SXM4-40GB
-  (sm_80), an H100 80GB HBM3 SXM (sm_90) and an H200 141GB (sm_90), each one GPU
-  allocated exclusively, every tiling searched again on the device; device
-  description (SKU, memory, clocks, power limit, driver) in
-  `results/portability/<gpu>/device.csv` and `nvidia_smi_q.txt`.
-- **Location.** Appendix "Other GPU generations" (Tables portability, portbatch);
-  one sentence each in Setup, Q3, Q4, Q5; abstract; limitations.
-- **Result.** The ordering holds on all four. Composed path ≥6.6× dense
-  everywhere; finding the set is 91–97% of fused time. The streaming kernel's
-  window narrows off Blackwell: k=1 0.56–0.68, k=2 0.76–1.13, k=4 1.03–1.50;
-  bf16 k=1 1.03–1.52, so it never breaks even in bf16. The Z-order pre-score
-  crossing at N=512 does not reproduce (1.12–1.45 against 0.85).
-- **Remaining limitation.** No CPU or non-NVIDIA accelerator. The A100 uses the
-  cluster's own torch 2.11/triton 3.6 build against CUDA 12.9.
+### W1 / Q1. Single GPU architecture; portability to A100/H100
 
-### Sensitivity to batch and multi-head packing (Q2)
+- **Response.** Measured. The headline sweeps were repeated on an A100-SXM4-40GB
+  (sm_80), an H100 80GB HBM3 SXM (sm_90) and an H200 (sm_90), one GPU allocated
+  exclusively per job, every tiling searched again on that GPU
+  (`scripts/run_portability_campaign.sh`). Device SKU, memory, clocks, power
+  limit and driver: `results/portability/<gpu>/device.csv`, `nvidia_smi_q.txt`;
+  the Blackwell card is the RTX PRO 6000 Blackwell Server Edition (HARDWARE.md).
+- **Location.** Appendix "Other GPU generations" (Table "headline quantities on
+  four NVIDIA GPUs"); abstract; Introduction (Findings, Contributions); Section 4
+  Setup, Q3 ("Streaming the selection"), Q4 ("bf16 on four GPUs"), Q5 ("The
+  attention stage", end-to-end paragraph), Q6; Discussion (takeaways,
+  Limitations).
+- **Evidence.** Replicates on all four: composed gathered path slower than dense
+  everywhere (≥6.6×); finding the set is 88–97% of fused time from N=384; both
+  fused kernels faster than dense at k=1 in fp32; kernel count orders latency at
+  N≤96 (ρ 0.91–0.95 vs ≤0.10 for operations). Does not replicate: streaming at
+  k=2 is faster everywhere on Blackwell and A100 but at 7 of 8 configurations on
+  H100/H200; at k=4 it is slower on all three non-Blackwell GPUs (1.03–1.50);
+  bf16 k=1 is slower than dense on all three (1.03–1.52); the Z-order end-to-end
+  crossing (0.85 on Blackwell) becomes 1.12–1.45.
+- **Limitation.** No CPU or non-NVIDIA accelerator. The A100 runs the cluster's
+  PyTorch 2.11 / Triton 3.6 build against CUDA 12.9 (12.8 elsewhere). We do not
+  attribute the cross-GPU differences to a single hardware feature.
 
-- **Action.** Batch sweep with both kernels searched per batch.
-- **New experiment.** B ∈ {32, 256, 1024, 4096} on A100, H100, H200. Heads are
-  independent, so H heads over batch B is the same launch as batch BH.
-- **Result.** From B=256 upward the threshold does not move (k=1 0.57–0.65,
-  k=2 0.83–0.96). At B=32 the k=1 ratio widens to 0.60–1.17. Packing heads
-  cannot widen the window; it only restores a small batch to the large-batch
-  ratio.
+### Q2. Sensitivity of the fp32 crossover to batch and multi-head packing
 
-### CUDA-graph capture of the streaming kernel under ragged N or per-row k (Q3)
+- **Response.** Measured, on A100, H100, H200; B ∈ {32, 256, 1024, 4096}, both
+  kernels searched per batch. Heads are independent, so H heads over batch B is
+  one launch over batch BH; the batch sweep is the packing sweep.
+- **Location.** Appendix "Other GPU generations", paragraph "Batch and heads"
+  and Table "streaming ... as the batch varies".
+- **Evidence.** Over 256–4096 the window does not widen (k=1 0.57–0.65, k=2
+  0.83–0.96). At B=32 the result is less favourable and less uniform (k=1
+  0.60–1.17; k=2 no longer faster at every N).
+- **Limitation.** Not measured on the Blackwell card above B=1024; packing was
+  not measured as a separate multi-head kernel, only through the equivalence
+  to batch.
 
-- **Action.** State it; no new code.
-- **Result.** Captured and replayed at fixed (B, N, k) in every graph-mode
-  sweep. k is a compile-time constant and N uniform per launch, so per-row k and
-  ragged N are not supported; added to limitations.
+### Q3. CUDA-graph capture of the streaming kernel under ragged N or per-row k
 
-### Hardware-counter evidence for the byte argument (weakness 3, Q4)
+- **Response.** Partly measured, partly analytic. Measured: the streaming kernel
+  is captured and replayed at fixed (B, N, k) in every graph-mode sweep on all
+  four GPUs. Analytic: k is a compile-time constant and N uniform per launch, so
+  per-row k and ragged N are unsupported; we did not implement or measure them,
+  and make no claim about their small-N latency.
+- **Location.** Discussion, Limitations ("Its retained count is a compile-time
+  constant ...").
 
-- **New experiment.** `scripts/ncu_counters.py`: Nsight Compute counters for
-  every kernel each implementation launches, on H100 and H200 (narval's A100
-  nodes do not expose counters to users).
-- **Result.** At N=512, k=4 the composed path moves 4.4 GB in 27 kernels against
-  28 MB for tuned dense; 17 of those kernels are torch.topk's multi-block radix
-  select (four passes over the score matrix, 81–82% of the path's time). The
-  fused and streaming kernels move about as many bytes as dense and reach
-  0.9–1.6% of peak DRAM throughput against 52–60% of peak SM throughput.
+### W3 / Q4. Hardware-counter evidence for the byte argument
 
-### Modern exact top-k / amortized indexers (Q5, missing comparisons)
+- **Response.** Measured (`scripts/ncu_counters.py`) on H100 and H200; the A100
+  cluster's nodes do not expose counters to users.
+- **Location.** Appendix "Other GPU generations", paragraph "Hardware
+  counters"; Section 3 "Byte criterion" (last sentences).
+- **Evidence.** At N=512, k=4: the composed path moves 4.4 GB in 27 kernels
+  against 28 MB for tuned dense; 17 kernels are torch.topk's multi-block radix
+  selection (4 passes), 69% of the bytes and 81–82% of the time. The fused and
+  streaming kernels reach 0.9–1.6% of peak DRAM throughput and 52–60% of peak SM
+  throughput at 18–22% achieved occupancy; the fixed-set kernels take 4.1–4.8%
+  of the streaming kernel's time.
+- **What it does and does not show.** It shows the fused kernels are not
+  bandwidth-bound and that selection dominates their time. It does not show
+  them compute-bound in the sense of saturating a unit, and the manuscript says
+  so. It also shows the byte criterion is necessary but not sufficient, since
+  library top-k reads the scores several times; Section 3 now says this.
+- **Limitation.** Counters at one shape (and 44 others in the artifact), under
+  ncu's cold-cache, base-clock replay.
 
-- **Action.** Partly answered by the counters: the composed baseline already is
-  a production radix-select top-k (PyTorch's multi-block radix kernel).
-- **Remaining limitation.** Sample-guided exact top-k and amortised or
-  cross-layer indexers are not benchmarked; the fixed-set split bounds what any
-  selector can gain (attention over the given set is 0.04–0.82× dense for k = 1–32,
-  N ≥ 192, on A100, H100 and H200), which is the most such a selector could
-  recover.
+### Q5. Modern exact top-k kernels; amortised indexers
 
-### bf16/TF32 retained-set deviations and training (Q6)
+- **Response.** Partly measured. The composed baseline is PyTorch's exact
+  torch.topk in the evaluated version, which the counters show is a multi-block
+  radix selection; the manuscript describes it as such and not as the fastest
+  exact selection possible. The fixed-set split bounds what any faster selector
+  could recover: attention over a given set is 0.04–1.02× dense for k = 1–32
+  and N ≥ 192 across the four GPUs.
+- **Location.** Appendix "Other GPU generations" ("Hardware counters"); Section
+  4 Q3 (Table "One retained set, reached two ways").
+- **Limitation.** Sample-guided exact top-k, other radix-fused designs and
+  amortised or cross-layer indexers are not benchmarked.
 
-- **Result.** In the reported configurations bf16 changed no retained set; TF32
-  configurations changing more than 0.1% of rows are excluded. The effect on
-  training is not measured; stated in limitations.
+### Q6. Effect of bf16/TF32 retained-set deviations on training
 
-### int32 indices in the byte criterion (Q7)
+- **Response.** Not measured. We measured the deviations, not their effect on
+  training: bf16 changed the retained peers in at most 6 of 10 million query
+  rows checked on any GPU (none on Blackwell); TF32 configurations changing more
+  than 0.1% of rows are excluded.
+- **Location.** Section 4 Q4 ("bf16 on four GPUs"); Discussion, Limitations
+  ("We did not measure how the retained-set changes ... affect training").
 
-- **Action.** Analytic, added to the byte-criterion paragraph.
-- **Result.** int32 halves the index term: k(d+2) ≤ N exactly, kd ≤ N at leading
-  order unchanged. The composed path cannot use int32 (PyTorch's gather takes
-  int64); the fused kernels never write indices.
+### Q7. int32 indices and other dtypes in the byte criterion
+
+- **Response.** Analytic. int32 halves the index term: k(d+2) ≤ N exactly;
+  narrower value formats raise the index term's relative weight; kd ≤ N at
+  leading order is unchanged. The composed path cannot use int32 indices
+  (PyTorch's gather takes int64); the fused kernels never write indices.
+- **Location.** Section 3, "Byte criterion".
+- **Limitation.** Not measured.
+
+### W2. Single-round, single-head; backward via dense autograd
+
+- **Response.** Unchanged and stated. Multi-head is covered for latency through
+  the batch equivalence above; the backward pass is measured for composed paths
+  only (fused kernels are forward-only).
+- **Location.** Discussion, Limitations; Appendix "Backward pass and training
+  throughput".
+
+### Missing related work / production sparse kernels
+
+- **Response.** FlexAttention is the production sparse path compared (Section
+  4 Q4). No additional library comparison was added in this revision.
+- **Limitation.** Stated in Limitations.

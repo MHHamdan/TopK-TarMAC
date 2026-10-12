@@ -3,10 +3,13 @@ communication becomes a saving in time, and answered by charging every
 peer-selection rule for the cost of deciding. A rule that ranks scores must form
 all of them, so at most half of the forward-pass multiply--accumulates are
 removable; composed from library operators it is slower than dense attention
-everywhere we measure, and fused it pays only at one or two retained peers,
-because finding the retained set takes most of its time. Selecting before
-scoring is where the saving can become real, and the selector then decides the
-outcome. At the agent counts multi-agent methods use, the number of kernels a
-step launches decides latency before either. A speedup claimed for sparse
+everywhere we measure, on four GPUs. Fused, it pays in fp32 with one retained
+peer on every GPU we measured and with two on some, and in bf16 it is at best
+near parity, because finding the retained set takes most of its time; where the
+crossover falls depends on the retained count, the format and the GPU. Selecting
+before scoring is where the saving can become real, and the selector then
+decides the outcome; end to end, it did so on one of the four GPUs. At the
+agent counts multi-agent methods use, the number of kernels a step launches
+decides latency before either. A speedup claimed for sparse
 communication therefore has to be measured, on the kernel that runs and against
 the strongest dense baseline for the format.

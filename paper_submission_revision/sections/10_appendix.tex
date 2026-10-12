@@ -380,7 +380,10 @@ whichever one a given sweep happened to build.
 The environment is one NVIDIA RTX PRO 6000 Blackwell GPU
 (\texttt{sm\_120}) in a shared multi-GPU x86\_64 server, under PyTorch $2.11$
 with CUDA $12.8$ and Triton $3.6$; the driver version and the full software
-environment are recorded in the supplementary archive. Every latency outside the precision study of
+environment are recorded in the supplementary archive. The repetition on an
+A100, an H100 and an H200 (Appendix~\ref{app:portability}) uses the same
+protocol, with each GPU's device description, driver and software build recorded
+beside its results. Every latency outside the precision study of
 Section~\ref{sec:precision} is \texttt{fp32}, timed with CUDA events
 around a single call, interleaved implementation by implementation and
 repetition by repetition, with $20$ warm-up repetitions discarded, $40$ to $60$
