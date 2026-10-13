@@ -62,7 +62,10 @@ EOF2
 # Refuse to ship anything that identifies the authors.
 PAT='mhamdan|Hamdan|mh2022ets|github\.com/[A-Za-z0-9_-]+/TopK|hamdan2026'
 if [[ -n "${IDENT_PATTERNS:-}" ]]; then PAT="$PAT|$IDENT_PATTERNS"; fi
-if grep -rIlE "$PAT" "$OUT"; then
+# Two deliberate exceptions: a third-person citation of prior work (the cited
+# paper's author list) and the anonymised code URL (github.com/XXX/...).
+ALLOW='Cheriet|github\.com/XXX/'
+if grep -rIHnE "$PAT" "$OUT" | grep -vE "$ALLOW" | cut -d: -f1 | sort -u | grep .; then
   echo "identifying strings remain in the files above; archive not built" >&2
   exit 1
 fi

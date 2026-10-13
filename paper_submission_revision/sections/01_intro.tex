@@ -22,8 +22,9 @@ that removes arithmetic while adding data movement can become slower, and inside
 a fused kernel the comparisons of selection can cost more than the arithmetic
 they remove. We study centralised inference on a
 single device, the setting in which the methods we cite are trained and
-evaluated, and not bandwidth-constrained distributed deployment, where reducing
-transmitted messages is itself the objective.
+evaluated, and not bandwidth-constrained distributed deployment, such as
+multi-agent orchestration across edge devices \citep{marliotp2026}, where
+reducing transmitted messages is itself the objective.
 
 The object of the paper is that accounting rather than any one mechanism. Most
 multi-agent methods that restrict communication choose peers before scoring
@@ -112,8 +113,10 @@ checked against, the resulting artifacts.}
 \label{fig:methodology}
 \end{figure}
 
-We release the kernels, the harness and the scripts that regenerate every table
-and figure and check the quoted numbers. A pre-registered training study
+The kernels, the harness and the scripts that regenerate every table and figure
+and check the quoted numbers are at
+\url{https://github.com/XXX/TopK-TarMAC}, anonymised for review; we will make
+the repository public after review, for reproducibility. A pre-registered training study
 (Appendix~\ref{app:training}) shows that the communicating architecture improves
 return under the evaluated setup; it is not powered to rank sparsification
 variants, and no claim in the main text rests on it. The measured envelope is
