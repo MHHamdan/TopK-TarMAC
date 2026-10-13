@@ -17,7 +17,7 @@ four GPUs, at head widths 16 and 32 and a batch of 256. With two it is faster on
 A100 and in most configurations on the H100 and H200, and with four it is within 15\% of parity on the
 Blackwell card and slower on the rest. From 384 agents upward at least 85\% of
 its time goes to finding the retained set, that is, to forming and ranking every
-score, of which only the ranking can grow with the retained count. In bf16 the same kernel is near parity with one retained peer on the
+score; only the ranking can grow with the retained count. In bf16 the same kernel is near parity with one retained peer on the
 Blackwell card (0.85 to 1.06 times dense) and slower than dense attention on the
 other three. Rules that select peers before scoring them escape the ceiling, to
 the extent that their selector is cheap. Once the set is known, attention over
@@ -26,4 +26,4 @@ Blackwell card and 4 to 7 times on the others; end to end, however, only the
 selector that is cheapest at that size reaches parity, at 512 agents, on best-case timings
 and on the Blackwell card only. Below 100 agents, where multi-agent methods are
 usually evaluated, device time on all four GPUs follows the number of kernels a
-step launches and not its operation count.
+step issues more closely than its operation count.

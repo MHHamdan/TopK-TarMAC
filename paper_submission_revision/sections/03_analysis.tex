@@ -1,6 +1,6 @@
-The bounds below are simple. Their use is to put score-then-select, selectors
-that act before scoring and fixed patterns on one axis, the cost of deciding
-what to keep, and to give checks a designer can apply before writing a kernel.
+The bounds below are simple. They place score-then-select, selectors that act
+before scoring and fixed patterns on a single axis, the cost of deciding what to
+keep, and they give checks a designer can apply before writing a kernel.
 Sections~\ref{sec:setting}--\ref{sec:ceiling} bound what sparsity can remove,
 Section~\ref{sec:escape} charges the selector, and Section~\ref{sec:roofline}
 gives a screen for whether a reduction can become time.
@@ -15,9 +15,9 @@ $s_i = q_i K^\top \in \mathbb{R}^N$ for the score vector and
 $a_i = \mathrm{softmax}(s_i)$, so that dense attention computes $m_i = a_i V$. A
 top-$k$ variant keeps the $k$ largest entries of $a_i$ and renormalises over
 them. We call a rule that forms the complete score vector and then keeps its
-$k$ largest entries \emph{score-then-select}. Every analytic claim below
-concerns that class, not content-dependent selection in general, and
-Section~\ref{sec:escape} draws the boundary.
+$k$ largest entries \emph{score-then-select}. The ceiling of
+Section~\ref{sec:ceiling} concerns that class only, not content-dependent
+selection in general; Section~\ref{sec:escape} treats selection before scoring.
 
 Attention has two matrix products of equal size: one produces the pairwise
 scores and the other aggregates the values. Restricting the retained set shrinks
@@ -170,7 +170,7 @@ indexer of DeepSeek Sparse Attention is a large-scale instance of
 case~(b): it scores every query--key pair with a cheaper function, and its
 authors note that it remains quadratic \citep{deepseek2025v32}. The asymptotic
 classes do not depend on the unit convention; the constants in the closed forms of
-Section~\ref{sec:prescore} do. Proofs are in Appendix~\ref{app:theory}.
+Appendix~\ref{app:closedforms} do. Proofs are in Appendix~\ref{app:theory}.
 
 \subsection{Why the count need not govern the time}
 \label{sec:roofline}

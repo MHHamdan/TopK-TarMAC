@@ -274,7 +274,7 @@ $N \ge 192$ and every $k$ measured, forward pass and backward pass.
 plus attention (Table~\ref{tab:selectors}). Lower block: share of the fused
 kernel's time not accounted for by attending over the set, from $384$ agents up;
 and, at $N \le 96$ (Table~\ref{tab:smalln}), the median rank correlation $\rho$
-of device time with kernel count and with executed operations. Ranges are
+of device time with kernel count and with modelled executed operations. Ranges are
 minimum to maximum over those configurations. Every entry is computed by the function that computes
 the corresponding main-text quantity (\texttt{scripts/summarise\_portability.py}).
 Software: PyTorch 2.11 and Triton 3.6 on all four, built against CUDA 12.8
@@ -308,10 +308,10 @@ and~\ref{tab:streaming}). In fp32 both fused
 kernels are faster than dense attention at one retained peer at every
 configuration, and the resident kernel is faster at two in one configuration
 only, the same one on every GPU. Below a hundred agents kernel count orders
-latency and executed operations do not (median rank correlations with kernel
+latency and modelled executed operations do not (median rank correlations with kernel
 count of \PortSmallNRhoLaunchLo{} to \PortSmallNRhoLaunchHi{} on these three and
 \SmallNRhoLaunch{} on the Blackwell card, against at most
-\PortSmallNRhoFlopsHi{} with executed operations). Attention over a set chosen before scoring stays far
+\PortSmallNRhoFlopsHi{} with modelled executed operations). Attention over a set chosen before scoring stays far
 cheaper than dense attention.
 
 \paragraph{What does not.} The crossovers of the streaming kernel beyond one

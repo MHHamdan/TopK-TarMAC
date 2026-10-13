@@ -23,7 +23,7 @@ memory-bound, so an implementation that removes arithmetic while adding data
 movement can become slower, and inside a fused kernel the comparisons of
 selection can cost more than the arithmetic they remove.
 
-These quantities matter more in multi-agent communication than in the
+These quantities are harder to amortise in multi-agent communication than in the
 long-sequence attention where sparse attention is usually studied. A
 communication step is a batch of many small attention problems, with tens to
 hundreds of agents and narrow heads, so there is little skipped work per query
@@ -39,8 +39,8 @@ communication holds at those sizes, and how far above them it begins to.
 
 We introduce \emph{SCALE} (Selector-Cost Accounting for Latency Evaluation), an
 accounting that charges every peer-selection rule for the cost of deciding what
-to keep (Section~\ref{sec:analysis}). It bounds the first and third quantities
-analytically and gives a screen for the fourth that can be applied before any
+to keep (Section~\ref{sec:analysis}). It bounds the first quantity analytically,
+makes the third an explicit term, and gives a screen for the fourth that can be applied before any
 kernel is written. The experiments measure the second and fourth and test the
 bounds on the first and third.
 
@@ -48,8 +48,8 @@ Most multi-agent methods that restrict communication choose peers before
 scoring them, from positions, per-agent gates or a separate network
 (Section~\ref{sec:related}). \emph{Score-then-select}, which ranks the attention
 scores themselves, is uncommon in this literature, and the cost argument made for
-it is a reduction in complexity \citep{sun2020sparsecomm}, so no measured speedup
-is at issue. In SCALE it is the limiting case, the rule whose decision
+it is a reduction in complexity \citep{sun2020sparsecomm}; no measured speedup
+has been claimed for it. In SCALE it is the limiting case, the rule whose decision
 requires every score.
 
 The evidence comes from three comparisons (Figure~\ref{fig:methodology}).
@@ -60,7 +60,8 @@ separates finding the retained peers from attending over them. Three selectors
 that choose peers before scoring, spanning the non-trivial classes of the
 accounting,
 test the case in which the score term itself can shrink. The headline
-measurements are repeated on four NVIDIA GPUs from three generations.
+measurements are repeated on three further NVIDIA GPUs, four in all across three
+generations.
 
 \paragraph{Summary of findings.} Under the assumptions of Proposition~\ref{prop:ceiling}, a score-then-select
 rule can remove at most half of the forward-pass attention
@@ -75,12 +76,12 @@ on some, depending on the kernel and the GPU. From $384$ agents upward most of
 their time goes to finding the retained set. In bf16, which accelerates the
 matrix products but not the comparisons of selection, the fused kernel that
 streams the selection is at most near parity, and only on one GPU. Rules that select before scoring escape the bound,
-and attention over a pre-selected set is several times faster than dense
+and attention over a set chosen before scoring is several times faster than dense
 attention on every GPU we measured, but the whole path pays only if the selector
 is cheap in absolute terms; in our measurements one selector reached parity,
-on best-case timings, on one GPU and at the largest agent count. Below a hundred agents, where the
-methods we cite are evaluated, device time follows the number of kernels a
-communication step launches more closely than its operation count.
+on best-case timings, on one GPU and at the largest agent count. Below a hundred agents, where most of
+the methods we cite are evaluated, device time follows the number of kernels a
+communication step issues more closely than its operation count.
 Section~\ref{sec:measurement} gives the numbers and the conditions under which
 each holds.
 
@@ -136,7 +137,7 @@ and check the quoted numbers are at
 the repository public after review.
 
 A training study
-(Appendix~\ref{app:training}) shows, through two descriptive positive controls,
+(Appendix~\ref{sec:training}) shows, through two descriptive positive controls,
 that the communicating architecture improves return under the evaluated setup;
 its pre-registered comparisons between sparsification variants are
 under-powered nulls, and no claim in the main text rests on it. The measured

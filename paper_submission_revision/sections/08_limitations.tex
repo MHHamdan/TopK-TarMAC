@@ -1,9 +1,7 @@
 \subsection{Implications for designing sparse communication}
 \label{sec:takeaways}
 
-The measurements locate the cost of sparse communication in deciding which
-interactions to keep, a quantity an operation count leaves out. The practices
-below follow from them, and each holds inside the measured envelope
+The practices below follow from the measurements, and each holds inside the measured envelope
 (Section~\ref{sec:limits}).
 
 \begin{itemize}
@@ -21,8 +19,9 @@ below follow from them, and each holds inside the measured envelope
     composed path was slower on both sides of it (Table~\ref{tab:headline},
     Figure~\ref{fig:ksweep}).
   \item \textbf{Compare against the strongest dense kernel for the format.} In
-    bf16 the score-then-select advantage was at best near parity at a single
-    retained peer, and absent on three of the four GPUs
+    bf16 the streaming score-then-select kernel at best reached near parity at a
+    single retained peer, on the Blackwell card, and was slower on the other
+    three GPUs
     (Section~\ref{sec:precision}).
   \item \textbf{Count kernels at small agent counts.} Below a hundred agents,
     device time tracked the number of kernels launched more closely than the
@@ -30,7 +29,8 @@ below follow from them, and each holds inside the measured envelope
   \item \textbf{Keep attention-stage and end-to-end figures apart.} A sixteenfold
     attention-stage speedup at $512$ agents on the Blackwell card and a $2\%$
     spread across implementations in a full training iteration at six to
-    twenty-four agents are both true of this system
+    twenty-four agents were measured on the same system, and neither predicts
+    the other
     (Sections~\ref{sec:prescore} and~\ref{sec:latency}).
   \item \textbf{Re-measure on the target GPU.} On the three other GPUs we
     measured, the streaming kernel's crossover in fp32 and bf16 and the
@@ -68,11 +68,12 @@ devices we measured. We did not measure CPUs or non-NVIDIA accelerators.
 
 \paragraph{Timing.} Both Blackwell cards of the host, used for the main sweep
 and the fixed-set sweep, were shared with other tenants throughout, and their
-clocks could not be locked. Every comparative claim is therefore a ratio between
+clocks could not be locked. Every comparative claim except the tiling search's efficiency figures is
+therefore a ratio between
 implementations timed in the same interleaved sweep, and below $192$ agents only
 the CUDA-graph device times of Section~\ref{sec:smalln} are used. The A100, H100
 and H200 were each allocated exclusively, so the orderings that recur on them
-(Appendix~\ref{app:portability}) are not artefacts of contention on the
+(Appendix~\ref{app:portability}) are not artifacts of contention on the
 Blackwell card. Timing a single call with device events measures host launch
 latency whenever the host is slower than the kernel. Our kernels run for $5$ to
 $140$\,\textmu s, and during the fixed-set sweep the host launch path was slow
@@ -90,13 +91,13 @@ network might shorten, so the boundary may move further; it cannot move past the
 score product, about half of dense attention. The composed baseline's selection
 is \texttt{torch.topk} as PyTorch 2.11 implements it. We did not benchmark other
 exact top-$k$ designs, such as sample-guided or other radix selections, nor
-amortised or cross-layer indexers; attention over a given set
+amortised or cross-layer indexers; attention over a fixed set
 (Table~\ref{tab:fixedset}) bounds what any of them could recover. The retained
 count is a compile-time constant and $N$ is uniform within a launch, so a
 captured CUDA graph serves one $(B, N, k)$; per-row $k$ or ragged agent counts
 would need a length argument per row, which we have not written.
 
-\paragraph{Selectors and learning.} We did not measure how changes to the
+\paragraph{Retained-set fidelity and learning.} We did not measure how changes to the
 retained set under reduced precision affect training. In the formats and configurations
 we report, bf16 changed the retained peers in at most \PortBfMismatchMax{} of
 \PortBfRowsM{} million rows on any GPU, and TF32 configurations that changed

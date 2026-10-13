@@ -3,13 +3,13 @@ communication becomes a saving in time, and used SCALE to charge every
 peer-selection rule for the cost of deciding what to keep. A rule that ranks
 attention scores must form all of them, so it can remove at most half of the
 forward-pass multiply--accumulates. On the four GPUs measured it paid only as a
-fused kernel retaining very few peers, in fp32; in bf16 it was at best near
+fused kernel retaining very few peers, in fp32 and, on some GPUs, TF32; in bf16 it was at best near
 parity, consistent with reduced precision accelerating the products but not
 the comparisons of selection. A rule that selects before scoring can do
 better, but only when its selector is cheap: end to end, the selector that was
 cheapest at that size reached parity at $512$ agents on best-case timings, on one of the four GPUs. Below a hundred
-agents, device time tracked the number of kernels a step launched more closely
-than either mechanism. Section~\ref{sec:takeaways} lists the practical consequences.
+agents, under either mechanism, device time tracked the number of kernels a
+step launched more closely than its operation count. Section~\ref{sec:takeaways} lists the practical consequences.
 
 These results concern the cost of sparse communication on one device; its value
 for learning, or for bandwidth-limited deployment, is outside their scope. On

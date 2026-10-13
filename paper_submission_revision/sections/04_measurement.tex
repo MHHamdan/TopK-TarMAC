@@ -36,7 +36,8 @@ ratios of per-implementation medians or medians of per-repetition paired ratios.
 \paragraph{Sensitivity to the statistic.} We recomputed every comparison at
 $192$ agents and above from the medians of the same samples. This changes which
 implementation is faster at one of $24$ configurations in the main sweep, and
-reverses the end-to-end pre-score result of Section~\ref{sec:prescore} in one of
+reverses the end-to-end result for selecting before scoring (the \emph{pre-score}
+path) of Section~\ref{sec:prescore} in one of
 its two sweeps. The first case is the fused kernel at one retained peer, $384$
 agents and $d{=}16$, where one of the three runs carried heavy contention.
 Re-timed under CUDA-graph replay in three further sessions, it is faster than
@@ -106,7 +107,7 @@ the gathered path is $18.4$ times the fused dense path on the forward pass and
 $6.2$ times on forward and backward, since selection has almost no adjoint (the
 baseline here is the library's fused kernel, which autograd can differentiate;
 against our tuned kernel the forward ratio is the thirty-seven above). In a
-complete MAPPO iteration at six to twenty-four agents, the environment and
+complete MAPPO \citep{yu2022mappo} iteration at six to twenty-four agents, the environment and
 per-step action selection take $78$ to $96\%$ of the time, and all
 implementations are within $2\%$ of one another (Appendix~\ref{app:backward}).
 In that pipeline neither the attention stage's speedups nor its slowdowns are
@@ -135,7 +136,7 @@ kernel need not create. We wrote fused kernels that hold each query's score row
 on chip and never write a score matrix, an index tensor or a gathered value
 tensor to memory. At $512$ agents retaining a single peer, the composed sparse
 path costs $4.62$\,ms and the fused one $0.139$\,ms. That factor of $33$ comes
-from the implementation, since the algorithm is unchanged, and the fused path is then faster
+from the implementation, since the algorithm is unchanged. The fused path is then faster
 than the best dense implementation (Figure~\ref{fig:ksweep}). The $k{=}1$ case
 is degenerate as attention, since a softmax over one element is identically one
 and the mechanism reduces to copying the highest-scoring peer's value; the
@@ -191,7 +192,7 @@ ranking them, which the proposition does not count. The comparison does not
 separate those two parts, but only the ranking grows with $k$. Finding the same
 set with library operators instead, a score product followed by
 \texttt{torch.topk}, costs $8$ to $27$ times dense attention on its own at
-$d{=}16$. This sweep ran on the other card of the host from the main sweep, and
+$d{=}16$. This sweep ran on the host's second Blackwell card, and
 the fused kernel's ratios reproduce it ($0.77$, $1.27$ and $1.93$ against
 $0.81$, $1.27$ and $1.96$ at $d{=}16$, $N{=}512$, $k \in \{1,2,4\}$).
 
@@ -290,8 +291,8 @@ In fp32, dense efficiency and head width move together, so the fp32 data alone
 could not say whether the resident kernel's crossover is confined to narrow
 heads because of the head width or because dense attention runs far from the
 machine at those widths (Appendix~\ref{app:selection}). At a fixed head width,
-raising the efficiency of dense attention removes the crossover from $384$
-agents upward, which favours
+raising the efficiency of dense attention removes the resident kernel's
+crossover from $384$ agents upward, which favours
 the second reading. The test is not perfectly controlled, since reduced
 precision also accelerates the sparse kernel's score product.
 
@@ -341,8 +342,6 @@ latency gain over dense attention in bf16 on three of the four GPUs.
 
 \subsection{Selecting before scoring}
 \label{sec:prescore}
-
-We call a path that selects before scoring a \emph{pre-score} path.
 
 We test the escape case of SCALE, Proposition~\ref{prop:escape}, with three
 selectors that span cases (b) to (d) of Corollary~\ref{cor:taxonomy}; the first
@@ -399,7 +398,8 @@ runs for about ten microseconds, and an eager deployment whose host launch path
 is slower than that will not see the full gain.
 
 \paragraph{End to end.} The end-to-end comparison is at four retained peers
-(Table~\ref{tab:selectors}). The all-pairs selector, whose class is capped at a
+(Table~\ref{tab:selectors}) and was run in two interleaved sweeps; the second
+adds the grid selector and FlexAttention. The all-pairs selector, whose class is capped at a
 constant, is the most expensive at $512$ agents, by more than its operation
 count implies; the order of the other two is set by constants rather than by
 class, and at $192$ agents the grid path is slower than the all-pairs one. The all-pairs selector's cost grows quadratically, from $0.32$ to
@@ -432,7 +432,10 @@ Z-order path costs \PortZorderTotalLo{} to \PortZorderTotalHi{}
 conditions, a selector that is cheap in absolute terms and not only
 asymptotically, and a fused attention stage. The Z-order path is evidence for
 those conditions; we do not offer it as a design. Of the three predictions of
-Section~\ref{sec:roofline}, the ceiling held as an upper bound, the byte screen
+Section~\ref{sec:roofline}, the ceiling held as a bound on executed operations
+(Section~\ref{sec:composed}), although measured time ratios are not bound by it
+where dense attention runs far from the machine (Table~\ref{tab:streaming}); the
+byte screen
 was consistent with the composed path's losses but did not separate wins from
 losses, and the class ordering held for the all-pairs selector at $512$ agents but did
 not fix the order of the others.
@@ -461,7 +464,7 @@ Sections~\ref{sec:latency}--\ref{sec:prescore}.}
 \end{table}
 
 At these sizes device time follows the number of kernels more closely than the
-operation count or the bytes. Within each configuration of agent count and
+modelled operation count. Within each configuration of agent count and
 batch, the rank correlation between device time and kernel count has a median
 of \SmallNRhoLaunch{}, against \SmallNRhoFlops{} for modelled executed
 operations. On the host, issuing a call costs about \SmallNPerLaunch{}\,\textmu s
@@ -539,16 +542,16 @@ Interleave repetition by repetition; report paired ratios \\
 Two sweeps disagree by $1.4\times$ at twelve agents &
 Fix the implementation set across comparable sweeps \\
 \midrule
-\multirow{2}{*}{\parbox{\linewidth}{Wrong algorithm}}
+\parbox{\linewidth}{Wrong algorithm}
 & Benchmarking a masked implementation as sparse &
 The advertised saving is never executed &
 Assert executed FLOPs differ and trace the products issued \\
-\addlinespace
+\midrule
+\multirow{2}{*}{\parbox{\linewidth}{Wrong\\ baseline}}
 & Comparing only against unfused dense &
 A $5.4\times$ more favourable comparison at $N{=}512$ &
 Report both baselines; check which backend serves the shape \\
-\midrule
-\parbox{\linewidth}{Wrong\\ baseline}
+\addlinespace
 & A hand-written sparse kernel against a vendor's dense kernel &
 An apparent speedup larger than the analytic ceiling permits &
 Write the dense baseline in the same framework and tiling \\
