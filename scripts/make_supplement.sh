@@ -40,8 +40,9 @@ find "$OUT" -type f \( -name '*.lock' -o -name '*.json' -o -name '*.yaml' \
 cat > "$OUT/README.md" <<'EOF2'
 # Supplementary material
 
-Code and measurement artifacts for "Charging the Selector: Peer-Selection Cost
-and Measured Latency of Sparse Attention in Multi-Agent Communication".
+Code and measurement artifacts for "SCALE: When Does Sparse Multi-Agent
+Attention Pay for Its Selector?" (SCALE: Selector-Cost Accounting for Latency
+Evaluation).
 
     make check      # tests, bibliography, every number in the manuscript
     make tables     # regenerate paper_submission_revision/tables from results/

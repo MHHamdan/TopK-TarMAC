@@ -1,4 +1,4 @@
-The experiments answer six questions in turn. Does score-then-select reduce
+The experiments apply SCALE's measurement protocol and answer six questions in turn. Does score-then-select reduce
 the computation that is executed (Q1, Section~\ref{sec:composed})? Does the
 reduced computation become reduced latency (Q2, Section~\ref{sec:latency})?
 When can a fused score-then-select kernel be faster than dense attention, and
@@ -301,7 +301,7 @@ attention in bf16 on three of the four GPUs.
 \subsection{Q5: Selecting before scoring}
 \label{sec:prescore}
 
-We test Proposition~\ref{prop:escape} with three selectors, each used by
+We test SCALE's escape case, Proposition~\ref{prop:escape}, with three selectors, each used by
 existing multi-agent mechanisms and each in a different class of
 Corollary~\ref{cor:taxonomy}. \emph{All-pairs nearest neighbours} ranks the
 distances between two-dimensional positions, as a neighbourhood rule

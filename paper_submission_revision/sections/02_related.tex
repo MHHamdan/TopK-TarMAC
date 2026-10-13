@@ -55,7 +55,7 @@ Attention and MiniMax Sparse Attention show where sparse attention does pay:
 blockwise selection amortises the selector over blocks, preserves matrix-multiply
 shapes inside selected tiles, and operates at $10^4$ to $10^6$ tokens, where the
 skipped work is large \citep{yuan2025nsa,lai2026msa}. Relative to this
-literature our contribution is specific: a selector-cost accounting that
+literature our contribution is specific: a selector-cost accounting, SCALE, that
 separates mechanisms before measurement, a byte criterion for per-pair
 compaction, and measurements at tens to hundreds of agents and narrow heads,
 where neither block amortisation nor large skipped work is available. We follow the benchmarking recommendations of \citet{hoefler2015benchmarking} where they apply, reporting absolute latencies beside every ratio together with the statistic and its run-to-run dispersion, and our kernels are written in Triton

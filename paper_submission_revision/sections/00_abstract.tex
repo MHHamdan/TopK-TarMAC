@@ -1,8 +1,9 @@
 Sparse attention in multi-agent communication is usually justified by the
-operations it removes. We charge each peer-selection rule for what deciding
-costs, and measure on four NVIDIA GPUs (A100, H100, H200 and an RTX PRO 6000
+operations it removes. We introduce SCALE (Selector-Cost Accounting for Latency
+Evaluation), which charges each peer-selection rule for what deciding costs, and
+use it to measure on four NVIDIA GPUs (A100, H100, H200 and an RTX PRO 6000
 Blackwell) when the saving becomes elapsed time.
-First, a rule that ranks attention scores must compute all of them, so it
+First, under SCALE a rule that ranks attention scores must compute all of them, so it
 removes at most half of the forward-pass multiply--accumulates at any sparsity;
 rules that select before scoring escape this ceiling by as much as their
 selector is cheap. Second, composed from library operators, score-then-select

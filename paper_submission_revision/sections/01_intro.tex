@@ -31,9 +31,10 @@ them, from positions, per-agent gates or a separate network
 (Section~\ref{sec:related}). \emph{Score-then-select}, which ranks the attention
 scores themselves, is uncommon in this literature, and the cost argument made for
 it is a reduction in complexity \citep{sun2020sparsecomm}, so this paper does not
-set out to correct a measured result. We treat it as the limiting case of a selector-cost accounting that
-covers every rule, and measure each case with a protocol built for kernels that
-run for microseconds.
+set out to correct a measured result. We treat it as the limiting case of
+\emph{SCALE} (Selector-Cost Accounting for Latency Evaluation), an accounting
+that charges every rule for the cost of deciding what to keep, and measure each
+case with a protocol built for kernels that run for microseconds.
 
 \paragraph{Findings.} For \emph{score-then-select} rules, which form every score
 before keeping the $k$ largest, at most half of the forward-pass attention
@@ -61,14 +62,14 @@ kernels a communication step launches does.
 
 \paragraph{Contributions.}
 \begin{itemize}
-  \item A selector-cost accounting (Section~\ref{sec:analysis}) that charges
+  \item SCALE, a selector-cost accounting (Section~\ref{sec:analysis}) that charges
     every peer-selection rule for deciding what to keep and sorts mechanisms
     into four asymptotic classes (Proposition~\ref{prop:escape},
     Corollary~\ref{cor:taxonomy}). Its limiting case, score-then-select, has a
     closed-form multiply--accumulate limit for the forward and backward passes
     (Proposition~\ref{prop:ceiling}), and a byte criterion, $kd \le N$, screens
     compaction before implementation.
-  \item A measurement protocol for microsecond-scale attention kernels
+  \item SCALE's measurement protocol for microsecond-scale attention kernels
     (Section~\ref{sec:measurement}): masked, gathered and fused implementations
     of one function, verified equivalent, timed interleaved against the best of
     a vendor library, FlexAttention and a dense kernel searched over the sparse
@@ -76,7 +77,7 @@ kernels a communication step launches does.
     that separates finding the retained peers from using them; and a checklist of
     eight errors that each produced a plausible but spurious result
     (Section~\ref{sec:checklist}).
-  \item A characterisation, on four GPUs across three generations, of when
+  \item Using SCALE, a characterisation, on four GPUs across three generations, of when
     the arithmetic removed by exact top-$k$ attention between agents becomes
     wall-clock time (Sections~\ref{sec:fused}--\ref{sec:smalln},
     Appendix~\ref{app:portability}). The crossover is governed mainly by the
@@ -92,7 +93,7 @@ kernels a communication step launches does.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig0_methodology.pdf}
-\caption{The study at a glance. \textbf{(1)} The communication module:
+\caption{SCALE at a glance. \textbf{(1)} The communication module:
 observations are embedded and projected to queries, keys and values, a
 peer-selection step keeps $k$ of the $N{-}1$ peers, and the aggregated message
 $m_i$ joins the observation at the shared MAPPO actor; every latency we report

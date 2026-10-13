@@ -1,6 +1,6 @@
 We asked when an operation-count saving from sparse attention in multi-agent
-communication becomes a saving in time, and answered by charging every
-peer-selection rule for the cost of deciding. A rule that ranks scores must form
+communication becomes a saving in time, and answered with SCALE, which charges
+every peer-selection rule for the cost of deciding. A rule that ranks scores must form
 all of them, so at most half of the forward-pass multiply--accumulates are
 removable; composed from library operators it is slower than dense attention
 everywhere we measure, on four GPUs. Fused, it pays in fp32 with one retained
