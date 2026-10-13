@@ -530,7 +530,14 @@ def fig_prescore() -> None:
 
 # ---------------------------------------------------------------------------
 
+def fig_methodology() -> None:
+    """Figure 1, the schematic; drawn by its own module."""
+    from scripts.make_fig0_methodology import main as draw
+    draw()
+
+
 FIGURES = {
+    "methodology": fig_methodology,
     "taxonomy": fig_taxonomy,
     "ksweep": fig_ksweep,
     "stages": fig_stages,

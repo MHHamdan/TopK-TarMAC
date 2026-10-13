@@ -104,7 +104,9 @@ selector cost $C_{\mathrm{sel}}$ and then attends over $Nk$ pairs only; the
 dashed arrow is the fixed-set comparison, which hands the exact top-$k$ set to
 the same fused kernel at no cost. \textbf{(3)} Every implementation is verified
 against a reference and timed interleaved against the best dense
-implementation, and every table, figure and quoted number is generated from, or
+implementation, on four NVIDIA GPUs (RTX PRO 6000 Blackwell, A100, H100, H200)
+with every kernel's tiling searched on each GPU, hardware counters recorded on
+the H100 and H200, and every table, figure and quoted number generated from, or
 checked against, the resulting artifacts.}
 \label{fig:methodology}
 \end{figure}
