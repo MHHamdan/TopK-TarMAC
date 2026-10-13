@@ -5,7 +5,7 @@ targeting \citep{das2019tarmac}, and MAT casts the joint policy as a sequence
 model \citep{wen2022mat}. Once messages are weighted by attention, every
 receiver scores every sender, and later methods restrict who communicates, some
 of them for cost; DGN observes that receiving much information ``requires high
-bandwidth and incurs high computational complexity'' \citep{jiang2018dgn}. The
+bandwidth and incurs high computational complexity'' \citep[p.~3]{jiang2018dgn}. The
 computational arguments we found count the aggregation a restriction removes.
 They do not count what the method spends deciding which peers to keep,
 and that cost differs widely between methods, so we group them by when the
@@ -27,7 +27,9 @@ generalisation to logits already formed for every pair and motivates it partly
 by reduced complexity, and handshake mechanisms that match a query against every
 candidate key before selecting \citep{liu2020who2com} are score-then-select in
 the same sense. Most of these methods are evaluated with two to roughly thirty
-agents; DGN and ATOC reach about one hundred, and mean-field MARL, which
+agents. ATOC is trained with fifty agents and evaluated with up to one hundred,
+DGN is trained with twenty and evaluated without retraining with up to $140$, and
+mean-field MARL, which
 replaces pairwise interaction with an average over neighbours, one thousand.
 
 \paragraph{Efficient and sparse attention.} Efficient-attention methods for long

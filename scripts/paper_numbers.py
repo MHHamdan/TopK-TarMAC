@@ -265,6 +265,46 @@ def backward_ratio(field: str) -> float:
 R = r"([\d.]+)"
 
 
+def _paired_vs_min(name: str, key: str, keep) -> tuple[float, float]:
+    """Largest |paired median / ratio of minima - 1| and largest relative
+    half-width of the paired median's 95% bootstrap interval, in percent, over
+    the graph-replay rows a table shows. The fixed-set caption's figures are
+    this statistic over its own rows."""
+    dev, ci = [], []
+    for g in load(name)["groups"]:
+        if g.get("mode") != "graph" or not keep(g):
+            continue
+        r = g["ratios"][key]
+        pm, lo, hi = r["paired_median"], *r["paired_median_ci95"]
+        dev.append(abs(pm / r["ratio_of_minima"] - 1))
+        ci.append(max(pm - lo, hi - pm) / pm)
+    return 100 * max(dev), 100 * max(ci)
+
+
+def streaming_paired() -> tuple[float, float]:
+    return _paired_vs_min("streaming_topk.json", "streaming",
+                          lambda g: 192 <= g["n_agents"] <= 1024)
+
+
+def streamprec_paired() -> tuple[float, float]:
+    return _paired_vs_min("streaming_precision.json", "streaming",
+                          lambda g: not g.get("excluded"))
+
+
+def streamprec_bf16_k1_paired() -> tuple[float, float]:
+    v = [g["ratios"]["streaming"]["paired_median"]
+         for g in load("streaming_precision.json")["groups"]
+         if g.get("mode") == "graph" and g["format"] == "bf16" and g["k"] == 1]
+    return min(v), max(v)
+
+
+def streaming_cell(d: int, N: int, k: int) -> float:
+    return [g["ratios"]["streaming"]["ratio_of_minima"]
+            for g in load("streaming_topk.json")["groups"]
+            if g.get("mode") == "graph" and g["head_dim"] == d
+            and g["n_agents"] == N and g["k"] == k][0]
+
+
 def macro(name: str) -> str:
     return streaming_macros()[name]
 
@@ -323,7 +363,7 @@ MANIFEST: list[Number] = [
            "fused k=1, d=16, N=384, CUDA-graph replay, 3 sessions",
            "crossover_graph.json", 0.02),
     Number("s4.masked_credit", "04_measurement.tex",
-           r"credits it with a \$(\d+)\\%\$ saving",
+           r"saving of about \$(\d+)\\%\$ at \$N\{=\}512\$",
            lambda: 100 * (1 - 127 / 511), "%", "N=512, k=127", "analytic", 0.01),
     Number("s4.backward", "04_measurement.tex",
            r"gathered path is \$([\d.]+)\$ times the fused dense path on the "
@@ -473,6 +513,27 @@ MANIFEST: list[Number] = [
            r"at \$48\$ agents the Z-order path is \$(\d+)\$ times slower",
            lambda: pre_total("prescore_selectors.json", "morton_window", 48, 4),
            "x", "N=48 k=4", "prescore_selectors.json", 0.03),
+    Number("s4.stream_paired", "04_measurement.tex",
+           r"within\s+\$(\d+)\\%\$ of the ratio of minima, with a \$95\\%\$ bootstrap "
+           r"interval within\s+\$\\pm([\d.]+)\\%\$, and every",
+           streaming_paired, "%", "streaming fp32, graph, N=192..1024",
+           "streaming_topk.json", 0.05),
+    Number("s4.stream_046", "04_measurement.tex",
+           r"one-peer ratio is \$([\d.]+)\$", lambda: streaming_cell(32, 1024, 1),
+           "x", "streaming fp32, d=32, N=1024, k=1", "streaming_topk.json", 0.02),
+    Number("s4.stream_217", "04_measurement.tex",
+           r"a \$([\d.]+)\\times\$ wall-clock speedup",
+           lambda: 1 / streaming_cell(32, 1024, 1), "x",
+           "streaming fp32, d=32, N=1024, k=1", "streaming_topk.json", 0.01),
+    Number("app.streamprec_paired", "12_app_measurement.tex",
+           r"within\s+\$([\d.]+)\\%\$ of the ratio of minima, with a \$95\\%\$ "
+           r"bootstrap interval within\s+\$\\pm([\d.]+)\\%\$; in bf16",
+           streamprec_paired, "%", "streaming TF32/bf16, graph, admitted rows",
+           "streaming_precision.json", 0.02),
+    Number("app.streamprec_bf16_k1", "12_app_measurement.tex",
+           r"one retained peer it is \$([\d.]+)\$ to \$([\d.]+)\$\.\}",
+           streamprec_bf16_k1_paired, "x", "streaming bf16 k=1 paired median",
+           "streaming_precision.json", 0.02),
     # section 5
     Number("s5.eager_graph", "08_limitations.tex",
            r"was \$([\d.]+)\$ to \$([\d.]+)\$ times its graph-replay figure",

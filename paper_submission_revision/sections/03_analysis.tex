@@ -197,7 +197,7 @@ At $d{=}16$ and $N{=}512$ the leading-order form admits $k \le 32$ ($k \le 25$
 exactly); at $d{=}128$, $k \le 4$ ($k \le 3$). Unlike the operation count, the
 criterion depends on $d$, and it can be checked before any code is written.
 With int32 indices the index term halves and the exact
-condition becomes $k(d+2) \le N$; in a narrower value format the index term
+condition becomes $k(d+3) \le N$; in a narrower value format the index term
 grows relative to the rest. The leading-order form is unchanged in every case,
 and the composed path cannot use int32 in any event, since PyTorch's gather
 takes int64 indices.

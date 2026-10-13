@@ -67,7 +67,8 @@ counter, attached to the running program, confirms that the gathered
 implementation executes the reduction the proposition permits. The masked
 implementation multiplies the discarded entries as zeros and so executes dense
 arithmetic plus selection, while a count based on the retained fraction credits
-it with a $75\%$ saving at $N{=}512$, $k{=}127$.
+it with a saving of about $75\%$ at $N{=}512$, $k{=}127$, where about a quarter
+of the peers are retained.
 
 \subsection{Latency of the composed path}
 \label{sec:latency}
@@ -75,7 +76,7 @@ it with a $75\%$ saving at $N{=}512$, $k{=}127$.
 \begin{table}[t]
 \centering\small
 \caption{Forward latency (ms, minimum over interleaved samples) of one function
-computed six ways, at a quarter of peers retained. The composed sparse path is
+computed six ways, at about a quarter of peers retained. The composed sparse path is
 slower than every dense implementation at every agent count, and the gap widens
 with $N$; the fused kernels are faster only at small $k$
 (Section~\ref{sec:fused}). Rows below $N{=}192$ are dominated by per-kernel
@@ -87,7 +88,7 @@ cost and are read in Section~\ref{sec:smalln}.}
 Executing less arithmetic does not make the composed path faster. Built from
 general-purpose operators, the gathered path is slower than every dense
 implementation at every agent count we measure, by up to a factor of
-thirty-seven at $512$ agents and a quarter of peers retained
+thirty-seven at $512$ agents and about a quarter of peers retained
 (Table~\ref{tab:headline}).
 
 The byte criterion of Section~\ref{sec:roofline} is consistent with this. At
@@ -162,7 +163,7 @@ implementation we found under these constraints; we do not claim it is optimal.
 For kernels that keep the score row resident, the advantage is narrow. It
 appears at one retained peer, and at two only at $d{=}32$, $N{=}512$. At four
 retained peers the fused kernel is $1.3$ to $2.3$ times slower than dense, and
-at a quarter of peers more than an order of magnitude slower. We tried three
+at about a quarter of peers more than an order of magnitude slower. We tried three
 ways of selecting inside the kernel: repeated argmax, bisection on the score's
 bit pattern, and one sort of score--index pairs. The first costs time linear in
 $k$, the second pays for a dense aggregation, and the third pays for a sort that
@@ -211,7 +212,10 @@ in every one of
 \StreamRowsM{} million query rows checked. The last column is the share of the
 streaming kernel's time not accounted for by attending over the set, across
 $k$, as in Table~\ref{tab:fixedset}. Rows at $1024$ agents are beyond the
-resident kernels' cap.}
+resident kernels' cap. The median of the per-repetition paired ratios is within
+$13\%$ of the ratio of minima, with a $95\%$ bootstrap interval within
+$\pm3.7\%$, and every one- and two-peer entry is below one under either
+statistic.}
 \label{tab:streaming}
 \input{tables/streaming}
 \end{table}
@@ -234,9 +238,14 @@ resident kernel is $1.3$ to $2.3$ times slower, and with eight it is slower
 again up to $512$ agents. With two retained peers the softmax is no longer
 trivial, so the fp32 advantage of score-then-select over dense attention is not
 confined to the degenerate case. The advantage is still bounded: the score
-product, about half of dense attention, sets a floor, and from $384$ agents upward
+product, about half of dense attention's operations, sets a floor on the
+operation count, and from $384$ agents upward
 \StreamFindLo{} to \StreamFindHi{}\% of the streaming kernel's time still goes
-to finding the set.
+to finding the set. At $1024$ agents and $d{=}32$ the one-peer ratio is $0.46$
+(Table~\ref{tab:streaming}), a $2.17\times$ wall-clock speedup. The $<2\times$
+ceiling in Proposition~\ref{prop:ceiling} applies to multiply--accumulate counts,
+not wall-clock speedup; runtime ratios can cross that value when dense and
+sparse kernels execute their operations at different hardware efficiencies.
 
 Beyond one retained peer the window depends on the GPU
 (Appendix~\ref{app:portability}). On the A100, H100 and H200 the streaming
@@ -434,7 +443,7 @@ asymptotically, and a fused attention stage. The Z-order path is evidence for
 those conditions; we do not offer it as a design. Of the three predictions of
 Section~\ref{sec:roofline}, the ceiling held as a bound on executed operations
 (Section~\ref{sec:composed}), although measured time ratios are not bound by it
-where dense attention runs far from the machine (Table~\ref{tab:streaming}); the
+(Section~\ref{sec:fused}); the
 byte screen
 was consistent with the composed path's losses but did not separate wins from
 losses, and the class ordering held for the all-pairs selector at $512$ agents but did
@@ -443,8 +452,9 @@ not fix the order of the others.
 \subsection{Small agent counts}
 \label{sec:smalln}
 
-Apart from mean-field MARL, the multi-agent methods we cite are evaluated with
-two to about a hundred agents (Section~\ref{sec:related}), below the range in
+Apart from mean-field MARL and DGN's evaluation without retraining at up to
+$140$, the multi-agent methods we cite are evaluated with two to about a hundred
+agents (Section~\ref{sec:related}), below the range in
 which the ratios above are read. At these sizes the fixed per-call cost of a
 kernel is a large share of its time, so we re-timed every implementation at
 $12$ to $96$ agents under CUDA-graph replay, which removes host launch latency

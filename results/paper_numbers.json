@@ -720,6 +720,87 @@
   "status": "ok"
  },
  {
+  "paper_number_id": "s4.stream_paired",
+  "file": "04_measurement.tex",
+  "unit": "%",
+  "configuration": "streaming fp32, graph, N=192..1024",
+  "source_artifact": "streaming_topk.json",
+  "tolerance": 0.05,
+  "printed": [
+   "13",
+   "3.7"
+  ],
+  "artifact": [
+   13.25067734204235,
+   3.658740240009458
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.stream_046",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "streaming fp32, d=32, N=1024, k=1",
+  "source_artifact": "streaming_topk.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.46"
+  ],
+  "artifact": [
+   0.4560738417110521
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.stream_217",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "streaming fp32, d=32, N=1024, k=1",
+  "source_artifact": "streaming_topk.json",
+  "tolerance": 0.01,
+  "printed": [
+   "2.17"
+  ],
+  "artifact": [
+   2.192627396143353
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "app.streamprec_paired",
+  "file": "12_app_measurement.tex",
+  "unit": "%",
+  "configuration": "streaming TF32/bf16, graph, admitted rows",
+  "source_artifact": "streaming_precision.json",
+  "tolerance": 0.02,
+  "printed": [
+   "9.6",
+   "5.0"
+  ],
+  "artifact": [
+   9.624566308113124,
+   4.969686968330267
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "app.streamprec_bf16_k1",
+  "file": "12_app_measurement.tex",
+  "unit": "x",
+  "configuration": "streaming bf16 k=1 paired median",
+  "source_artifact": "streaming_precision.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.90",
+   "1.04"
+  ],
+  "artifact": [
+   0.896229367703191,
+   1.0422558687808503
+  ],
+  "status": "ok"
+ },
+ {
   "paper_number_id": "s5.eager_graph",
   "file": "08_limitations.tex",
   "unit": "x",

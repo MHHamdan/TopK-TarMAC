@@ -8,7 +8,8 @@ NVIDIA GPUs (A100, H100, H200 and an RTX PRO 6000 Blackwell). A rule that ranks
 attention scores must compute all of them first, so with keys and values of
 equal width it removes at most half of the forward-pass multiply--accumulates
 at any sparsity. Whether that half becomes time depends on the implementation
-and the hardware. Composed from library operators, score-then-select attention
+and the hardware; the latency ratios below are ratios of minimum times over
+interleaved repetitions. Composed from library operators, score-then-select attention
 is slower than dense attention at every configuration we measure on all four
 GPUs, by up to 37 times, because forming, ranking and compacting the scores
 moves far more data than dense attention does. A fused kernel that streams the

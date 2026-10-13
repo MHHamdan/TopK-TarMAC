@@ -39,7 +39,7 @@ consistent, reproducible, and stable under every check the others would fail.
 They answer a different question from the one being asked. Applying top-$k$ as a
 mask leaves the dense aggregation matmul in place, so the advertised saving is
 never executed; a FLOP model based on $1-k/(N-1)$ nonetheless credits that code
-with a $75\%$ saving at $N{=}512, k{=}127$, and with more than $90\%$ wherever
+with a saving of about $75\%$ at $N{=}512, k{=}127$, and with more than $90\%$ wherever
 $k/(N-1) < 0.1$. Comparing against unfused dense alone is the same error in the
 baseline: at $N{=}512$ the unfused and fused dense paths differ by $5.4\times$,
 so which one is meant sometimes changes the answer. The defence is to state the
