@@ -76,6 +76,14 @@ numbers quoted in the main text from a manifest that names each one's source
 artifact and tolerance, and fails on any disagreement. The environment, commands
 and measurement parameters are in Appendix~\ref{app:repro}.
 
+% The acknowledgment identifies the authors, so it is set only in the accepted
+% (camera-ready) and preprint builds; the anonymous submission omits it.
+\makeatletter
+\if@accepted
+\input{sections/acknowledgment.tex}
+\fi
+\makeatother
+
 \bibliographystyle{tmlr}
 \bibliography{references}
 

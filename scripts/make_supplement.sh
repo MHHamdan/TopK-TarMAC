@@ -29,6 +29,8 @@ rsync -a --exclude 'main.log' --exclude 'main.aux' --exclude 'main.blg' \
   --exclude 'main.out' --exclude '*.synctex*' \
   paper_submission_revision/ "$OUT/paper_submission_revision/"
 rm -f "$OUT/scripts/make_supplement.sh"
+# Set only in the accepted build, and it names the funding grant.
+rm -f "$OUT/paper_submission_revision/sections/acknowledgment.tex"
 
 # Home-directory paths, e.g. an editable install recorded in the lockfile.
 find "$OUT" -type f \( -name '*.lock' -o -name '*.json' -o -name '*.yaml' \
@@ -60,7 +62,7 @@ is `configs/environment.lock`.
 EOF2
 
 # Refuse to ship anything that identifies the authors.
-PAT='mhamdan|Hamdan|mh2022ets|github\.com/[A-Za-z0-9_-]+/TopK|hamdan2026'
+PAT='mhamdan|Hamdan|mh2022ets|github\.com/[A-Za-z0-9_-]+/TopK|hamdan2026|RGPIN|NSERC'
 if [[ -n "${IDENT_PATTERNS:-}" ]]; then PAT="$PAT|$IDENT_PATTERNS"; fi
 # Two deliberate exceptions: a third-person citation of prior work (the cited
 # paper's author list) and the anonymised code URL (github.com/XXX/...).
