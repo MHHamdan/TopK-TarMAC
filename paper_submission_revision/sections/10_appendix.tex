@@ -100,7 +100,7 @@ searches select the same configuration at $63$ of the $72$ shapes they share,
 and at head width $16$, where most of what this paper reports lives, at $16$ of
 the $18$ shapes; the two disagreements are both sparse-kernel tilings. Their
 absolute times differ by as much as $81\%$ with the contention each session
-carried. That is why the search contributes a configuration and not a latency: every
+carried. For this reason the search contributes a configuration and not a latency: every
 sweep re-times that configuration in its own interleaved group, and the only
 place a latency from the search's own session appears is
 Table~\ref{tab:autotune}, whose columns are the search's own record and are
@@ -309,7 +309,7 @@ states the corrected version; the deviation is logged against the released plan.
 \subsection{The remaining comparisons}
 
 Five further comparisons were registered and all are Holm-adjusted nulls. Two
-deserve a note. The comparison at twelve agents has the one sign opposite to
+are worth a note. The comparison at twelve agents has the one sign opposite to
 its registered direction and carries the family's largest point estimate, and
 we set it aside on the ground that neither variant learns the task there. That
 ground was not registered: it is a post-hoc exclusion of the largest observed
@@ -377,9 +377,9 @@ earlier campaign on the same host, and we say so where they are quoted;
 \texttt{scripts/make\_revision\_figures.py} regenerate every table and figure
 from those artifacts, so no tabular number is transcribed by hand except those of the learning study's Table~\ref{tab:training}, which are copied from \texttt{results/reduced\_design\_summary.md}; \texttt{scripts/check\_revision\_numbers.py} re-derives the numbers that appear in prose and fails on any disagreement; and with \texttt{--verify-paper-numbers} it also checks a manifest (\texttt{scripts/paper\_numbers.py}) that ties each number in the main text, in the section where it appears, to its source artifact, configuration and tolerance. The campaign runs the
 tiling search first, because every sweep after it re-times the dense
-configuration the search selects; that is what makes each ratio in this paper a
-ratio against the best dense implementation we have rather than against
-whichever one a given sweep happened to build.
+configuration the search selects. Each ratio in this paper is therefore taken
+against the best dense implementation we have, and not against whichever one a
+given sweep happened to build.
 
 The environment is one NVIDIA RTX PRO 6000 Blackwell GPU
 (\texttt{sm\_120}) in a shared multi-GPU x86\_64 server, under PyTorch $2.11$

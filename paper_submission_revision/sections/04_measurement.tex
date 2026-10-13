@@ -11,8 +11,8 @@ Section~\ref{sec:smalln})?
 \subsection{Setup}
 \label{sec:setup}
 
-We time the attention core --- from queries, keys and values to the message
-tensor --- because the input and output projections are shared by every
+We time the attention core (from queries, keys and values to the message
+tensor), because the input and output projections are shared by every
 implementation and dilute the quantity in question. Unless stated otherwise the
 configuration is fp32, head width $d{=}16$, batch $256$, on one NVIDIA
 Blackwell GPU (sm\_120) under PyTorch 2.11, CUDA 12.8 and Triton 3.6. The dense
@@ -49,7 +49,7 @@ again on the device, and reports where they differ from the Blackwell card.
 \subsection{Q1: Is the reduction executed?}
 \label{sec:composed}
 
-Only in some implementations, and the count cannot tell which. PyTorch's FLOP
+It depends on the implementation, and an operation count does not show which. PyTorch's FLOP
 counter, attached to the running program, confirms that the gathered
 implementation executes the reduction Proposition~\ref{prop:ceiling} permits.
 The masked implementation multiplies the discarded entries as zeros and so
@@ -71,7 +71,7 @@ cost and are read in Section~\ref{sec:smalln}.}
 \input{tables/headline}
 \end{table}
 
-Not in this regime. Composed from general-purpose operators, the gathered path
+In this regime it does not. Composed from general-purpose operators, the gathered path
 executes less arithmetic than dense attention and is slower than every dense
 implementation at every agent count we measure, by up to a factor of
 thirty-seven at $512$ agents and a quarter of peers retained
@@ -162,16 +162,15 @@ indices for free, a fused kernel that reads one key and one value row per
 retained peer costs $0.06$ to $0.11$ times dense attention at $512$ agents and
 $k \le 4$; the fused score-then-select kernel, attending over the same peers,
 costs $0.77$ to $1.93$ times. From $384$ agents upward, at least $90\%$ of the
-fused kernel's device time is the cost of finding the set, which is the term
-Proposition~\ref{prop:ceiling} says cannot be removed. Finding the same set
+fused kernel's device time is the cost of finding the set, the term that
+Proposition~\ref{prop:ceiling} shows cannot be removed. Finding the same set
 with library operators instead, a score product followed by \texttt{torch.topk},
 costs $8$ to $27$ times dense attention on its own at $d{=}16$. This sweep ran on the
 other card of the host from the main sweep, and the fused kernel's ratios
 reproduce it ($0.77$, $1.27$ and $1.93$ against $0.81$, $1.27$ and $1.96$ at
-$d{=}16$, $N{=}512$, $k \in \{1,2,4\}$). What is fundamental to exact
-score-then-select is that all $N$ scores are \emph{computed}; holding them
-\emph{resident} is a property of the kernels above, and it is what restricts
-their tiling.
+$d{=}16$, $N{=}512$, $k \in \{1,2,4\}$). Exact score-then-select requires all $N$ scores to be \emph{computed}, but not
+to be held on chip at once. Keeping them \emph{resident} is a design choice of
+the kernels above, and it is this choice that restricts their tiling.
 
 \begin{table}[t]
 \centering\small
@@ -202,7 +201,7 @@ dense implementation at every configuration measured, at \StreamKOneLo{} to \Str
 its latency; at four it is within about \StreamKFourDev{}\% of parity
 (\StreamKFourLo{} to \StreamKFourHi{} up to $512$ agents), where the resident
 kernel is $1.3$ to $2.3$ times slower; and at eight it is slower again up to
-$512$ agents. Two retained peers is a genuine attention, so the advantage of
+$512$ agents. With two retained peers the softmax is no longer trivial, so the advantage of
 score-then-select over dense attention in fp32 is not confined to the
 degenerate case. It remains bounded: the floor is the score product, about half
 of dense attention, and from $384$ agents upward \StreamFindLo{} to
@@ -224,8 +223,8 @@ from $384$ agents upward there, as on the Blackwell card.
 
 The single-peer advantage above is measured in fp32 with IEEE products, which
 keeps every kernel off the tensor cores so that it reproduces the reference
-summation order. That is the format in which dense attention is least
-advantaged. We repeated the comparison in TF32 and bf16, searching both kernels
+summation order. In this format dense attention gains the least from the
+hardware. We repeated the comparison in TF32 and bf16, searching both kernels
 again in each format under the same admissibility filter, and added
 FlexAttention \citep{dong2025flexattention} twice: as a dense baseline, and as
 PyTorch's route to data-dependent sparsity, with the top-$k$ retained set
@@ -280,9 +279,9 @@ accelerates every matrix product, the score product included, but not the
 integer comparisons of selection, so the narrower the format the larger the
 share of the sparse kernel's time that selection takes.
 
-\paragraph{bf16 on four GPUs.} bf16 is the format in which attention commonly
-runs in mixed-precision training and inference, and it is the format in which
-the fp32 result does not transfer. On the A100, H100 and H200 the streaming
+\paragraph{bf16 on four GPUs.} Attention commonly runs in bf16 in
+mixed-precision training and inference, and in bf16 the fp32 result does not
+carry over. On the A100, H100 and H200 the streaming
 kernel is slower than the best bf16 dense implementation at every configuration
 and retained count we measured: \PortBfOneLo{} to \PortBfOneHi{} times dense at
 one retained peer, \PortBfTwoLo{} to \PortBfTwoHi{} at two and \PortBfFourLo{}
@@ -292,7 +291,7 @@ cause: bf16 changed the retained peers in at most \PortBfMismatchMax{} of the
 \PortBfRowsM{} million query rows checked on any of the four GPUs, so the
 difference from fp32 is one of cost. TF32 sits between the two, at
 \PortTfOneLo{} to \PortTfOneHi{} at one retained peer off the Blackwell card
-(Appendix~\ref{app:portability}). What this says about mixed-precision training
+(Appendix~\ref{app:portability}). Any conclusion about mixed-precision training
 is limited by what we timed: the forward pass of the attention core in each
 format, not a bf16 backward pass or a training run. Within that scope, a
 score-then-select kernel of this design gives no latency gain over dense
@@ -364,9 +363,10 @@ sweeps, and under the ratio of medians in the second sweep ($0.92$) but not in t
 has a heavier tail on a contended device than a single dense kernel
 (Appendix~\ref{app:prescore}). It appears only at the largest agent count we
 measure; at $48$ agents the Z-order path is $16$ times slower than dense. The
-section therefore identifies conditions --- a selector cheap in absolute terms,
-not only asymptotically, and a fused attention stage behind it --- rather than
-recommending this implementation. The crossing is also specific to the
+section therefore identifies the conditions under which selecting before scoring
+pays (a selector that is cheap in absolute terms, not only asymptotically,
+followed by a fused attention stage); it does not recommend this particular
+implementation. The crossing is also specific to the
 Blackwell card: on the A100, H100 and H200 the fused attention stage is still
 \PortZorderAttendLo{} to \PortZorderAttendHi{} times dense, but the whole
 Z-order path costs \PortZorderTotalLo{} to \PortZorderTotalHi{}

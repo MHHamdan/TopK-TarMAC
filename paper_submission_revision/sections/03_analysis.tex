@@ -25,7 +25,7 @@ whether the saving is executed depends on which one runs.
     multiplied, so the executed aggregation is that of dense attention.
   \item[Gathered top-$k$] takes the top-$k$ of the raw scores, applies a
     softmax over those $k$ values, gathers the corresponding value rows into a
-    $(B,N,k,d)$ tensor and contracts it. The aggregation genuinely shrinks.
+    $(B,N,k,d)$ tensor and contracts it. Here the aggregation does shrink.
   \item[Fused top-$k$] computes the same function in one kernel, holding the
     score row on chip, selecting within it and accumulating the weighted values
     without writing a score matrix, an index tensor or a gathered tensor to

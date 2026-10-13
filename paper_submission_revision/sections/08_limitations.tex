@@ -27,7 +27,7 @@ Attention over tens to hundreds of agents runs for microseconds, on a device
 that is often shared, against library kernels tuned for other shapes. Each of
 those conditions produced at least one error in this study that yielded a
 plausible number, and Table~\ref{tab:pitfalls} lists them with the practice that
-prevents each. Two of the eight deserve emphasis because nothing in the
+prevents each. Two of the eight are worth singling out, because nothing in the
 resulting numbers betrays them: a masked implementation benchmarked as sparse
 executes none of the counted saving, and a hand-written sparse kernel timed
 against a vendor's dense kernel measures authorship as well as sparsity. The

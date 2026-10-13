@@ -1,6 +1,6 @@
 Cooperative multi-agent systems increasingly exchange learned messages, and
 attention is a common way of deciding whose message matters
-\citep{das2019tarmac,jiang2018atoc,jiang2018dgn}.\footnote{\LLMDisclosure}
+\citep{das2019tarmac,jiang2018atoc,jiang2018dgn}.
 Attention over $N$ agents is pairwise, so its cost grows quadratically, and
 several methods restrict who attends to whom, citing communication or
 computational cost among their reasons
@@ -26,7 +26,7 @@ evaluated, and not bandwidth-constrained distributed deployment, such as
 multi-agent orchestration across edge devices \citep{marliotp2026}, where
 reducing transmitted messages is itself the objective.
 
-The object of the paper is that accounting rather than any one mechanism. Most
+Our subject is this accounting more than any single mechanism. Most
 multi-agent methods that restrict communication choose peers before scoring
 them, from positions, per-agent gates or a separate network
 (Section~\ref{sec:related}). \emph{Score-then-select}, which ranks the attention

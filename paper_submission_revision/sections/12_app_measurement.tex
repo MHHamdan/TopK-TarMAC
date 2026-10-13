@@ -36,9 +36,9 @@ what that counter observes. Every count in this paper is therefore a model, and
 where a count and a measurement disagree the measurement governs --- which is,
 after all, the paper's subject.
 
-Two decisions about what is compared deserve stating, because both changed our
-conclusions. First, we time the attention core --- from queries, keys and values
-to the message tensor --- rather than the enclosing module, since the shared
+Two decisions about what is compared changed our conclusions. First, we time
+the attention core (from queries, keys and values to the message tensor) rather
+than the enclosing module, since the shared
 input and output projections are identical across implementations and dilute the
 quantity in question. Second, the dense baseline is the better of PyTorch's
 fused scaled-dot-product path and a dense attention kernel we wrote ourselves in
@@ -165,7 +165,7 @@ Selection is what a successor design has to face, and we tried three ways of
 doing it. Ranking $N$ candidates to keep $k$ by repeated argmax costs $k$
 sequential row-wide reductions, and a reduction of that shape runs at a small
 fraction of the arithmetic units' throughput because each round depends on the
-one before it and the hardware has nothing to overlap it with. That is why the
+one before it and the hardware has nothing to overlap it with. As a result, the
 argmax kernel's cost grows almost linearly in $k$ while its arithmetic barely
 does. Bisecting on the score's bit pattern removes the dependence on $k$, and
 the only way it can is by expressing the retained set as a zero weight instead
@@ -199,10 +199,10 @@ keeping a small tile resident whatever $N$ is. Each of those kernels
 instead holds the $N$-wide score row --- in registers to rank it, or in place to
 sort it --- so fewer queries can be in flight per streaming multiprocessor as
 $N$ grows, and the tiling the search chooses for it is narrower at every size.
-What is fundamental to exact score-then-select is that all $N$ scores must be
-\emph{computed} before the retained set is known; that they must all be
-\emph{resident} is not, and a streaming exact top-$k$ that keeps a running
-candidate set relaxes it. The streaming kernel of Section~\ref{sec:fused} does
+Exact score-then-select needs all $N$ scores to be \emph{computed} before the
+retained set is known, but it does not need them all to be \emph{resident}; a
+streaming exact top-$k$ that keeps a running candidate set drops that
+requirement. The streaming kernel of Section~\ref{sec:fused} does
 exactly that, and is faster than every resident kernel at every configuration
 both cover (Table~\ref{tab:streaming}).
 
@@ -240,7 +240,7 @@ $96$-agent column has one exception, $0.88$ at head width $64$, which we do not
 read as a result. The ratio does not fall monotonically with head
 width; it reverses.
 
-That is what the byte criterion predicts. Byte-neutrality requires
+The byte criterion predicts this. Byte-neutrality requires
 $kd \le N$, so widening the head at fixed agent count tightens the bound on the
 retained set proportionally, and at head width $128$ the criterion permits only $k \le 4$ at $512$ agents (exactly $k \le 3$) --- by which point the selection cost of
 Section~\ref{sec:fused} has already overtaken the saving. Widening the batch
@@ -485,8 +485,7 @@ five is not stable: the communication-free variant, which performs no
 attention at all, is fourth of five at six agents and at
 twenty-four, and the gathered sparse implementation is the fastest of the
 five at twenty-four. This does not resolve the implementations as equal; it
-fails to resolve them at all, which is the useful description as well as the
-honest one. It bounds the practical
+fails to resolve them at all. This bounds the practical
 stakes of the whole measurement campaign in the regime the training study
 occupies, and it is why the computational argument is made on the module in
 isolation.
