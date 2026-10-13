@@ -1,12 +1,13 @@
-The experiments apply SCALE's measurement protocol and answer six questions in turn. Does score-then-select reduce
-the computation that is executed (Q1, Section~\ref{sec:composed})? Does the
-reduced computation become reduced latency (Q2, Section~\ref{sec:latency})?
-When can a fused score-then-select kernel be faster than dense attention, and
-where does its time go (Q3, Section~\ref{sec:fused})? Does the answer depend on
-numerical precision (Q4, Section~\ref{sec:precision})? What changes when
-peers are selected before scoring (Q5, Section~\ref{sec:prescore})? And what
-governs latency at the agent counts of current methods (Q6,
-Section~\ref{sec:smalln})?
+The experiments take up the four quantities of Section~\ref{sec:intro}. We
+first check what the composed implementations execute
+(Section~\ref{sec:composed}) and whether the executed reduction becomes time
+(Section~\ref{sec:latency}). We then ask when a fused score-then-select kernel
+is faster than dense attention and use a fixed-set comparison to locate its
+time (Section~\ref{sec:fused}), repeat that comparison in reduced precision
+(Section~\ref{sec:precision}), and test selectors that act before scoring
+(Section~\ref{sec:prescore}). Section~\ref{sec:smalln} covers the agent counts
+at which current methods are evaluated, and Section~\ref{sec:checklist} lists
+the measurement errors the protocol is designed to prevent.
 
 \subsection{Setup}
 \label{sec:setup}
@@ -16,47 +17,58 @@ tensor), because the input and output projections are shared by every
 implementation and dilute the quantity in question. Unless stated otherwise the
 configuration is fp32, head width $d{=}16$, batch $256$, on one NVIDIA
 Blackwell GPU (sm\_120) under PyTorch 2.11, CUDA 12.8 and Triton 3.6. The dense
-baseline is the fastest of PyTorch's fused scaled-dot-product path and a
+baseline is the faster of PyTorch's fused scaled-dot-product path and a
 streaming dense kernel we wrote in Triton and tuned over the same parameter
-space and admissibility filter as our sparse kernels; Q4 adds FlexAttention
-\citep{dong2025flexattention}. Every ratio in this paper is against that best
-dense implementation, and a ratio below one means the sparse path is faster.
+space and admissibility filter as our sparse kernels; the precision study of
+Section~\ref{sec:precision} adds FlexAttention \citep{dong2025flexattention}.
+Ratios are against that best dense implementation unless a different baseline
+is named, and a ratio below one means the sparse path is faster.
 
 Timing uses on-device CUDA events with explicit synchronisation. The device was
 shared with other tenants and clocks could not be locked, so implementations
 are timed \emph{interleaved}, repetition by repetition, within one sweep per
-agent count; interference then lands on all of them together and their ratios
-stay paired. The primary statistic is the minimum over samples, an estimate of the uncontended cost; the whole block is repeated three times and we report where the ratio of medians changes a conclusion. Recomputing every comparison from medians of the same samples changes which implementation is faster at one of $24$
-configurations in the main sweep, and reverses the end-to-end pre-score result
-of Q5 in one of its two sweeps. The first is the fused kernel at one retained
-peer, $384$ agents and $d{=}16$, where one of the three runs carried heavy
-contention; re-timed under CUDA-graph replay in three further sessions it is
-faster than dense on minima and medians alike ($0.92$ on both, every one of nine
-blocks between $0.92$ and $0.93$; Table~\ref{tab:crossover}). The second is
-stated in Q5. Below $192$
-agents a fixed per-kernel cost is a large share of every measurement, so Q1--Q5
-are read from $192$ agents upward and the smaller counts are measured separately
-under CUDA-graph replay in Q6. Every
-implementation is checked against a reference at every configuration whose
-latency is reported, and all agree to fp32 rounding except at exact ties at the
-$k$-th score (Appendix~\ref{app:verification}). Appendix~\ref{sec:protocol}
-gives the full protocol, including the tiling search, and
-Appendix~\ref{sec:pitfalls} the errors it guards against.
-Appendix~\ref{app:portability} repeats the headline measurements on an A100, an
-H100 and an H200, each allocated exclusively and with every tiling searched
-again on the device, and reports where they differ from the Blackwell card.
+agent count, and interference lands on all of them together. The primary
+statistic is each implementation's minimum over samples, an estimate of its
+uncontended cost, and comparisons are ratios of minima. The whole block is
+repeated three times. Where a table reports medians, it says whether they are
+ratios of per-implementation medians or medians of per-repetition paired ratios.
 
-\subsection{Q1: Is the reduction executed?}
+\paragraph{Sensitivity to the statistic.} We recomputed every comparison at
+$192$ agents and above from the medians of the same samples. This changes which
+implementation is faster at one of $24$ configurations in the main sweep, and
+reverses the end-to-end pre-score result of Section~\ref{sec:prescore} in one of
+its two sweeps. The first case is the fused kernel at one retained peer, $384$
+agents and $d{=}16$, where one of the three runs carried heavy contention.
+Re-timed under CUDA-graph replay in three further sessions, it is faster than
+dense on minima and medians alike ($0.92$ on both, every one of nine blocks
+between $0.92$ and $0.93$; Table~\ref{tab:crossover}). The second case is
+reported with the pre-score results.
+
+\paragraph{Range, verification and other GPUs.} Below $192$ agents a fixed
+per-kernel cost is a large share of every measurement, so
+Sections~\ref{sec:composed}--\ref{sec:prescore} are read from $192$ agents
+upward, and the smaller counts are measured separately under CUDA-graph replay
+in Section~\ref{sec:smalln}. Every implementation is checked against a reference
+at every configuration whose latency is reported, and all agree to fp32
+rounding except at exact ties at the $k$-th score
+(Appendix~\ref{app:verification}). Appendix~\ref{sec:protocol} gives the full
+protocol, including the tiling search. Appendix~\ref{app:portability} repeats
+the headline measurements on an A100, an H100 and an H200, each allocated
+exclusively and with every tiling searched again on the device, and reports
+where they differ from the Blackwell card.
+
+\subsection{What the composed implementations execute}
 \label{sec:composed}
 
-It depends on the implementation, and an operation count does not show which. PyTorch's FLOP
+Whether the reduction of Proposition~\ref{prop:ceiling} is executed depends on
+the implementation, and an operation count does not say which. PyTorch's FLOP
 counter, attached to the running program, confirms that the gathered
-implementation executes the reduction Proposition~\ref{prop:ceiling} permits.
-The masked implementation multiplies the discarded entries as zeros and so
-executes dense arithmetic plus selection, while a count based on the retained
-fraction credits it with a $75\%$ saving at $N{=}512$, $k{=}127$.
+implementation executes the reduction the proposition permits. The masked
+implementation multiplies the discarded entries as zeros and so executes dense
+arithmetic plus selection, while a count based on the retained fraction credits
+it with a $75\%$ saving at $N{=}512$, $k{=}127$.
 
-\subsection{Q2: Does the reduction become time?}
+\subsection{Latency of the composed path}
 \label{sec:latency}
 
 \begin{table}[t]
@@ -64,35 +76,43 @@ fraction credits it with a $75\%$ saving at $N{=}512$, $k{=}127$.
 \caption{Forward latency (ms, minimum over interleaved samples) of one function
 computed six ways, at a quarter of peers retained. The composed sparse path is
 slower than every dense implementation at every agent count, and the gap widens
-with $N$; the fused kernels change the picture only at small $k$
+with $N$; the fused kernels are faster only at small $k$
 (Section~\ref{sec:fused}). Rows below $N{=}192$ are dominated by per-kernel
 cost and are read in Section~\ref{sec:smalln}.}
 \label{tab:headline}
 \input{tables/headline}
 \end{table}
 
-In this regime it does not. Composed from general-purpose operators, the gathered path
-executes less arithmetic than dense attention and is slower than every dense
+Executing less arithmetic does not make the composed path faster. Built from
+general-purpose operators, the gathered path is slower than every dense
 implementation at every agent count we measure, by up to a factor of
 thirty-seven at $512$ agents and a quarter of peers retained
 (Table~\ref{tab:headline}).
 
-The byte criterion of Section~\ref{sec:roofline} accounts for this: at $d{=}16$ and $N{=}512$ the quarter-of-peers operating point is four times past its leading-order bound. Timed in
-isolation, the sparse contraction and the dense multiply it replaces both run
-near the bandwidth the device attains on a large copy, so neither is on a worse
-hardware path; the sparse one is slower because it moves about four times the
-bytes. The largest single stage of the composed path is selection, which runs at under a tenth of attainable bandwidth (Appendix~\ref{app:stages}).
+The byte criterion of Section~\ref{sec:roofline} is consistent with this. At
+$d{=}16$ and $N{=}512$ the quarter-of-peers operating point is four times past
+its leading-order bound, and by the analytic count the sparse contraction moves
+about four times the bytes of the dense multiply it replaces. Timed in
+isolation, the two run near the bandwidth the device attains on a large copy, so
+neither is on a worse hardware path. The criterion does not account for the
+largest stage, however. Selection runs at under a tenth of attainable bandwidth
+(Appendix~\ref{app:stages}), and on the H100 and H200 hardware counters
+attribute most of the composed path's traffic to forming and ranking the scores
+rather than to compaction (Appendix~\ref{app:portability}).
 
-These are attention-stage measurements, and two wider views shrink them. The
-ordering survives the backward pass with a narrower margin --- at $512$ agents
+These are attention-stage measurements, and the gaps narrow over a wider scope.
+The ordering survives the backward pass with a smaller margin: at $512$ agents
 the gathered path is $18.4$ times the fused dense path on the forward pass and
-$6.2$ times on forward and backward, since selection has almost no adjoint ---
-and in a complete MAPPO iteration at six to twenty-four agents the environment
-and per-step action selection take $78$ to $96\%$ of the time and all implementations are within $2\%$ of
-one another (Appendix~\ref{app:backward}). Neither a speedup nor a slowdown of
-the attention stage is an end-to-end speedup or slowdown in that pipeline.
+$6.2$ times on forward and backward, since selection has almost no adjoint (the
+baseline here is the library's fused kernel, which autograd can differentiate;
+against our tuned kernel the forward ratio is the thirty-seven above). In a
+complete MAPPO iteration at six to twenty-four agents, the environment and
+per-step action selection take $78$ to $96\%$ of the time, and all
+implementations are within $2\%$ of one another (Appendix~\ref{app:backward}).
+In that pipeline neither the attention stage's speedups nor its slowdowns are
+visible end to end.
 
-\subsection{Q3: When is a fused score-then-select kernel faster, and where does its time go?}
+\subsection{Fused score-then-select kernels}
 \label{sec:fused}
 
 \begin{figure}[t]
@@ -110,40 +130,43 @@ covers that range.}
 \label{fig:ksweep}
 \end{figure}
 
-The composed path spends most of its time moving intermediates that a fused
-kernel need not create. We wrote fused kernels that hold the score row on chip
-and never write a score matrix, an index tensor or a gathered value tensor to
-memory. At $512$ agents retaining a single peer the composed sparse path costs
-$4.62$\,ms and the fused one $0.139$\,ms, a factor of $33$ attributable to the
-implementation and not to the algorithm, and the fused path is then faster than
-the best dense implementation (Figure~\ref{fig:ksweep}).
+Most of the composed path's time goes to moving intermediates that a fused
+kernel need not create. We wrote fused kernels that hold each query's score row
+on chip and never write a score matrix, an index tensor or a gathered value
+tensor to memory. At $512$ agents retaining a single peer, the composed sparse
+path costs $4.62$\,ms and the fused one $0.139$\,ms. That factor of $33$ comes
+from the implementation, since the algorithm is unchanged, and the fused path is then faster
+than the best dense implementation (Figure~\ref{fig:ksweep}). The $k{=}1$ case
+is degenerate as attention, since a softmax over one element is identically one
+and the mechanism reduces to copying the highest-scoring peer's value; the
+streaming kernel below extends the fp32 advantage to two retained peers at
+head widths $16$ and $32$.
 
 Matched authorship is a weaker condition than matched efficiency, so we searched
-both kernels over one parameter space --- query tile, key tile or head chunk,
-warp count and pipeline depth --- under one shared-memory admissibility filter,
-and report the fraction of the device's matrix-multiply rate each reaches
-(Table~\ref{tab:autotune}, Appendix~\ref{app:selection}). At head widths $16$
-and $32$ the fused sparse kernel is the \emph{less} efficient of the two at
-every agent count --- $21$ to $33\%$ of the device's rate against $30$ to $47\%$
-for dense --- and it is faster at one retained peer only because it performs
-about half the arithmetic. The search is not equal: the sparse kernel must hold
-an $N$-wide score tile, so above $192$ agents the filter admits three sparse
-configurations against $28$ to $106$ dense ones. The sparse figures are
-therefore lower bounds, the negative entries at head width $64$ and above are
-weakly supported, and the positive entry is conservative. We call the sparse
-kernel the best implementation we found under these constraints, not an optimal
-one.
+both kernels over one parameter space (query tile, key tile or head chunk, warp
+count and pipeline depth) under one shared-memory admissibility filter, and
+report the fraction of the fp32 matrix-multiply rate, measured in the same
+process, that each reaches (Table~\ref{tab:autotune},
+Appendix~\ref{app:selection}). At head widths $16$ and $32$ the fused sparse
+kernel is the \emph{less} efficient of the two at every agent count, reaching
+$21$ to $33\%$ of the device's rate against $30$ to $47\%$ for dense, and it is
+faster at one retained peer only because it performs about half the arithmetic.
+The search is not equal. The sparse kernel must hold an $N$-wide score tile, so
+above $192$ agents the filter admits three sparse configurations against $28$ to
+$106$ dense ones. The sparse efficiency figures are therefore lower bounds, the
+negative entries at head width $64$ and above are weakly supported, and the
+one-peer speedup is conservative. The sparse kernel is the best
+implementation we found under these constraints; we do not claim it is optimal.
 
-For kernels that hold the score row resident, the advantage is narrow. It
-appears at one retained peer, and at two only at
-$d{=}32$, $N{=}512$; the $k{=}1$ case is degenerate as attention, since a
-softmax over one element is identically one and the mechanism reduces to copying
-the highest-scoring peer's value. At four retained peers the fused kernel is $1.3$ to $2.3$ times slower than dense, and at a quarter of peers more than an
-order of magnitude slower. Three ways of selecting inside the kernel ---
-repeated argmax, bisection on the score's bit pattern, and one sort of
-score--index pairs --- trade a cost linear in $k$ for dense aggregation or for
-a sort that costs five to sixteen times dense attention, and none changes the
-outcome (Appendix~\ref{app:selection}).
+For kernels that keep the score row resident, the advantage is narrow. It
+appears at one retained peer, and at two only at $d{=}32$, $N{=}512$. At four
+retained peers the fused kernel is $1.3$ to $2.3$ times slower than dense, and
+at a quarter of peers more than an order of magnitude slower. We tried three
+ways of selecting inside the kernel: repeated argmax, bisection on the score's
+bit pattern, and one sort of score--index pairs. The first costs time linear in
+$k$, the second pays for a dense aggregation, and the third pays for a sort that
+costs five to sixteen times dense attention; none changes the outcome
+(Appendix~\ref{app:selection}).
 
 \begin{table}[t]
 \centering\small
@@ -156,19 +179,23 @@ for by attending over the set, across the five $k$.}
 \input{tables/fixed_set}
 \end{table}
 
-To see where the fused kernel's time goes, we held the retained set fixed and
-changed only how it is found (Table~\ref{tab:fixedset}). Given the exact top-$k$
-indices for free, a fused kernel that reads one key and one value row per
-retained peer costs $0.06$ to $0.11$ times dense attention at $512$ agents and
-$k \le 4$; the fused score-then-select kernel, attending over the same peers,
-costs $0.77$ to $1.93$ times. From $384$ agents upward, at least $90\%$ of the
-fused kernel's device time is the cost of finding the set, the term that
-Proposition~\ref{prop:ceiling} shows cannot be removed. Finding the same set
-with library operators instead, a score product followed by \texttt{torch.topk},
-costs $8$ to $27$ times dense attention on its own at $d{=}16$. This sweep ran on the
-other card of the host from the main sweep, and the fused kernel's ratios
-reproduce it ($0.77$, $1.27$ and $1.93$ against $0.81$, $1.27$ and $1.96$ at
-$d{=}16$, $N{=}512$, $k \in \{1,2,4\}$). Exact score-then-select requires all $N$ scores to be \emph{computed}, but not
+\paragraph{Where the fused kernel's time goes.} We held the retained set fixed
+and changed only how it is found (Table~\ref{tab:fixedset}). Given the exact
+top-$k$ indices for free, a fused kernel that reads one key and one value row
+per retained peer costs $0.06$ to $0.11$ times dense attention at $512$ agents,
+$d{=}16$ and $k \le 4$; the fused score-then-select kernel, attending over the
+same peers, costs $0.77$ to $1.93$ times. From $384$ agents upward, at least
+$90\%$ of the fused kernel's device time is the cost of finding the set: forming
+every score, which Proposition~\ref{prop:ceiling} shows cannot be removed, and
+ranking them, which the proposition does not count. The comparison does not
+separate those two parts, but only the ranking grows with $k$. Finding the same
+set with library operators instead, a score product followed by
+\texttt{torch.topk}, costs $8$ to $27$ times dense attention on its own at
+$d{=}16$. This sweep ran on the other card of the host from the main sweep, and
+the fused kernel's ratios reproduce it ($0.77$, $1.27$ and $1.93$ against
+$0.81$, $1.27$ and $1.96$ at $d{=}16$, $N{=}512$, $k \in \{1,2,4\}$).
+
+Exact score-then-select requires all $N$ scores to be \emph{computed}, but not
 to be held on chip at once. Keeping them \emph{resident} is a design choice of
 the kernels above, and it is this choice that restricts their tiling.
 
@@ -188,47 +215,54 @@ resident kernels' cap.}
 \input{tables/streaming}
 \end{table}
 
-\paragraph{Streaming the selection.} We therefore wrote a streaming exact
-top-$k$ kernel in the manner of the chunked selection of \citet{gupta2021topk}:
-each program takes a tile of queries, walks the keys in tiles as a dense
-streaming kernel does, and merges each score tile into a running set of $k$
-candidates held in registers, packing each score with its index so that one
-integer comparison orders both, as \texttt{torch.topk} does on ties. Nothing
-$N$-wide stays on chip, so the kernel admits the dense kernel's tilings and has
-no cap on $N$. It changes the picture for small $k$ (Table~\ref{tab:streaming}).
-On the Blackwell card, at one and two retained peers it is faster than the best
-dense implementation at every configuration measured, at \StreamKOneLo{} to \StreamKTwoHi{} times
-its latency; at four it is within about \StreamKFourDev{}\% of parity
-(\StreamKFourLo{} to \StreamKFourHi{} up to $512$ agents), where the resident
-kernel is $1.3$ to $2.3$ times slower; and at eight it is slower again up to
-$512$ agents. With two retained peers the softmax is no longer trivial, so the advantage of
-score-then-select over dense attention in fp32 is not confined to the
-degenerate case. It remains bounded: the floor is the score product, about half
-of dense attention, and from $384$ agents upward \StreamFindLo{} to
-\StreamFindHi{}\% of the streaming kernel's time is still finding the set.
+\paragraph{Streaming the selection.} To remove that restriction we wrote a
+streaming exact top-$k$ kernel in the manner of the chunked selection of
+\citet{gupta2021topk}. Each program takes a tile of queries and walks the keys
+in tiles, as a dense streaming kernel does, merging each score tile into a
+running set of $k$ candidates held in registers. Each score is packed with its
+index so that one integer comparison orders both, as \texttt{torch.topk} does on
+ties. Nothing $N$-wide stays on chip, so the kernel admits the dense kernel's
+tilings and has no cap on $N$.
+
+On the Blackwell card the streaming kernel is faster than the best dense
+implementation at every configuration measured with one or two retained peers
+(Table~\ref{tab:streaming}), at \StreamKOneLo{} to \StreamKTwoHi{} times its
+latency up to $512$ agents. With four it is within about \StreamKFourDev{}\% of
+parity (\StreamKFourLo{} to \StreamKFourHi{} up to $512$ agents), where the
+resident kernel is $1.3$ to $2.3$ times slower, and with eight it is slower
+again up to $512$ agents. With two retained peers the softmax is no longer
+trivial, so the fp32 advantage of score-then-select over dense attention is not
+confined to the degenerate case. The advantage is still bounded: the score
+product, about half of dense attention, sets a floor, and from $384$ agents upward
+\StreamFindLo{} to \StreamFindHi{}\% of the streaming kernel's time still goes
+to finding the set.
+
 Beyond one retained peer the window depends on the GPU
 (Appendix~\ref{app:portability}). On the A100, H100 and H200 the streaming
 kernel is faster than dense at one retained peer at every configuration
-(\PortStreamOneLo{} to \PortStreamOneHi{}); at two it is faster at every
+(\PortStreamOneLo{} to \PortStreamOneHi{}). With two it is faster at every
 configuration on the A100 (\PortStreamTwoAHundredLo{} to
 \PortStreamTwoAHundredHi{}) and at \PortStreamTwoHopperWins{} of
-\PortStreamTwoConfigs{} on the H100 and H200, slower at $d{=}\PortStreamTwoHopperWorstD{}$,
-$N{=}\PortStreamTwoHopperWorstN{}$ (\PortStreamTwoHopperWorst{}); and at four it is
-slower at every configuration (\PortStreamFourLo{} to \PortStreamFourHi{}).
-Finding the set takes \PortStreamFindLo{} to \PortStreamFindHi{}\% of its time
-from $384$ agents upward there, as on the Blackwell card.
+\PortStreamTwoConfigs{} configurations on each of the H100 and H200, slower on both at
+$d{=}\PortStreamTwoHopperWorstD{}$, $N{=}\PortStreamTwoHopperWorstN{}$
+(\PortStreamTwoHopperWorst{}). With four it is slower at every configuration
+(\PortStreamFourLo{} to \PortStreamFourHi{}). As on the Blackwell card, finding
+the set takes \PortStreamFindLo{} to \PortStreamFindHi{}\% of its time from
+$384$ agents upward. These statements hold at the batch of $256$ used
+throughout; at a batch of $32$ the one-peer result is less uniform
+(Table~\ref{tab:portbatch}).
 
-\subsection{Q4: Does the crossover depend on precision?}
+\subsection{Numerical precision}
 \label{sec:precision}
 
-The single-peer advantage above is measured in fp32 with IEEE products, which
-keeps every kernel off the tensor cores so that it reproduces the reference
-summation order. In this format dense attention gains the least from the
-hardware. We repeated the comparison in TF32 and bf16, searching both kernels
-again in each format under the same admissibility filter, and added
-FlexAttention \citep{dong2025flexattention} twice: as a dense baseline, and as
-PyTorch's route to data-dependent sparsity, with the top-$k$ retained set
-expressed as a block mask (Table~\ref{tab:precision}).
+The fused advantage above is measured in fp32 with IEEE products, which keeps
+every kernel off the tensor cores so that it reproduces the reference summation
+order. In this format dense attention gains the least from the hardware. We
+repeated the comparison in TF32 and bf16, searching both kernels again in each
+format under the same admissibility filter, and added FlexAttention
+\citep{dong2025flexattention} twice: as a dense baseline, and as PyTorch's
+route to data-dependent sparsity, with the top-$k$ retained set expressed as a
+block mask (Table~\ref{tab:precision}).
 
 \begin{table}[t]
 \centering\small
@@ -248,71 +282,89 @@ top-$k$ kernel. The best dense implementation becomes $2.7$ to $4.0$ times faste
 TF32 than in fp32, and $3.9$ to $8.1$ times faster in bf16. The resident kernel at
 one retained peer, faster than dense at every agent count in fp32 ($0.67$ to
 $0.91$), is slower from $384$ agents upward in both reduced formats ($1.07$ to
-$1.38$) and at most marginally faster at $192$ agents ($0.83$ to $1.01$). One reduced-precision cell is at parity rather than slower under the ratio of medians ($0.99$, bf16, $d{=}16$, $N{=}512$). This
-separates the two readings that the fp32 data could not: at a fixed head width,
-raising the efficiency of dense attention removes the resident kernel's
-crossover, so it depends on how close dense attention runs to the machine rather
-than on the head width as such. TF32 also changes the function computed. Rounding the products
-reorders near-tied scores, so every top-$k$ implementation --- fused, composed or
-FlexAttention --- retains a different peer from a float64 reference in up to
-$0.7\%$ of query rows, rising with $k$; we exclude configurations above
-$0.1\%$, which removes most TF32 entries beyond one retained peer, and since
-cost rises with $k$ those entries could only be slower.
+$1.38$), and at $192$ agents ($0.83$ to $1.01$) it ranges from faster to parity.
+One reduced-precision cell is at parity rather than slower under the ratio of
+medians ($0.99$, bf16, $d{=}16$, $N{=}512$).
+
+In fp32, dense efficiency and head width move together, so the fp32 data alone
+could not say whether the resident kernel's crossover is confined to narrow
+heads because of the head width or because dense attention runs far from the
+machine at those widths (Appendix~\ref{app:selection}). At a fixed head width,
+raising the efficiency of dense attention removes the crossover from $384$
+agents upward, which favours
+the second reading. The test is not perfectly controlled, since reduced
+precision also accelerates the sparse kernel's score product.
+
+TF32 also changes the function computed. Rounding the products reorders
+near-tied scores, so every top-$k$ implementation (fused, composed or
+FlexAttention) retains a different peer from a float64 reference in up to
+$0.7\%$ of query rows, rising with $k$. We exclude configurations above $0.1\%$,
+which removes most TF32 entries beyond one retained peer; since cost rises with
+$k$, those entries could only be slower than the one-peer entries that remain.
 
 FlexAttention is the fastest dense implementation in nine of the twelve
 reduced-precision configurations, which supports the choice of baseline. As a
-route to top-$k$ sparsity it is $8$ to $218$ times slower than dense attention:
-the retained set must first be ranked from a full score matrix and converted
+route to top-$k$ sparsity it is $8$ to $218$ times slower than dense attention.
+The retained set must first be ranked from a full score matrix and converted
 into a block mask on every call, and at $128$-wide blocks every block of the
 mask contains a retained pair, so the kernel then computes densely.
 
-\paragraph{The streaming kernel in reduced precision.} Repeating the study for
-the streaming kernel separates what reduced precision removes
-(Table~\ref{tab:streamprec} in Appendix~\ref{app:streamprec}). At one retained peer the streaming kernel stays
-faster than dense in TF32 (\SPTfOneLo{} to \SPTfOneHi{}) and is at parity in
-bf16 (\SPBfOneLo{} to \SPBfOneHi{}), where the resident kernel was slower from
-$384$ agents up. At two it stays faster in the TF32 configurations that pass the
-retained-set filter (\SPTfTwoLo{} to \SPTfTwoHi{}) and is slower in bf16
-(\SPBfTwoLo{} to \SPBfTwoHi{}); at four it is \SPBfFourLo{} to \SPBfFourHi{}
-times slower in bf16, and no TF32 configuration passes. Reduced precision
-accelerates every matrix product, the score product included, but not the
-integer comparisons of selection, so the narrower the format the larger the
-share of the sparse kernel's time that selection takes.
+\paragraph{The streaming kernel in reduced precision.} On the Blackwell card the
+streaming kernel (Table~\ref{tab:streamprec} in Appendix~\ref{app:streamprec})
+stays faster than dense at one retained peer in TF32 (\SPTfOneLo{} to
+\SPTfOneHi{}) and is near parity in bf16 (\SPBfOneLo{} to \SPBfOneHi{}), where
+the resident kernel was slower from $384$ agents up. With two retained peers it
+is faster or at parity in the TF32 configurations that pass the retained-set
+filter (\SPTfTwoLo{} to \SPTfTwoHi{}) and slower in bf16 (\SPBfTwoLo{} to
+\SPBfTwoHi{}); with four it is \SPBfFourLo{} to \SPBfFourHi{} times slower in
+bf16, and no TF32 configuration passes. Reduced precision accelerates every
+matrix product, the score product included, but not the integer comparisons of
+selection, so the narrower the format, the larger the share of the sparse
+kernel's time that selection takes.
 
 \paragraph{bf16 on four GPUs.} Attention commonly runs in bf16 in
-mixed-precision training and inference, and in bf16 the fp32 result does not
-carry over. On the A100, H100 and H200 the streaming
-kernel is slower than the best bf16 dense implementation at every configuration
-and retained count we measured: \PortBfOneLo{} to \PortBfOneHi{} times dense at
-one retained peer, \PortBfTwoLo{} to \PortBfTwoHi{} at two and \PortBfFourLo{}
-to \PortBfFourHi{} at four; on the Blackwell card it is near parity at one
-(\SPBfOneLo{} to \SPBfOneHi{}) and slower beyond. The retained set is not the
-cause: bf16 changed the retained peers in at most \PortBfMismatchMax{} of the
-\PortBfRowsM{} million query rows checked on any of the four GPUs, so the
-difference from fp32 is one of cost. TF32 sits between the two, at
-\PortTfOneLo{} to \PortTfOneHi{} at one retained peer off the Blackwell card
-(Appendix~\ref{app:portability}). Any conclusion about mixed-precision training
-is limited by what we timed: the forward pass of the attention core in each
-format, not a bf16 backward pass or a training run. Within that scope, a
-score-then-select kernel of this design gives no latency gain over dense
-attention in bf16 on three of the four GPUs.
+mixed-precision training and inference, and there the fp32 result does not carry
+over. On the A100, H100 and H200 the streaming kernel is slower than the best
+bf16 dense implementation at every configuration and retained count we
+measured: \PortBfOneLo{} to \PortBfOneHi{} times dense at one retained peer,
+\PortBfTwoLo{} to \PortBfTwoHi{} at two and \PortBfFourLo{} to \PortBfFourHi{}
+at four. On the Blackwell card it is near parity at one (\SPBfOneLo{} to
+\SPBfOneHi{}) and slower beyond. The retained set is not the cause: bf16 changed
+the retained peers in at most \PortBfMismatchMax{} of the \PortBfRowsM{} million
+query rows checked on any of the four GPUs, so the difference from fp32 is one
+of cost. TF32 sits between the two, at \PortTfOneLo{} to \PortTfOneHi{} at one
+retained peer off the Blackwell card (Appendix~\ref{app:portability}). We timed
+the forward pass of the attention core in each format, not a bf16 backward pass
+or a training run, so conclusions about mixed-precision training are limited to
+that scope. Within it, a score-then-select kernel of this design gives no
+latency gain over dense attention in bf16 on three of the four GPUs.
 
-\subsection{Q5: Selecting before scoring}
+\subsection{Selecting before scoring}
 \label{sec:prescore}
 
-We test SCALE's escape case, Proposition~\ref{prop:escape}, with three selectors, each used by
-existing multi-agent mechanisms and each in a different class of
-Corollary~\ref{cor:taxonomy}. \emph{All-pairs nearest neighbours} ranks the
-distances between two-dimensional positions, as a neighbourhood rule
-recomputed each step does \citep{jiang2018dgn,jiang2018atoc}; it is case~(b),
-and its count ratio rises towards $d$ and no further. \emph{Grid nearest
-neighbours} buckets agents in a uniform grid and ranks only the candidates in the surrounding $3 \times 3$ cells; its cost is $\Theta(Nk)$ plus one sort of the agents, case~(d) up to a sort that is under $5\%$ of its count here, and it retains the exact nearest neighbours in at least $99.93\%$ of
-cases for uniformly placed agents. \emph{Z-order} orders agents along a Morton curve and keeps the $k$ adjacent in that order, as ZETA does for low-dimensional key projections in sequence models \citep{zeng2025zeta}; its sort is $O(N \log N)$, case~(c). Closed forms are in Appendix~\ref{app:closedforms}. Attention then
-runs over the retained pairs only, composed from library operators or as the
-fused fixed-set kernel of Q3; the Z-order window, a band in curve order, also
-runs through FlexAttention. These selectors attend to different peers than
-top-$k$, so this comparison is of cost, not of quality; Table~\ref{tab:fixedset}
-is the comparison at a fixed set.
+We call a path that selects before scoring a \emph{pre-score} path.
+
+We test the escape case of SCALE, Proposition~\ref{prop:escape}, with three
+selectors that span cases (b) to (d) of Corollary~\ref{cor:taxonomy}; the first
+two follow neighbourhood rules used by multi-agent mechanisms and the third
+comes from sequence models. \emph{All-pairs nearest neighbours} ranks the
+distances between two-dimensional positions, as a neighbourhood rule recomputed
+each step does \citep{jiang2018dgn,jiang2018atoc}. It is case~(b), and its
+count ratio rises towards $d$ and no further. \emph{Grid nearest neighbours}
+buckets agents in a uniform grid and ranks only the candidates in the
+surrounding $3 \times 3$ cells. Its cost is $\Theta(Nk)$ plus one sort of the
+agents, so it is formally case~(c) because of the comparison sort and
+effectively case~(d), since the sort is under $5\%$ of its count here; it
+retains the exact nearest neighbours in at least $99.93\%$ of cases for
+uniformly placed agents. \emph{Z-order} orders agents along a Morton curve and
+keeps the $k$ adjacent in that order, as ZETA does for low-dimensional key
+projections in sequence models \citep{zeng2025zeta}; its sort is
+$O(N \log N)$, case~(c). Closed forms are in Appendix~\ref{app:closedforms}.
+Attention then runs over the retained pairs only, composed from library
+operators or as the fused fixed-set kernel of Section~\ref{sec:fused}; the
+Z-order window, a band in curve order, also runs through FlexAttention. These
+selectors attend to different peers than top-$k$, so this comparison is of
+cost, not of quality; Table~\ref{tab:fixedset} is the comparison at a fixed set.
 
 \begin{table}[t]
 \centering\small
@@ -328,59 +380,73 @@ are dominated by per-kernel cost (Section~\ref{sec:smalln}).}
 \end{table}
 
 \paragraph{The attention stage.} Once the retained set is known, the fused
-attention over it behaves as the accounting predicts: at two retained peers it
+attention over it behaves as the accounting predicts. At two retained peers it
 costs $0.06$ times dense attention at $512$ agents on the Blackwell card, more
-than sixteen times faster (\PortPreAttnLo{} to \PortPreAttnHi{} times faster on
-the A100, H100 and H200), and its advantage grows with the agent count because the score term now shrinks with the aggregation (Figure~\ref{fig:prescore} in Appendix~\ref{app:prescore}). The ratio of medians is $0.064$ in that sweep but $0.18$ in the second, more contended one, and under CUDA-graph replay the same kernel over the exact top-$k$ set costs $0.07$ (Table~\ref{tab:fixedset}). The figure is a device time: the kernel runs for about ten microseconds, so an eager deployment whose
-host launch path is slower than that will not see it in full. Composed from
+than sixteen times faster, and is \PortPreAttnLo{} to \PortPreAttnHi{} times
+faster on the A100, H100 and H200. Its advantage grows with the agent count,
+because the score term now shrinks with the aggregation
+(Figure~\ref{fig:prescore} in Appendix~\ref{app:prescore}). Composed from
 library operators the same stage is slower than dense attention at every agent
 count and sparsity measured, and fusing it is worth a factor of $4$ to $17$
-(Appendix~\ref{app:prescore}). No score-then-select implementation comes close,
-because none can remove the score term.
+(Appendix~\ref{app:prescore}). No score-then-select implementation approaches
+these ratios, because none can remove the score term.
 
-\paragraph{End to end, the selector decides.} The three selectors separate as
-Corollary~\ref{cor:taxonomy} predicts, and by more than their operation counts
-suggest (Table~\ref{tab:selectors}). The all-pairs selector's cost grows
-quadratically, from $0.32$ to $5.69$\,ms between $192$ and $512$ agents at four
-retained peers, and its path ends $37$ times slower than dense attention; the
-cap binds far below its analytic value because the selector's cost is traffic
-rather than arithmetic. The grid selector removes the quadratic growth --- its
-cost rises from $0.51$ to $1.67$\,ms over the same range --- but its constant,
-gathering and ranking about a hundred candidates per agent, keeps the path $10$
-times slower than dense at $512$ agents, and at sixteen retained peers it is
-slower than the all-pairs selector at $384$ and $512$ agents: within the
-measured range the asymptotic class does not fix the ordering. The Z-order
-selector's cost is nearly flat, $0.10$ to $0.14$\,ms, so its share falls as
-attention grows more expensive: the path costs $0.86$ times dense at $512$
-agents and four retained peers, reproducing the first sweep's $0.85$. Through
-FlexAttention the same window costs $1.6$ times dense at $512$ agents: faster
-than composing it from library operators, slower than the fused kernel, since
-at this size the band still touches several of FlexAttention's $128$-wide
-blocks per row.
+The Blackwell figure depends on the estimator and on contention. The ratio of medians is $0.064$ in that sweep but $0.18$ in the second, more
+contended one. Under CUDA-graph replay the same kernel over the exact top-$k$ set costs $0.07$
+(Table~\ref{tab:fixedset}), so the figure holds as a device time even though
+the eager ratio depends on contention. The kernel
+runs for about ten microseconds, and an eager deployment whose host launch path
+is slower than that will not see the full gain.
 
-The end-to-end crossing is a best-case result. It holds on minima in both
-sweeps, and under the ratio of medians in the second sweep ($0.92$) but not in the first, where it is $2.10$, because a multi-launch path
-has a heavier tail on a contended device than a single dense kernel
-(Appendix~\ref{app:prescore}). It appears only at the largest agent count we
-measure; at $48$ agents the Z-order path is $16$ times slower than dense. The
-section therefore identifies the conditions under which selecting before scoring
-pays (a selector that is cheap in absolute terms, not only asymptotically,
-followed by a fused attention stage); it does not recommend this particular
-implementation. The crossing is also specific to the
-Blackwell card: on the A100, H100 and H200 the fused attention stage is still
+\paragraph{End to end.} The end-to-end comparison is at four retained peers
+(Table~\ref{tab:selectors}). The all-pairs selector, whose class is capped at a
+constant, is the most expensive at $512$ agents, by more than its operation
+count implies; the order of the other two is set by constants rather than by
+class, and at $192$ agents the grid path is slower than the all-pairs one. The all-pairs selector's cost grows quadratically, from $0.32$ to
+$5.69$\,ms between $192$ and $512$ agents, and its path ends $37$ times slower
+than dense attention in this sweep. The cap therefore binds far below its
+analytic value, consistent with a selector whose cost is traffic rather than
+arithmetic. The grid selector removes the quadratic growth, and its cost rises
+from $0.51$ to $1.67$\,ms over the same range. Gathering and ranking about a
+hundred candidates per agent still keeps the path $10$ times slower than dense
+at $512$ agents, and at sixteen retained peers the grid path is slower than the
+all-pairs one at $384$ and $512$ agents. Within the measured range, then, the
+asymptotic class does not fix the ordering. The Z-order selector's cost is
+nearly flat, $0.10$ to $0.14$\,ms, so its share falls as attention grows more
+expensive: the path costs $0.86$ times dense at $512$ agents and four retained peers, reproducing the first sweep's $0.85$. Through
+FlexAttention the same window costs $1.6$ times dense at $512$ agents, faster
+than composing it from library operators and slower than the fused kernel,
+since at this size the band still touches several of FlexAttention's
+$128$-wide blocks per row.
+
+The end-to-end crossing holds only in the best case. It holds on minima in both
+sweeps, and under the ratio of medians in the second sweep ($0.92$) but not in the
+first, where it is $2.10$, because a multi-launch path has a heavier tail on a
+contended device than a single dense kernel (Appendix~\ref{app:prescore}). It
+also appears only at the largest agent count we measure; at $48$ agents the
+Z-order path is $16$ times slower than dense. And it is specific to the
+Blackwell card: on the A100, H100 and H200 the fused attention stage still costs
 \PortZorderAttendLo{} to \PortZorderAttendHi{} times dense, but the whole
 Z-order path costs \PortZorderTotalLo{} to \PortZorderTotalHi{}
-(Appendix~\ref{app:portability}).
+(Appendix~\ref{app:portability}). Selecting before scoring paid only under two
+conditions, a selector that is cheap in absolute terms and not only
+asymptotically, and a fused attention stage. The Z-order path is evidence for
+those conditions; we do not offer it as a design. Of the three predictions of
+Section~\ref{sec:roofline}, the ceiling held as an upper bound, the byte screen
+was consistent with the composed path's losses but did not separate wins from
+losses, and the class ordering held for the all-pairs selector at $512$ agents but did
+not fix the order of the others.
 
-\subsection{Q6: What governs latency at the agent counts of current methods?}
+\subsection{Small agent counts}
 \label{sec:smalln}
 
-The multi-agent methods we cite are evaluated with two to about a hundred agents
-(Section~\ref{sec:related}), below the range in which the ratios above are read.
-There the per-call cost of a kernel is a large share of its time, so we re-timed
-every implementation at $12$ to $96$ agents under CUDA-graph replay, which
-removes host launch latency and leaves device time, and counted the kernels each
-one issues from the captured graph (Table~\ref{tab:smalln}).
+Apart from mean-field MARL, the multi-agent methods we cite are evaluated with
+two to about a hundred agents (Section~\ref{sec:related}), below the range in
+which the ratios above are read. At these sizes the fixed per-call cost of a
+kernel is a large share of its time, so we re-timed every implementation at
+$12$ to $96$ agents under CUDA-graph replay, which removes host launch latency
+and leaves device time, and counted the kernels each one issues from the
+captured graph (Table~\ref{tab:smalln}).
 
 \begin{table}[t]
 \centering\small
@@ -394,26 +460,98 @@ Sections~\ref{sec:latency}--\ref{sec:prescore}.}
 \resizebox{\linewidth}{!}{\input{tables/small_n}}
 \end{table}
 
-At these sizes the number of kernels, not the operation count or the bytes,
-orders the implementations. Within each configuration of agent count and batch,
-the rank correlation between device time and kernel count has a median of
-\SmallNRhoLaunch{}, against \SmallNRhoFlops{} for executed operations; on the
-host, issuing a call costs about \SmallNPerLaunch{}\,\textmu s per kernel on top
-of a fixed \SmallNHostFixed{}\,\textmu s, which an eager deployment pays in
-addition to the device time. Every composed path, sparse or dense, issues six to
+At these sizes device time follows the number of kernels more closely than the
+operation count or the bytes. Within each configuration of agent count and
+batch, the rank correlation between device time and kernel count has a median
+of \SmallNRhoLaunch{}, against \SmallNRhoFlops{} for modelled executed
+operations. On the host, issuing a call costs about \SmallNPerLaunch{}\,\textmu s
+per kernel on top of a fixed \SmallNHostFixed{}\,\textmu s; an eager deployment
+pays this host cost as well, and it bounds latency from below whenever it
+exceeds the device time. Every composed path, sparse or dense, issues six to
 thirteen kernels and is \SmallNComposedLo{} to \SmallNComposedHi{} times slower
-than the best dense kernel at every agent count from $12$ to $96$, and the
-Z-order path, whose selector issues more than fifty, is \SmallNZorderLo{} to
-\SmallNZorderHi{} times slower, so the pre-score result of
-Section~\ref{sec:prescore} does not extend below a few hundred agents in this
-implementation. Among single-kernel paths the resident fused score-then-select kernel at
-one retained peer is at parity at $12$ agents and $5$ to $15\%$ faster than
-dense from $24$ to $96$, and at two retained peers it is within $6\%$ of parity throughout;
-the fixed-set kernel, which issues two kernels, is slower than dense at $12$
-agents and faster from $48$. The ordering by kernel count is not specific to the
-Blackwell card: on the A100, H100 and H200 the same median rank correlation is
+than the best dense kernel at every agent count from $12$ to $96$ (across
+retained counts). The Z-order path, whose selector issues more than fifty
+kernels, is \SmallNZorderLo{} to \SmallNZorderHi{} times slower, so the
+pre-score result of Section~\ref{sec:prescore}, observed only at $512$ agents,
+does not extend to this range in this implementation. Kernel count does not
+decide everything. Among single-kernel paths, the resident fused
+score-then-select kernel at one retained peer is at parity at $12$ agents and
+$5$ to $15\%$ faster than dense from $24$ to $96$, and at two retained peers it
+is within $6\%$ of parity throughout; the fixed-set kernel, which issues two
+kernels, is slower than dense at $12$ agents and faster from $48$. The
+association with kernel count is not specific to the Blackwell card: on the
+A100, H100 and H200 the same median rank correlation is
 \PortSmallNRhoLaunchLo{} to \PortSmallNRhoLaunchHi{} for kernel count and at
-most \PortSmallNRhoFlopsHi{} for executed operations
-(Appendix~\ref{app:portability}). At realistic agent counts, then, the design
-question is how many kernels the communication step issues; whether it is
-sparse matters less.
+most \PortSmallNRhoFlopsHi{} for modelled executed operations
+(Appendix~\ref{app:portability}). At the agent counts where current methods are
+evaluated, how many kernels a communication step issues is more closely
+associated with its device time than whether the step is sparse.
+
+\subsection{A checklist for benchmarking small kernels}
+\label{sec:checklist}
+
+Attention over tens to hundreds of agents runs for microseconds, on a device
+that is often shared, against library kernels tuned for other shapes. Each of
+those conditions produced at least one error in this study that yielded a
+plausible number, and Table~\ref{tab:pitfalls} lists them with the practice that
+prevents each. Two of the eight deserve emphasis, because nothing in the
+resulting numbers betrays them. A masked implementation benchmarked as sparse
+executes none of the counted saving, and a hand-written sparse kernel timed
+against a vendor's dense kernel measures authorship as well as sparsity. The
+first is caught by counting the operations the running program issues, the
+second by searching both kernels over one parameter space and reporting the
+fraction of the machine each reaches. Appendix~\ref{sec:pitfalls} describes each
+entry and how it was found.
+
+\begin{table}[t]
+\centering
+\small
+\caption{A checklist for benchmarking small attention kernels: eight ways a
+benchmark measures something other than the algorithm, each of which produced a
+spurious result in this study, and the practice that prevents it. The first five
+are caught by the shape of the result; the last three are not, because the
+numbers they produce are self-consistent. Appendix~\ref{sec:pitfalls} describes
+each.}
+\label{tab:pitfalls}
+\begin{tabular}{p{0.12\linewidth}p{0.26\linewidth}p{0.24\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{Kind} & \textbf{Cause} & \textbf{Symptom} & \textbf{Corrective practice} \\
+\midrule
+\multirow{3}{*}{\parbox{\linewidth}{Instrumen\-tation}}
+& Host transfer inside the timed region &
+Dense latency nearly flat in $N$ &
+Gate diagnostics behind a flag that is off while timing \\
+\addlinespace
+& Synchronisation without a device argument &
+Every kernel reports the event-resolution floor &
+Pin the device and pass it to every synchronisation \\
+\addlinespace
+& Host allocator returning large temporaries &
+Up to $8.8\times$ inflation and a non-monotone curve &
+Pin the heap; count minor faults per forward \\
+\midrule
+\multirow{2}{*}{Interference}
+& Timing implementations in sequential blocks &
+Swings above $100\%$ between identical configurations &
+Interleave repetition by repetition; report paired ratios \\
+\addlinespace
+& Changing which implementations share a sweep &
+Two sweeps disagree by $1.4\times$ at twelve agents &
+Fix the implementation set across comparable sweeps \\
+\midrule
+\multirow{2}{*}{\parbox{\linewidth}{Wrong algorithm}}
+& Benchmarking a masked implementation as sparse &
+The advertised saving is never executed &
+Assert executed FLOPs differ and trace the products issued \\
+\addlinespace
+& Comparing only against unfused dense &
+A $5.4\times$ more favourable comparison at $N{=}512$ &
+Report both baselines; check which backend serves the shape \\
+\midrule
+\parbox{\linewidth}{Wrong\\ baseline}
+& A hand-written sparse kernel against a vendor's dense kernel &
+An apparent speedup larger than the analytic ceiling permits &
+Write the dense baseline in the same framework and tiling \\
+\bottomrule
+\end{tabular}
+\end{table}

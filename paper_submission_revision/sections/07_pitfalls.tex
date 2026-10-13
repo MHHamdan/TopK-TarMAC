@@ -8,16 +8,15 @@ differ in how they are caught.
 the timed region measures the synchronisation. Our attention module computed an
 entropy statistic through a call that transfers a scalar to the host, and with
 it enabled dense latency was nearly flat in $N$ while its work grew by two
-orders of magnitude --- a result we briefly read as evidence that the quadratic
+orders of magnitude, a result we briefly read as evidence that the quadratic
 cost does not manifest. Synchronising without naming the device is the
 complementary error: work submitted to a non-default device is never waited on,
 and every kernel at every size then reports the event-resolution floor of about
 $0.4\,\mu$s. On the host, the default allocator returns the multi-MiB score
 matrices each implementation frees between calls, so the next call re-faults
 them; at $N{=}192$ that added roughly $37{,}000$ minor page faults per forward
-and inflated latency by up to $8.8\times$. Errors of this kind leave traces ---
-an impossible latency, a curve that is flat where it should be quadratic, a
-non-monotone cost --- and are caught by looking at the shape of the result
+and inflated latency by up to $8.8\times$. Errors of this kind leave traces (an impossible latency, a curve that is flat
+where it should be quadratic, a non-monotone cost) and are caught by looking at the shape of the result
 rather
 than its value.
 
@@ -59,8 +58,8 @@ more than sparsity can supply at any $k$ and was how we noticed. Matched
 authorship is the obvious remedy and it is not sufficient either: two kernels by
 the same author can differ by more than the margin under test. The condition
 that identifies the algorithm is matched \emph{efficiency}, so we search one
-parameter space for both under one admissibility filter --- which admits very
-unequal numbers of configurations, and we report those counts too --- and give
+parameter space for both under one admissibility filter, which admits very
+unequal numbers of configurations (we report those counts too), and give
 the fraction of the device's own arithmetic rate each kernel reaches
 (Section~\ref{sec:fused}). That is also what
 reveals when neither implementation is near the machine, which is a different
@@ -73,7 +72,7 @@ are blind to fused attention kernels, which would make a FLOPs-only comparison
 unable to see the baseline that matters. In PyTorch 2.11 that is not so:
 \texttt{torch.utils.flop\_counter} reports the fused path correctly, and it was
 our harness that added an analytic term on top of the counter's output for that
-implementation, publishing a figure $1.83\times$ too large. The narrower point
-generalises better than the one we started with: a counter has to be validated
+implementation, publishing a figure $1.83\times$ too large. The narrower lesson
+generalises better than the assumption we started with: a counter has to be validated
 against the kernels it is expected to observe, because only a counter attached
 to the running program can contradict a FLOP model.

@@ -1,3 +1,10 @@
+The bounds below are simple. Their use is to put score-then-select, selectors
+that act before scoring and fixed patterns on one axis, the cost of deciding
+what to keep, and to give checks a designer can apply before writing a kernel.
+Sections~\ref{sec:setting}--\ref{sec:ceiling} bound what sparsity can remove,
+Section~\ref{sec:escape} charges the selector, and Section~\ref{sec:roofline}
+gives a screen for whether a reduction can become time.
+
 \subsection{Setting and implementations}
 \label{sec:setting}
 
@@ -79,27 +86,28 @@ pass,
 with supremum $2$ approached only as $k/N \to 0$.
 \end{proposition}
 
-\paragraph{Why it matters.} The saving usually quoted for top-$k$
-communication, $1 - k/(N-1)$, describes the aggregation term alone. Read as the
-saving of the mechanism it overstates the achievable reduction by exactly a
-factor of two (under the masked-diagonal count the removable fraction is
-$\tfrac12(1 - k/(N-1))$), before any question of whether the reduction is
-realised in time. The bound depends only on \emph{when} the retained set is
-fixed: a rule that must read every score pays for every score. The observation
-is not new in kind: \citet{chen2023dfss} bound the speedup of top-$k$ attention
-by a constant in a memory-access model even when the mask is supplied at no
-cost. Proposition~\ref{prop:ceiling} states the limit as a closed-form operation
-count, extends it to training, and serves as the limiting case of the selector
-accounting below.
+The saving an operation count suggests for top-$k$ communication,
+$1 - k/(N-1)$, describes the aggregation term alone. Read as the saving of the
+mechanism, it overstates the achievable reduction by exactly a factor of two
+(under the masked-diagonal count the removable fraction is
+$\tfrac12(1 - k/(N-1))$), and this is before any question of whether the
+reduction is realised in time. The bound depends only on \emph{when} the
+retained set is fixed, since a rule that reads every score must first compute
+every score. The observation is not new in kind: \citet{chen2023dfss} bound the
+speedup of top-$k$ attention by a constant in a memory-access model even when
+the mask is supplied at no cost. Proposition~\ref{prop:ceiling} states the
+limit as a closed-form operation count, extends it to training, and serves as
+the limiting case of the selector accounting below.
 
-The proof, the treatment of the masked diagonal and seven assumptions (single
-round, full-score selection, per head, projections excluded, selection cost
-excluded, equal key and value widths, element-wise work excluded) are in
-Appendix~\ref{app:theory}. Relaxing the single-round, per-head, projection or
-selection-cost assumption leaves the ratio unchanged or moves it closer to one;
-values wider than keys raise the ceiling to $1 + d_v/d_k$, and charging the
-softmax can lift it slightly above two. The ceiling is a statement about the
-forward pass. In training, exact selection is piecewise constant in the scores,
+The proof, the treatment of the masked diagonal and seven assumptions are in
+Appendix~\ref{app:theory}. The assumptions are a single round, full-score
+selection, a per-head count, projections excluded, selection cost excluded,
+equal key and value widths, and element-wise work excluded. Relaxing the
+single-round, per-head, projection or selection-cost assumption leaves the ratio
+unchanged or moves it closer to one. Values wider than keys raise the ceiling to
+$1 + d_v/d_k$, and charging the softmax can lift it slightly above two.
+
+The proposition concerns the forward pass. In training, exact selection is piecewise constant in the scores,
 so a backward written for it needs the gradient products only over the retained
 pairs, and the analogous bound is $6N/(N+5k) < 6$; the autograd backward we
 time forms dense query and key gradients and does not reach it
@@ -133,9 +141,9 @@ and $k/N \to 0$, then $S$ diverges, though not in general at the rate $N/k$.
 A score-then-select rule is the limiting case. It has formed every score while
 selecting, so written in this form its selector cost is at least the scores of
 the discarded pairs, $C_{\mathrm{sel}} \ge N^2 d - Nkd$, and substituting
-recovers Proposition~\ref{prop:ceiling}. Read together, the two propositions
-place every peer-selection mechanism on one axis --- the cost of deciding what
-to keep --- and the position on that axis bounds what the mechanism can save.
+recovers Proposition~\ref{prop:ceiling}. The two propositions therefore place
+every peer-selection mechanism on one axis, the cost of deciding what to keep,
+and the position on that axis bounds what the mechanism can save.
 
 \begin{corollary}[What a selector costs, and what it can buy]
 \label{cor:taxonomy}
@@ -152,16 +160,16 @@ $S = 2N/((2+c)k)$ exactly; and $S \sim N/k$ when $C_{\mathrm{sel}} = o(Nkd)$, as
 fixed or precomputed pattern.
 \end{corollary}
 
-\paragraph{Why it matters.} Only a free selector delivers the $N/k$ that
-operation-count arguments for sparse communication invoke, and full-score
-selection is bounded by two at every $N$. The intermediate cases are where
-multi-agent methods sit, and they differ: a selector that ranks all pairs in a
-feature space of per-pair cost $\gamma p$ is capped at $2d/(\gamma p)$ --- above
-two only when $\gamma p < d$ --- while a sub-quadratic one is unbounded. The
-lightning indexer of DeepSeek Sparse Attention is a large-scale instance of
+Only a free selector delivers the $N/k$ that operation-count arguments for
+sparse communication invoke, and full-score selection is bounded by two at
+every $N$. Multi-agent methods sit between these extremes, and the intermediate
+cases differ. A selector that ranks all pairs in a feature space of per-pair
+cost $\gamma p$ is capped at $2d/(\gamma p)$, which exceeds two only when
+$\gamma p < d$, whereas a sub-quadratic selector is unbounded. The lightning
+indexer of DeepSeek Sparse Attention is a large-scale instance of
 case~(b): it scores every query--key pair with a cheaper function, and its
-authors note that it remains quadratic \citep{deepseek2025v32}. The asymptotic classes do not
-depend on the unit convention; the constants in the closed forms of
+authors note that it remains quadratic \citep{deepseek2025v32}. The asymptotic
+classes do not depend on the unit convention; the constants in the closed forms of
 Section~\ref{sec:prescore} do. Proofs are in Appendix~\ref{app:theory}.
 
 \subsection{Why the count need not govern the time}
@@ -172,28 +180,42 @@ performed \citep{williams2009roofline}. At head width $16$, the two composed
 paths in this study have an arithmetic intensity below every machine balance we
 measure on the same device (Appendix~\ref{app:intensity}), so their accounting
 is of bytes; fused kernels, which never write the score matrix, are not covered
-by this argument.
-Gathering does not remove memory traffic; it relocates it. Instead of
-multiplying $N-k$ zeros, the gathered path writes and re-reads a compacted
-$(B,N,k,d)$ tensor and the indices that build it.
+by this argument. For the composed paths, gathering moves memory traffic
+instead of removing it: in place of multiplying $N-k$ zeros, the gathered path
+writes and re-reads a compacted $(B,N,k,d)$ tensor and the indices that build
+it.
 
 \paragraph{Byte criterion.} Count each tensor read or written once, in fp32
 with int64 indices. Replacing the dense softmax and aggregation by selection, a
 softmax over $k$, the gather and the compacted contraction changes traffic by
-$2Nkd + 8Nk - 2N^2$ elements per batch element: the compacted tensor written and
-re-read costs $2kd$ per query where the dense weight row written and re-read
-cost $2N$. Gathering is therefore byte-neutral only if $k(d+4) \le N$, to
-leading order $kd \le N$. At $d{=}16$ and $N{=}512$ the leading-order form admits
-$k \le 32$ ($k \le 25$ exactly); at $d{=}128$, $k \le 4$ ($k \le 3$). Unlike
-the operation count, this criterion depends on $d$ and can be checked before
-any code is written. With int32 indices the index term halves and the exact
+$2Nkd + 8Nk - 2N^2$ elements per batch element. The dominant terms compare two
+intermediates: the compacted tensor, written and re-read, costs $2kd$ per query,
+whereas the dense weight row, written and re-read, costs $2N$. Gathering is
+therefore byte-neutral only if $k(d+4) \le N$, to leading order $kd \le N$.
+
+At $d{=}16$ and $N{=}512$ the leading-order form admits $k \le 32$ ($k \le 25$
+exactly); at $d{=}128$, $k \le 4$ ($k \le 3$). Unlike the operation count, the
+criterion depends on $d$, and it can be checked before any code is written.
+With int32 indices the index term halves and the exact
 condition becomes $k(d+2) \le N$; in a narrower value format the index term
 grows relative to the rest. The leading-order form is unchanged in every case,
 and the composed path cannot use int32 in any event, since PyTorch's gather
-takes int64 indices. It is a screen under a simplified accounting that ignores
-caches and fusion, not a model of GPU time, and it counts selection as one read
-of the scores: hardware counters on two GPUs show that a library top-$k$ reads
-them several times, so passing the screen is necessary for a composed gathered
-path to win and not sufficient (Appendix~\ref{app:portability}).
-Section~\ref{sec:measurement} tests the ceiling, the selector classes and the
-byte criterion against measurements.
+takes int64 indices.
+
+The criterion is a screen under a simplified accounting that ignores caches and
+fusion; it is not a model of GPU time. It also counts selection as one read of
+the scores, whereas hardware counters on two GPUs show that a library top-$k$
+reads them several times (Appendix~\ref{app:portability}). Under this
+accounting, passing the screen is necessary for a composed gathered path to win
+but not sufficient.
+
+\paragraph{What the accounting predicts.} Before any kernel is written, SCALE
+gives upper bounds (below two for score-then-select, a constant for an
+all-pairs selector), the asymptotic ordering of the selector classes, and a
+traffic screen for compaction. It does not give constants, the ordering of
+selectors at the agent counts we measure, or the behaviour of kernels whose
+time is dominated by fixed per-launch cost. Section~\ref{sec:measurement}
+tests the three predictions: the ceiling against executed operation counts
+(Section~\ref{sec:composed}), the byte screen against the composed path
+(Section~\ref{sec:latency}), and the class ordering against three selectors
+(Section~\ref{sec:prescore}).

@@ -186,7 +186,7 @@ def main() -> int:
         check_num("fused sparse at the largest N, k=1", fus,
                   r"the fused one \$([\d.]+)\$\\,ms")
         check_num("composed-to-fused implementation factor", comp / fus,
-                  r"a factor of \$(\d+)\$ attributable to the implementation",
+                  r"That factor of \$(\d+)\$ comes\s*from the implementation",
                   tol=0.05)
 
     st = load("stage_accounting.json")["rows"]
@@ -320,7 +320,7 @@ def main() -> int:
               r"path costs \$([\d.]+)\$ times dense at two", tol=0.03)
     check_num("pre-score total under the paired median at the largest N",
               ratio(r512, "total_fused", "median_ms"),
-              r"it costs \$([\d.]+)\$\s*times dense instead", tol=0.03)
+              r"it costs \$([\d.]+)\$\s*times dense at two retained peers", tol=0.03)
     checks += 1
     if ratio(r512, "total_fused", "median_ms") < 1.0:
         fails.append("the manuscript says the end-to-end crossing reverses "
@@ -363,9 +363,9 @@ def main() -> int:
               r"is worth between \$[\d.]+\$ and \$([\d.]+)\$", tol=0.03)
     sel_ms = [r["t_selector_ms"] for r in pre if r["selector"] == "morton_window"]
     check_num("Z-order selector, cheapest", min(sel_ms),
-              r"nearly flat in the agent count --- \$([\d.]+)\$ to", tol=0.03)
+              r"nearly flat in the agent count \(\$([\d.]+)\$ to", tol=0.03)
     check_num("Z-order selector, dearest", max(sel_ms),
-              r"nearly flat in the agent count --- \$[\d.]+\$ to \$([\d.]+)\$\\,ms",
+              r"nearly flat in the agent count \(\$[\d.]+\$ to \$([\d.]+)\$\\,ms",
               tol=0.03)
     knn = [pat("radius_knn", N, pks[1]) for N in pns]
     if all(knn):
@@ -486,7 +486,7 @@ def main() -> int:
                      f"at {tie_cfg} configurations")
     check_num("pre-score configurations checked",
               eq["prescore"]["configurations"],
-              r"--- \$(\d+)\$ configurations and \$")
+              r"\(\$(\d+)\$ configurations and \$")
     checks += 1
     if eq["prescore"]["failures"]:
         fails.append("the fused pre-score kernel disagrees with the composed "

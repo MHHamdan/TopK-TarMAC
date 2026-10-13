@@ -1,146 +1,110 @@
-\subsection{What a designer can take from this}
+\subsection{Implications for designing sparse communication}
 \label{sec:takeaways}
 
-Each of the following is a
-conclusion from the measurements above, inside their envelope, rather than a
-general law. Charge the selector, as SCALE does: its cost decides whether pre-scoring pays, and
-an asymptotic class does not fix the ordering at the agent counts measured.
-Separate scoring from aggregation: a rule that ranks scores cannot remove them,
-and in our fused kernels finding the retained set was most of the time. Check
-what the implementation executes: a masked implementation executes none of the
-counted saving. Check traffic before compacting, with $kd \le N$ as a necessary
-screen. Compare against the strongest dense kernel available for the format,
-including reduced precision: in bf16 the score-then-select advantage was at
-best near parity at a single retained peer, and absent on three of the four
-GPUs. Count kernels at small agent counts, where
-the number launched orders latency. And keep attention-stage and end-to-end figures apart: a sixteenfold
-attention-stage speedup on the Blackwell card and a $2\%$ spread across
-implementations in a full training iteration are both true of this system.
-Finally, re-measure on the target GPU: on the three other GPUs we measured, the
-streaming kernel's crossover in fp32 and bf16 and the pre-score crossover were
-narrower than on the Blackwell card.
+The measurements locate the cost of sparse communication in deciding which
+interactions to keep, a quantity an operation count leaves out. The practices
+below follow from them, and each holds inside the measured envelope
+(Section~\ref{sec:limits}).
 
-\subsection{A checklist for benchmarking small kernels}
-\label{sec:checklist}
-
-Attention over tens to hundreds of agents runs for microseconds, on a device
-that is often shared, against library kernels tuned for other shapes. Each of
-those conditions produced at least one error in this study that yielded a
-plausible number, and Table~\ref{tab:pitfalls} lists them with the practice that
-prevents each. Two of the eight are worth singling out, because nothing in the
-resulting numbers betrays them: a masked implementation benchmarked as sparse
-executes none of the counted saving, and a hand-written sparse kernel timed
-against a vendor's dense kernel measures authorship as well as sparsity. The
-first is caught by counting the operations the running program issues, the
-second by searching both kernels over one parameter space and reporting the
-fraction of the machine each reaches. Appendix~\ref{sec:pitfalls} describes each
-entry and how it was found.
-
-\begin{table}[t]
-\centering
-\small
-\caption{A checklist for benchmarking small attention kernels: eight ways a
-benchmark measures something other than the algorithm, each of which produced a
-spurious result in this study, and the practice that prevents it. The first five
-are caught by the shape of the result; the last three are not, because the
-numbers they produce are self-consistent. Appendix~\ref{sec:pitfalls} describes
-each.}
-\label{tab:pitfalls}
-\begin{tabular}{p{0.12\linewidth}p{0.26\linewidth}p{0.24\linewidth}p{0.26\linewidth}}
-\toprule
-\textbf{Kind} & \textbf{Cause} & \textbf{Symptom} & \textbf{Corrective practice} \\
-\midrule
-\multirow{3}{*}{\parbox{\linewidth}{Instrumen\-tation}}
-& Host transfer inside the timed region &
-Dense latency nearly flat in $N$ &
-Gate diagnostics behind a flag that is off while timing \\
-\addlinespace
-& Synchronisation without a device argument &
-Every kernel reports the event-resolution floor &
-Pin the device and pass it to every synchronisation \\
-\addlinespace
-& Host allocator returning large temporaries &
-Up to $8.8\times$ inflation and a non-monotone curve &
-Pin the heap; count minor faults per forward \\
-\midrule
-\multirow{2}{*}{Interference}
-& Timing implementations in sequential blocks &
-Swings above $100\%$ between identical configurations &
-Interleave repetition by repetition; report paired ratios \\
-\addlinespace
-& Changing which implementations share a sweep &
-Two sweeps disagree by $1.4\times$ at twelve agents &
-Fix the implementation set across comparable sweeps \\
-\midrule
-\multirow{2}{*}{\parbox{\linewidth}{Wrong algorithm}}
-& Benchmarking a masked implementation as sparse &
-The advertised saving is never executed &
-Assert executed FLOPs differ and trace the products issued \\
-\addlinespace
-& Comparing only against unfused dense &
-A $5.4\times$ more favourable comparison at $N{=}512$ &
-Report both baselines; check which backend serves the shape \\
-\midrule
-\parbox{\linewidth}{Wrong\\ baseline}
-& A hand-written sparse kernel against a vendor's dense kernel &
-An apparent speedup larger than the analytic ceiling permits &
-Write the dense baseline in the same framework and tiling \\
-\bottomrule
-\end{tabular}
-\end{table}
+\begin{itemize}
+  \item \textbf{Charge the selector.} Whether selecting before scoring paid end
+    to end depended on the selector's absolute cost, and at the agent counts
+    measured its asymptotic class did not fix the ordering
+    (Section~\ref{sec:prescore}).
+  \item \textbf{Separate scoring from aggregation.} A rule that ranks scores
+    cannot remove them, and in our fused kernels finding the retained set took
+    most of the time (Section~\ref{sec:fused}).
+  \item \textbf{Check what the implementation executes and moves.} A masked
+    implementation executes none of the counted saving
+    (Section~\ref{sec:composed}). Before compacting, $kd \le N$ is a screen under
+    a simplified byte model (Section~\ref{sec:roofline}); in our measurements the
+    composed path was slower on both sides of it (Table~\ref{tab:headline},
+    Figure~\ref{fig:ksweep}).
+  \item \textbf{Compare against the strongest dense kernel for the format.} In
+    bf16 the score-then-select advantage was at best near parity at a single
+    retained peer, and absent on three of the four GPUs
+    (Section~\ref{sec:precision}).
+  \item \textbf{Count kernels at small agent counts.} Below a hundred agents,
+    device time tracked the number of kernels launched more closely than the
+    operation count (Section~\ref{sec:smalln}).
+  \item \textbf{Keep attention-stage and end-to-end figures apart.} A sixteenfold
+    attention-stage speedup at $512$ agents on the Blackwell card and a $2\%$
+    spread across implementations in a full training iteration at six to
+    twenty-four agents are both true of this system
+    (Sections~\ref{sec:prescore} and~\ref{sec:latency}).
+  \item \textbf{Re-measure on the target GPU.} On the three other GPUs we
+    measured, the streaming kernel's crossover in fp32 and bf16 and the
+    pre-score crossover were narrower than on the Blackwell card
+    (Appendix~\ref{app:portability}).
+\end{itemize}
 
 \subsection{Limitations}
 \label{sec:limits}
 
-Every cost result concerns centralised inference on a
-single device; the paper makes no claim about bandwidth-constrained distributed
-deployment, where reducing transmitted messages is itself the objective and
-top-$k$ selection may well be the right design. The analysis is single-round and single-head; the operation-count ratio is invariant to both, but $H$ heads of width $d/H$ change the per-head width, along which our timing result changes sign.
+\paragraph{Setting.} Every cost result concerns centralised inference on a
+single device. Bandwidth-constrained deployment is outside our scope
+(Section~\ref{sec:intro}), and there top-$k$ selection may well be the right
+design. The analysis is single-round
+and single-head. The operation-count ratio is invariant to both, but $H$ heads
+of width $d/H$ change the per-head width, and the sign of the best sparse
+implementation's advantage over dense attention changes with head width
+(Appendix~\ref{sec:sensitivity}). Every timing claim concerns the forward pass
+of the attention core unless stated otherwise; the backward pass is reported
+only for the differentiable composed implementations, and the complete MAPPO
+iteration only at six to twenty-four agents (Appendix~\ref{app:backward}).
 
-The full measured envelope is one GPU architecture (NVIDIA Blackwell, sm\_120),
-one x86\_64 CPU, PyTorch 2.11 with CUDA 12.8 and Triton 3.6, head widths $16$ to
-$512$, $N \le 512$ ($1024$ for the streaming kernel), batch $32$ to $1024$, and
-fp32, TF32 and bf16. The headline measurements --- the composed and fused
-crossovers, the fixed-set split, the streaming kernel in all three formats, the
-pre-score path, small $N$ and batch to $4096$ --- were repeated on an A100, an H100
-and an H200 (Appendix~\ref{app:portability}). The ordering holds on all four.
-The resident kernel's one-peer crossover is the same on all four, and the
+\paragraph{Measured envelope.} The full sweep was measured on one GPU (NVIDIA
+RTX PRO 6000 Blackwell, sm\_120) with one x86\_64 host CPU, under PyTorch 2.11,
+CUDA 12.8 and Triton 3.6, at head widths $16$ to $512$, $N \le 512$ ($1024$ for
+the streaming kernel), batch $32$ to $1024$, and in fp32, TF32 and bf16. The
+headline measurements (the composed and fused crossovers, the fixed-set split,
+the streaming kernel in all three formats, the pre-score path, small $N$ and
+batch to $4096$) were repeated on an A100, an H100 and an H200
+(Appendix~\ref{app:portability}). On all four GPUs the composed path is slower
+than dense attention and the resident kernel's one-peer crossover recurs. The
 streaming and pre-score crossovers are narrower on the other three than on the
-Blackwell card, so those in the main text are best cases across the devices we
-measured. We did not measure CPUs or non-NVIDIA accelerators. Both cards were shared
-with other tenants throughout, and clocks could not be locked; every claim except the tiling search's efficiency figures is therefore a ratio between implementations timed in the same interleaved sweep, and below $192$ agents only the CUDA-graph device times of Section~\ref{sec:smalln} are used. The A100, H100 and H200 were each allocated exclusively; the orderings that
-recur on them (Appendix~\ref{app:portability}) are therefore not artefacts of
-contention on the Blackwell card. Timing a single call with
-device events measures host launch latency whenever the host is slower than the
-kernel; our kernels run for $5$ to $140$\,\textmu s, and during the fixed-set
-sweep the host launch path was slow enough that the eager figure for the fixed-set kernel was $1.7$ to $3.4$ times its graph-replay figure. The score-then-select
-ratios agreed under both protocols, but the smallest device times we report are
-not what an eager deployment on a slower host would see. 
+Blackwell card, so the figures in the main text are best cases across the
+devices we measured. We did not measure CPUs or non-NVIDIA accelerators.
 
-Our kernels are not optimal. The resident-row kernels admit only three tilings
-above $192$ agents against $28$ to $106$ for the dense kernel, so their
-efficiency figures are lower bounds and the negative results at wide heads are
-weakly supported. The streaming kernel removes that constraint and moved the
-boundary from one retained peer to between two and four; it was searched at head
-widths $16$ and $32$ only, and its merge is a sequence of comparisons that a
-better selection network might shorten, so the boundary may move further. It
-cannot move past the score product, about half of dense attention. The composed
-baseline's selection is \texttt{torch.topk} as PyTorch 2.11 implements it; we did
-not benchmark other exact top-$k$ designs, such as sample-guided or other radix
-selections, nor amortised or cross-layer indexers. Attention over a given set
-(Table~\ref{tab:fixedset}) bounds what any of them could recover. Its retained
+\paragraph{Timing.} Both Blackwell cards of the host, used for the main sweep
+and the fixed-set sweep, were shared with other tenants throughout, and their
+clocks could not be locked. Every comparative claim is therefore a ratio between
+implementations timed in the same interleaved sweep, and below $192$ agents only
+the CUDA-graph device times of Section~\ref{sec:smalln} are used. The A100, H100
+and H200 were each allocated exclusively, so the orderings that recur on them
+(Appendix~\ref{app:portability}) are not artefacts of contention on the
+Blackwell card. Timing a single call with device events measures host launch
+latency whenever the host is slower than the kernel. Our kernels run for $5$ to
+$140$\,\textmu s, and during the fixed-set sweep the host launch path was slow
+enough that the eager figure for the fixed-set kernel was $1.7$ to $3.4$ times its graph-replay figure. The score-then-select ratios agreed under both
+protocols, but the smallest device times we report are not what an eager
+deployment on a slower host would see.
+
+\paragraph{Kernels.} Our kernels are not optimal. The resident-row kernels
+admit only three tilings above $192$ agents against $28$ to $106$ for the dense kernel, so their efficiency figures are lower bounds and the negative results
+at wide heads are weakly supported. The streaming kernel removes that
+constraint, and in fp32 on the Blackwell card it moves the boundary from one
+retained peer to between two and four. It was searched at head widths $16$ and
+$32$ only, and its merge is a sequence of comparisons that a better selection
+network might shorten, so the boundary may move further; it cannot move past the
+score product, about half of dense attention. The composed baseline's selection
+is \texttt{torch.topk} as PyTorch 2.11 implements it. We did not benchmark other
+exact top-$k$ designs, such as sample-guided or other radix selections, nor
+amortised or cross-layer indexers; attention over a given set
+(Table~\ref{tab:fixedset}) bounds what any of them could recover. The retained
 count is a compile-time constant and $N$ is uniform within a launch, so a
 captured CUDA graph serves one $(B, N, k)$; per-row $k$ or ragged agent counts
-would need a length argument per row, which we have not written. We did not
-measure how the retained-set changes of reduced precision affect training: in
-the formats and configurations we report, bf16 changed the retained peers in at
-most \PortBfMismatchMax{} of \PortBfRowsM{} million rows on any GPU, and TF32
-configurations that changed more than $0.1\%$ of rows are excluded. The pre-score selectors attend to a
-different peer set than top-$k$ does, so their comparison is of cost; the one
+would need a length argument per row, which we have not written.
+
+\paragraph{Selectors and learning.} We did not measure how changes to the
+retained set under reduced precision affect training. In the formats and configurations
+we report, bf16 changed the retained peers in at most \PortBfMismatchMax{} of
+\PortBfRowsM{} million rows on any GPU, and TF32 configurations that changed
+more than $0.1\%$ of rows are excluded. The pre-score selectors attend to a
+different peer set than top-$k$ does (Section~\ref{sec:prescore}). Their one
 quality check, Z-order in the learning study (Appendix~\ref{sec:training}), is
-descriptive at six agents and five seeds; their selectors are composed from library operators, so the selector
-costs we report are upper bounds; and their envelope is one head width, one
-batch and fp32, with uniformly placed agents. Finally, the learning study
-(Appendix~\ref{sec:training}) has five seeds per variant; it shows that the
-communicating architecture improves return and cannot rank sparsification
-variants.
+descriptive, at six agents and five seeds. They are composed from library
+operators, so the selector costs we report are upper bounds, and their envelope
+is one head width, one batch and fp32, with uniformly placed agents. Finally,
+the learning study has five seeds per variant; it shows that the communicating
+architecture improves return and cannot rank sparsification variants.

@@ -31,8 +31,8 @@ if the underlying sample was not wildly dispersed, so the harness records the
 median, the interquartile range and the spread of per-run medians for every
 configuration, and the released artifacts carry all of them. Two properties of
 this host limit what any of it can mean. Both GPUs carried other tenants' allocations and near-continuous utilisation
-throughout the campaign --- tens of gibibytes, varying between sessions, which
-we observed but did not record per run --- and clocks could not be locked. We therefore report the spread of
+throughout the campaign (tens of gibibytes, varying between sessions, which
+we observed but did not record per run), and clocks could not be locked. We therefore report the spread of
 per-run medians beside every configuration. Whether a bootstrap interval for a
 ratio of minima is meaningful depends on the contention process, which is not
 stationary on this host, so we do not report one for the minimum.
@@ -62,13 +62,13 @@ $0.1\%$ at $96$ agents, $0.2\%$ at $192$, $0.6\%$ at $384$ and $6.1\%$ at $512$,
 and in the ratio $0.3$, $0.2$, $0.5$ and $7.2\%$; the worst single configuration
 moves $12.6\%$. Which implementation is faster changes between the runs at
 exactly one configuration, $96$ agents with two retained peers, where the ratio
-is $1.002$ in one run and $0.998$ in the other --- a tie either way.
+is $1.002$ in one run and $0.998$ in the other, a tie either way.
 
 Two things follow for how the sweeps are read. The measurement reproduces well
 enough that every ordering in this paper survives repetition, which is the
 property the claims depend on. And the largest agent count is the least stable
-one, not the most, so a margin of a few per cent there --- which is what the
-end-to-end crossing of Section~\ref{sec:prescore} is --- is at the edge of what
+one, not the most, so a margin of a few per cent there, which is what the
+end-to-end crossing of Section~\ref{sec:prescore} is, lies at the edge of what
 this device can resolve, and we say so where we report it. We restrict the
 crossover of Section~\ref{sec:fused} to $192$ agents and above for a different
 reason: fixed per-call cost. A one-program Triton kernel that writes a single
@@ -116,8 +116,7 @@ is claimed.
 Every implementation is checked against the reference at every configuration
 whose latency any released artifact reports: $158$ combinations of agent count,
 head width and retained-peer count, $136$ of them with $k < N-1$ so that
-selection is actually exercised, over $1.25$ million query rows in total. The
-check matters more than it looks. Exact top-$k$ is discontinuous in the scores,
+selection is actually exercised, over $1.25$ million query rows in total. The check is needed because exact top-$k$ is discontinuous in the scores,
 so two implementations that accumulate the score product in different orders can
 rank a near-tied pair differently and aggregate over different peers, producing
 a large output difference from a rounding-level score difference. An earlier
@@ -127,8 +126,8 @@ a handful of configurations for exactly that reason; the kernels reported here
 use the same product as the reference.
 
 With that fixed, every implementation agrees with the reference to
-\texttt{fp32} rounding --- maximum deviation $3.2\times10^{-6}$, and zero for
-the two implementations that share the reference's operator sequence exactly ---
+\texttt{fp32} rounding (maximum deviation $3.2\times10^{-6}$, and zero for
+the two implementations that share the reference's operator sequence exactly),
 with one attributable exception, which is an ambiguity in the function rather
 than an error in an implementation. Exact top-$k$ is only well defined when the
 $k$-th largest score is unique. The kernel that selects by threshold retains
@@ -148,7 +147,7 @@ and admit a tie as the explanation only when no more rows diverge than have a
 tie.
 
 The fused kernel for attention over a pre-chosen peer set is checked the same
-way against the composed path it replaces, at every configuration of both pre-score sweeps and all three selectors --- $60$ configurations and $473{,}088$ query rows --- to a maximum deviation of $1.1\times10^{-6}$. In the fixed-set sweep of Section~\ref{sec:fused}, every top-$k$ path is checked on the timed inputs themselves, at all $48$ configurations: maximum deviation $2.4\times10^{-6}$ and no diverging row in $3.6$ million. All references are the composed fp32 paths; a float64 reference is used only in the precision study, where reduced-precision rounding changes the retained set. Its timed call also converts the
+way against the composed path it replaces, at every configuration of both pre-score sweeps and all three selectors ($60$ configurations and $473{,}088$ query rows) to a maximum deviation of $1.1\times10^{-6}$. In the fixed-set sweep of Section~\ref{sec:fused}, every top-$k$ path is checked on the timed inputs themselves, at all $48$ configurations: maximum deviation $2.4\times10^{-6}$ and no diverging row in $3.6$ million. All references are the composed fp32 paths; a float64 reference is used only in the precision study, where reduced-precision rounding changes the retained set. Its timed call also converts the
 retained indices to the integer width the kernel reads them at, which the
 composed path does not need, so the figure we report for it includes a cost the
 comparison does not require of it.
@@ -160,8 +159,8 @@ executing different work, which is the distinction the paper turns on, so
 regression tests pin it. Maximum absolute deviation
 between the two paths is below $10^{-10}$ in \texttt{float64}. A FLOP counter
 attached to the running program reports identical totals for dense and masked
---- the counter scores matrix products, and masked issues the same two as dense
---- against a smaller total for gathered, the difference being exactly the
+(the counter scores matrix products, and masked issues the same two as dense)
+against a smaller total for gathered, the difference being exactly the
 aggregation term. Tracing every matrix product confirms that the gathered path
 issues no dense aggregation product and does issue the compacted one, and that
 every top-$k$ variant still issues the full score product, which is assumption
@@ -195,7 +194,7 @@ FlashAttention backend is rejected under any non-null mask in either form, and
 in \texttt{fp32} under any input, so the library dense baseline runs the
 memory-efficient CUTLASS kernel. Forcing FlashAttention on the same unmasked
 \texttt{bf16} shape is faster than the kernel we do get, so a baseline able to
-reach it would widen rather than narrow the gap we report --- which is part of
+reach it would widen rather than narrow the gap we report, which is part of
 why the dense baseline in this paper is the better of the library path and a
 kernel we wrote.
 
@@ -309,14 +308,14 @@ states the corrected version; the deviation is logged against the released plan.
 \subsection{The remaining comparisons}
 
 Five further comparisons were registered and all are Holm-adjusted nulls. Two
-are worth a note. The comparison at twelve agents has the one sign opposite to
+require comment. The comparison at twelve agents has the one sign opposite to
 its registered direction and carries the family's largest point estimate, and
 we set it aside on the ground that neither variant learns the task there. That
 ground was not registered: it is a post-hoc exclusion of the largest observed
 effect, we have logged it as a deviation against the released plan, and a
 reader who rejects it should read the comparison as an under-powered null with
 a large point estimate, which is what the registered analysis returns either
-way. The evidence for the exclusion is this. A uniform-random policy scores
+way. In support of the exclusion, a uniform-random policy scores
 $-758.9$ under a forty-episode evaluation,
 against $-864.9$ for the dense variant, which is worse, and $-717.9$ for the
 sparse variant, which is better but barely learning; the comparison is between a
@@ -370,8 +369,8 @@ one device, most of it the per-format tiling searches of the precision study.
 \texttt{scripts/run\_revision\_campaign.sh} regenerates the fourteen
 artifacts every table and figure in this paper is built from, in the order the
 manuscript reports them; the equivalence sweep
-(\texttt{scripts/verify\_all\_configurations.py}), the launch-cost probe (\texttt{scripts/launch\_overhead.py}), the fixed-set sweep of Section~\ref{sec:fused} (\texttt{scripts/bench\_fixed\_set.py}, about two minutes, which stores every raw sample and times each group eagerly and under CUDA-graph replay) and the backend probe of Appendix~\ref{app:verification} are separate entry points and are named where they are used. Results not produced by the current campaign --- the host-side
-allocator diagnosis and the numerical-format robustness checks --- date from an
+(\texttt{scripts/verify\_all\_configurations.py}), the launch-cost probe (\texttt{scripts/launch\_overhead.py}), the fixed-set sweep of Section~\ref{sec:fused} (\texttt{scripts/bench\_fixed\_set.py}, about two minutes, which stores every raw sample and times each group eagerly and under CUDA-graph replay) and the backend probe of Appendix~\ref{app:verification} are separate entry points and are named where they are used. Results not produced by the current campaign (the host-side
+allocator diagnosis and the numerical-format robustness checks) date from an
 earlier campaign on the same host, and we say so where they are quoted;
 \texttt{scripts/make\_revision\_tables.py} and
 \texttt{scripts/make\_revision\_figures.py} regenerate every table and figure

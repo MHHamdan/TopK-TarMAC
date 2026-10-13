@@ -8,87 +8,104 @@ computational cost among their reasons
 argument is an operation count: if each agent aggregates messages from $k$ peers
 instead of $N-1$, the aggregation shrinks by a factor of about $N/k$.
 
-This paper asks when that saving becomes elapsed time. Three costs have to be
-separated, and an operation count conflates them. The first is \emph{what can
-be removed at all}: a rule that selects peers by their attention scores needs
-the scores, so every pairwise score has been computed by the time the selection
-is made, and only the aggregation can shrink. The second is \emph{what the
-implementation executes}: masking the discarded weights to zero leaves the
-dense multiplication in place, while gathering the retained values removes it
-and writes new intermediates instead. The third is \emph{what the hardware
-spends its time on}: at the agent counts and head widths of this setting,
-attention composed from library operators is memory-bound, so an implementation
-that removes arithmetic while adding data movement can become slower, and inside
-a fused kernel the comparisons of selection can cost more than the arithmetic
-they remove. We study centralised inference on a
-single device, the setting in which the methods we cite are trained and
-evaluated, and not bandwidth-constrained distributed deployment, such as
-multi-agent orchestration across edge devices \citep{marliotp2026}, where
-reducing transmitted messages is itself the objective.
+Whether that saving becomes elapsed time depends on four quantities that an
+operation count runs together. The first is \emph{what sparsity can remove at
+all}. A rule that selects peers by their attention scores needs the scores, so
+every pairwise score has been computed by the time the selection is made, and
+only the aggregation can shrink. The second is \emph{what the implementation
+executes}: masking the discarded weights to zero leaves the dense
+multiplication in place, while gathering the retained values removes it and
+writes new intermediates instead. The third is \emph{what deciding costs}. Every
+rule spends something to identify the peers it keeps, and the usual count
+charges nothing for it. The fourth is \emph{what the hardware spends its time
+on}. At head width $16$, attention composed from library operators is
+memory-bound, so an implementation that removes arithmetic while adding data
+movement can become slower, and inside a fused kernel the comparisons of
+selection can cost more than the arithmetic they remove.
 
-Our subject is this accounting more than any single mechanism. Most
-multi-agent methods that restrict communication choose peers before scoring
-them, from positions, per-agent gates or a separate network
+These quantities matter more in multi-agent communication than in the
+long-sequence attention where sparse attention is usually studied. A
+communication step is a batch of many small attention problems, with tens to
+hundreds of agents and narrow heads, so there is little skipped work per query
+and no long sequence over which block-granular selection could amortise its
+cost. We study centralised inference on a single device, the setting in which
+most of the methods we cite are trained and evaluated in simulation. We make no
+claim about bandwidth-constrained distributed deployment, such as multi-agent
+orchestration across edge devices \citep{marliotp2026}, where reducing
+transmitted messages is itself the objective. Since most of these methods are
+evaluated with two to about a hundred agents (Section~\ref{sec:related}), the
+question for multi-agent learning is whether the computational case for sparse
+communication holds at those sizes, and how far above them it begins to.
+
+We introduce \emph{SCALE} (Selector-Cost Accounting for Latency Evaluation), an
+accounting that charges every peer-selection rule for the cost of deciding what
+to keep (Section~\ref{sec:analysis}). It bounds the first and third quantities
+analytically and gives a screen for the fourth that can be applied before any
+kernel is written. The experiments measure the second and fourth and test the
+bounds on the first and third.
+
+Most multi-agent methods that restrict communication choose peers before
+scoring them, from positions, per-agent gates or a separate network
 (Section~\ref{sec:related}). \emph{Score-then-select}, which ranks the attention
 scores themselves, is uncommon in this literature, and the cost argument made for
-it is a reduction in complexity \citep{sun2020sparsecomm}, so this paper does not
-set out to correct a measured result. We treat it as the limiting case of
-\emph{SCALE} (Selector-Cost Accounting for Latency Evaluation), an accounting
-that charges every rule for the cost of deciding what to keep, and measure each
-case with a protocol built for kernels that run for microseconds.
+it is a reduction in complexity \citep{sun2020sparsecomm}, so no measured speedup
+is at issue. In SCALE it is the limiting case, the rule whose decision
+requires every score.
 
-\paragraph{Findings.} For \emph{score-then-select} rules, which form every score
-before keeping the $k$ largest, at most half of the forward-pass attention
-multiply--accumulates are removable at any sparsity, a limit noted before in a
+The evidence comes from three comparisons (Figure~\ref{fig:methodology}).
+Masked, gathered and fused implementations of one top-$k$ function show whether
+the counted saving is executed and whether it becomes time. A fixed-set
+comparison hands the exact retained set to a fused kernel at no cost, which
+separates finding the retained peers from attending over them. Three selectors
+that choose peers before scoring, spanning the non-trivial classes of the
+accounting,
+test the case in which the score term itself can shrink. The headline
+measurements are repeated on four NVIDIA GPUs from three generations.
+
+\paragraph{Summary of findings.} Under the assumptions of Proposition~\ref{prop:ceiling}, a score-then-select
+rule can remove at most half of the forward-pass attention
+multiply--accumulates, a limit noted before in a
 memory-access model \citep{chen2023dfss}. Composed from library operators, such
 a rule is slower than dense attention at every agent count and sparsity we
 measure on four GPUs, the gathered form by up to thirty-seven times, because of
-memory traffic. Fused kernels that hold each query's score row on chip are
-faster with one retained peer, and with two in a single configuration. A kernel
-that streams the selection through a running candidate set is faster in fp32
-with one retained peer on all four GPUs; with two and four the outcome depends
-on the GPU, from faster with two and close to parity with four on the Blackwell
-card to slower with four on the A100, H100 and H200. In every kernel most of
-the time from $384$ agents upward is spent finding the retained set. In bf16,
-which accelerates the products and not the selection, the streaming kernel is
-near parity with one retained peer on the Blackwell card and slower than dense
-attention on the other three. Rules that \emph{select before scoring}
-escape the bound: attention over a pre-selected set is up to sixteen times
-faster than dense attention on the Blackwell card and \PortPreAttnLo{} to
-\PortPreAttnHi{} times on the other three, and the selector then decides the outcome, with
-only the cheapest of three reaching parity end to end, at $512$ agents and on
-the Blackwell card only. Below a hundred agents, where the methods we cite are
-evaluated, none of this governs latency on any of the four GPUs: the number of
-kernels a communication step launches does.
+memory traffic. In fp32, at head widths $16$ and $32$ and a batch of $256$,
+fused kernels are faster than dense attention only when very few peers are
+retained: one on every GPU we measured, and two or four only
+on some, depending on the kernel and the GPU. From $384$ agents upward most of
+their time goes to finding the retained set. In bf16, which accelerates the
+matrix products but not the comparisons of selection, the fused kernel that
+streams the selection is at most near parity, and only on one GPU. Rules that select before scoring escape the bound,
+and attention over a pre-selected set is several times faster than dense
+attention on every GPU we measured, but the whole path pays only if the selector
+is cheap in absolute terms; in our measurements one selector reached parity,
+on best-case timings, on one GPU and at the largest agent count. Below a hundred agents, where the
+methods we cite are evaluated, device time follows the number of kernels a
+communication step launches more closely than its operation count.
+Section~\ref{sec:measurement} gives the numbers and the conditions under which
+each holds.
 
 \paragraph{Contributions.}
 \begin{itemize}
-  \item SCALE, a selector-cost accounting (Section~\ref{sec:analysis}) that charges
-    every peer-selection rule for deciding what to keep and sorts mechanisms
-    into four asymptotic classes (Proposition~\ref{prop:escape},
+  \item \textbf{An accounting.} SCALE (Section~\ref{sec:analysis}) charges every
+    peer-selection rule for deciding what to keep and sorts mechanisms into four
+    asymptotic classes (Proposition~\ref{prop:escape},
     Corollary~\ref{cor:taxonomy}). Its limiting case, score-then-select, has a
     closed-form multiply--accumulate limit for the forward and backward passes
     (Proposition~\ref{prop:ceiling}), and a byte criterion, $kd \le N$, screens
     compaction before implementation.
-  \item SCALE's measurement protocol for microsecond-scale attention kernels
-    (Section~\ref{sec:measurement}): masked, gathered and fused implementations
-    of one function, verified equivalent, timed interleaved against the best of
-    a vendor library, FlexAttention and a dense kernel searched over the sparse
-    kernels' parameter space, in three numerical formats; a fixed-set comparison
-    that separates finding the retained peers from using them; and a checklist of
-    eight errors that each produced a plausible but spurious result
-    (Section~\ref{sec:checklist}).
-  \item Using SCALE, a characterisation, on four GPUs across three generations, of when
-    the arithmetic removed by exact top-$k$ attention between agents becomes
-    wall-clock time (Sections~\ref{sec:fused}--\ref{sec:smalln},
-    Appendix~\ref{app:portability}). The crossover is governed mainly by the
-    cost of selection, which takes most of a fused score-then-select kernel's
-    time, and it moves with the retained count, the numerical format and the
-    GPU: in fp32 one retained peer is faster than dense attention on every GPU
-    we measured, more than one only on some, and in bf16 one retained peer is at
-    best near parity, on the Blackwell card only.
-    Selection before scoring pays end to end only when the selector is cheap in
-    absolute terms, which we observed on one of the four GPUs.
+  \item \textbf{A measurement protocol} for microsecond-scale attention kernels
+    (Section~\ref{sec:measurement}). Implementations of one function, verified
+    equivalent, are timed interleaved against the better of a vendor library and
+    a dense kernel searched over the sparse kernels' parameter space, with
+    FlexAttention added in the reduced-precision comparison. A fixed-set
+    comparison separates finding the retained peers from using them, and a
+    checklist records eight errors that each produced a plausible but spurious
+    result (Section~\ref{sec:checklist}).
+  \item \textbf{An empirical characterisation}, on four GPUs across three
+    generations (Sections~\ref{sec:fused}--\ref{sec:smalln},
+    Appendix~\ref{app:portability}), of when the arithmetic removed by exact
+    top-$k$ attention between agents becomes wall-clock time, separating the
+    cost of finding the retained set from the cost of attending over it.
 \end{itemize}
 
 \begin{figure}[t]
@@ -116,10 +133,13 @@ checked against, the resulting artifacts.}
 The kernels, the harness and the scripts that regenerate every table and figure
 and check the quoted numbers are at
 \url{https://github.com/XXX/TopK-TarMAC}, anonymised for review; we will make
-the repository public after review, for reproducibility. A pre-registered training study
-(Appendix~\ref{app:training}) shows that the communicating architecture improves
-return under the evaluated setup; it is not powered to rank sparsification
-variants, and no claim in the main text rests on it. The measured envelope is
-four GPUs across three generations for the headline quantities and one
-(Blackwell) for the rest, head widths $16$ to $512$ and at most $512$ agents
-(Section~\ref{sec:limitations}).
+the repository public after review.
+
+A training study
+(Appendix~\ref{app:training}) shows, through two descriptive positive controls,
+that the communicating architecture improves return under the evaluated setup;
+its pre-registered comparisons between sparsification variants are
+under-powered nulls, and no claim in the main text rests on it. The measured
+envelope is four GPUs across three generations for the headline quantities and
+one (Blackwell) for the rest, head widths $16$ to $512$, and at most $512$
+agents, or $1024$ for the streaming kernel (Section~\ref{sec:limitations}).

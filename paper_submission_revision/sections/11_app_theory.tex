@@ -51,8 +51,8 @@ without storing them, and remains inside the class.
 
 Exact selection is piecewise constant in the scores, so gradients reach only
 the retained entries. Of the four products in dense attention's backward pass
---- the gradients with respect to values, weights, queries and keys, each
-$N^2 d$ --- a top-$k$ backward needs each only over the $Nk$ retained pairs,
+(the gradients with respect to values, weights, queries and keys, each
+$N^2 d$), a top-$k$ backward needs each only over the $Nk$ retained pairs,
 given the indices recorded in the forward pass. Counting both passes for such a
 backward, without recomputation,
 \begin{equation}
@@ -113,9 +113,9 @@ any score is formed, so nothing is spent deciding. A hash must be evaluated and
 its buckets assembled \citep{kitaev2020reformer}, and a routing rule must
 maintain and query its clusters \citep{roy2021routing}, so their
 $C_{\mathrm{sel}}$ has to be counted, not assumed away. Between the two
-sits a family of multi-agent methods whose selector is itself pairwise --- a
+sits a family of multi-agent methods whose selector is itself pairwise, a
 learned hard-attention or scheduling network evaluated over all $N^2$ pairs
-before communication attention runs \citep{liu2020g2anet,niu2021magic} --- and
+before communication attention runs \citep{liu2020g2anet,niu2021magic}, and
 for these $C_{\mathrm{sel}}$ is of the same order as the score matrix they
 avoid, so they inherit a ceiling of the same kind instead of escaping it.
 
@@ -133,7 +133,7 @@ quantises, interleaves ten bit-pairs and sorts, $N(15 + \lfloor \log_2 N
 \rfloor + 1)$ MAC-equivalents, giving
 $4Nd/(4kd + 32 + 2\lfloor \log_2 N\rfloor)$. At $512$ agents and four retained
 peers the first has reached $14.2$ against its ceiling of $d = 16$, while the
-second is at $107$ --- unbounded in principle, and already only $84\%$ of the
+second is at $107$: unbounded in principle, and already only $84\%$ of the
 $N/k = 128$ that the naive count promises. The grid selector charges one sort to
 bucket agents and, per agent, a distance and a comparison for each of $9M$
 candidates in the surrounding cells, where $M$ is the per-cell capacity; for spatially uniform positions $M = \Theta(k)$, so the candidate term is

@@ -1,15 +1,19 @@
 We asked when an operation-count saving from sparse attention in multi-agent
-communication becomes a saving in time, and answered with SCALE, which charges
-every peer-selection rule for the cost of deciding. A rule that ranks scores must form
-all of them, so at most half of the forward-pass multiply--accumulates are
-removable; composed from library operators it is slower than dense attention
-everywhere we measure, on four GPUs. Fused, it pays in fp32 with one retained
-peer on every GPU we measured and with two on some, and in bf16 it is at best
-near parity, because finding the retained set takes most of its time; where the
-crossover falls depends on the retained count, the format and the GPU. Selecting
-before scoring is where the saving can become real, and the selector then
-decides the outcome; end to end, it did so on one of the four GPUs. At the
-agent counts multi-agent methods use, the number of kernels a step launches
-decides latency before either. A speedup claimed for sparse
-communication therefore has to be measured, on the kernel that runs and against
-the strongest dense baseline for the format.
+communication becomes a saving in time, and used SCALE to charge every
+peer-selection rule for the cost of deciding what to keep. A rule that ranks
+attention scores must form all of them, so it can remove at most half of the
+forward-pass multiply--accumulates. On the four GPUs measured it paid only as a
+fused kernel retaining very few peers, in fp32; in bf16 it was at best near
+parity, consistent with reduced precision accelerating the products but not
+the comparisons of selection. A rule that selects before scoring can do
+better, but only when its selector is cheap: end to end, the selector that was
+cheapest at that size reached parity at $512$ agents on best-case timings, on one of the four GPUs. Below a hundred
+agents, device time tracked the number of kernels a step launched more closely
+than either mechanism. Section~\ref{sec:takeaways} lists the practical consequences.
+
+These results concern the cost of sparse communication on one device; its value
+for learning, or for bandwidth-limited deployment, is outside their scope. On
+cost, the number of interactions retained was a poor guide to elapsed time.
+The quantity that mattered was what has to be computed, or moved through
+memory, to decide which interactions remain, and how many kernels it takes to
+do so.

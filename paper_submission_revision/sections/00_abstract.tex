@@ -1,26 +1,29 @@
-Sparse attention in multi-agent communication is usually justified by the
-operations it removes. We introduce SCALE (Selector-Cost Accounting for Latency
-Evaluation), which charges each peer-selection rule for what deciding costs, and
-use it to measure on four NVIDIA GPUs (A100, H100, H200 and an RTX PRO 6000
-Blackwell) when the saving becomes elapsed time.
-First, under SCALE a rule that ranks attention scores must compute all of them, so it
-removes at most half of the forward-pass multiply--accumulates at any sparsity;
-rules that select before scoring escape this ceiling by as much as their
-selector is cheap. Second, composed from library operators, score-then-select
-attention is slower than dense attention at every configuration we measure on
-all four GPUs, by up to 37 times, because forming, ranking and compacting the
-scores moves far more data than dense attention does. A fused kernel that
-streams the selection is faster than dense attention in fp32 with one retained
-peer on all four GPUs; with two it is faster on two of them and in most
-configurations on the others, and with four it is within 15\% of parity on the
+Sparse attention between agents is often motivated by the computation it
+removes: if each agent aggregates messages from a few peers instead of all of
+them, the operation count falls. That argument leaves out what it costs to
+choose those peers. We introduce SCALE (Selector-Cost Accounting for Latency
+Evaluation), which charges each peer-selection rule for the cost of deciding
+what to keep, and use it to measure when the saving becomes elapsed time on four
+NVIDIA GPUs (A100, H100, H200 and an RTX PRO 6000 Blackwell). A rule that ranks
+attention scores must compute all of them first, so with keys and values of
+equal width it removes at most half of the forward-pass multiply--accumulates
+at any sparsity. Whether that half becomes time depends on the implementation
+and the hardware. Composed from library operators, score-then-select attention
+is slower than dense attention at every configuration we measure on all four
+GPUs, by up to 37 times, because forming, ranking and compacting the scores
+moves far more data than dense attention does. A fused kernel that streams the
+selection is faster than dense attention in fp32 with one retained peer on all
+four GPUs, at head widths 16 and 32 and a batch of 256. With two it is faster on the Blackwell card and the
+A100 and in most configurations on the H100 and H200, and with four it is within 15\% of parity on the
 Blackwell card and slower on the rest. From 384 agents upward at least 85\% of
-its time is spent finding the retained set, so selection, not arithmetic, sets
-the crossover. In bf16 it is near parity with one retained peer on the
+its time goes to finding the retained set, that is, to forming and ranking every
+score, of which only the ranking can grow with the retained count. In bf16 the same kernel is near parity with one retained peer on the
 Blackwell card (0.85 to 1.06 times dense) and slower than dense attention on the
-other three. Third, once the set is known without scoring, attention over it
-is up to 16 times faster than dense attention on the Blackwell card and 4 to 7
-times on the others, but the selector decides the outcome: of three
-selectors, only the cheapest reaches parity end to end, at 512 agents, on
-best-case timings and on the Blackwell card only. Below 100 agents, where
-multi-agent methods are usually evaluated, the number of kernels a step
-launches orders latency on all four GPUs, and its operation count does not.
+other three. Rules that select peers before scoring them escape the ceiling, to
+the extent that their selector is cheap. Once the set is known, attention over
+two retained peers is up to 16 times faster than dense attention on the
+Blackwell card and 4 to 7 times on the others; end to end, however, only the
+selector that is cheapest at that size reaches parity, at 512 agents, on best-case timings
+and on the Blackwell card only. Below 100 agents, where multi-agent methods are
+usually evaluated, device time on all four GPUs follows the number of kernels a
+step launches and not its operation count.

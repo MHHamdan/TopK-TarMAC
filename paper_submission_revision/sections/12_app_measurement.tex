@@ -33,8 +33,7 @@ lacks the privilege. Operation counts are analytic, from a model that follows
 the convention \texttt{torch.utils.flop\_counter} uses and that we checked
 against it on the composed implementations; the hand-written kernels are outside
 what that counter observes. Every count in this paper is therefore a model, and
-where a count and a measurement disagree the measurement governs --- which is,
-after all, the paper's subject.
+where a count and a measurement disagree the measurement governs.
 
 Two decisions about what is compared changed our conclusions. First, we time
 the attention core (from queries, keys and values to the message tensor) rather
@@ -49,8 +48,8 @@ it credits sparsity with the difference between two authors
 (Section~\ref{sec:pitfalls}).
 
 Every implementation is checked against the reference at every configuration
-whose latency any artifact reports --- $158$ of them, $136$ with $k < N-1$ so
-that selection is exercised. This is not a formality: exact top-$k$ is
+whose latency any artifact reports: $158$ of them, $136$ with $k < N-1$ so
+that selection is exercised. The check is needed because exact top-$k$ is
 discontinuous in the scores, so two implementations that accumulate the score
 product in different orders can rank a near-tied pair differently and then
 aggregate over different peers. All agree to \texttt{fp32} rounding except on
@@ -73,8 +72,8 @@ shared with other tenants.
 \input{tables/crossover}
 \end{table}
 
-That statement has to be qualified in turn, and the qualification is the more
-useful result. Matched authorship is a weaker condition than matched efficiency:
+A fused sparse kernel that is faster than dense attention says little about the
+algorithm unless the two kernels are equally well implemented. Matched authorship is a weaker condition than matched efficiency:
 two kernels written by the same person in the same session can still differ by
 more than the margin being measured, and only efficiency against the machine
 identifies the algorithm. We therefore searched the same parameter space for
@@ -102,8 +101,8 @@ configurations in an interleaved sweep.}
 \end{table}
 
 The search is not equal. All three of our sparse kernels keep the whole score
-row of a query resident --- two rank it in registers and one sorts it in place
---- so their resident tile grows with the agent count, and above $192$ agents
+row of a query resident (two rank it in registers and one sorts it in place),
+so their resident tile grows with the agent count, and above $192$ agents
 the shared-memory filter admits only three configurations against the dense
 kernel's twenty-eight to a hundred and six. That is a property of these kernels and not
 of exact top-$k$: the streaming kernel of Section~\ref{sec:fused} computes all
@@ -116,12 +115,10 @@ reach, so the negative entries at head width $64$ and above are weakly supported
 and we do not build on them. The positive entry is conservative for the same
 reason: an under-searched sparse kernel that is nonetheless faster is faster.
 
-With that said, two things follow.
-
 The crossover survives tuning, and it is not produced by a sparse kernel that
 happens to be well written. Across head widths $16$ and $32$ the sparse kernel
-is the \emph{less} efficient of the two at every agent count --- $21$ to $33\%$
-of the device's rate against $30$ to $47\%$ for dense --- and it is faster only
+is the \emph{less} efficient of the two at every agent count ($21$ to $33\%$
+of the device's rate against $30$ to $47\%$ for dense), and it is faster only
 because it performs about half the arithmetic.
 
 The crossover is an existence result inside a stated envelope, and the envelope
@@ -140,14 +137,15 @@ crossover establishes is that the penalty measured earlier is not irreducible;
 it is not a recommendation to sparsify.
 
 Why it is confined to narrow heads could not be decided from the fp32 data
-alone. Dense efficiency and head width move together there --- $30\%$ at
+alone. Dense efficiency and head width move together there ($30\%$ at
 $d{=}16$ rising to $77\%$ at $d{=}128$, as the score product becomes a
-better-shaped matrix multiply --- so ``the crossover disappears once dense
+better-shaped matrix multiply), so ``the crossover disappears once dense
 attention is near the machine'' and ``the crossover disappears above $d{=}32$''
 fit it equally well. The precision study of Section~\ref{sec:precision}
 separates them: at a fixed head width, a dense kernel that uses the tensor cores
-removes the crossover from $384$ agents upward, which supports the first
-reading.
+removes the crossover from $384$ agents upward, which favours the first
+reading, although reduced precision also accelerates the sparse kernel's score
+product.
 
 \begin{table}[t]
 \centering\small
@@ -169,15 +167,14 @@ one before it and the hardware has nothing to overlap it with. As a result, the
 argmax kernel's cost grows almost linearly in $k$ while its arithmetic barely
 does. Bisecting on the score's bit pattern removes the dependence on $k$, and
 the only way it can is by expressing the retained set as a zero weight instead
-of by compaction --- so it performs the dense aggregation arithmetic whatever
+of by compaction, so it performs the dense aggregation arithmetic whatever
 $k$ is.
 
-Whether both can be had at once is the obvious question, and they can
-(Table~\ref{tab:selection}). Packing each score against its own peer index in
+Both properties can be had at once (Table~\ref{tab:selection}). Packing each score against its own peer index in
 one machine word and sorting the row once yields the retained peers already
 compacted: the aggregation then reads exactly $k$ value rows, while selection
 costs a single bitonic sort, whose depth grows with the agent count alone and
-not at all with $k$. That is visible in what the kernel costs. At $192$ agents
+not at all with $k$. The kernel's latency reflects this. At $192$ agents
 it runs in $0.164$\,ms at one retained peer and $0.185$\,ms at sixteen, a rise
 of thirteen per cent, against an eightfold rise for the argmax kernel over the
 same range; what remains of the growth is the aggregation, which is linear in
@@ -196,8 +193,8 @@ would otherwise pay.
 The second obstacle is one dense attention avoids and none of the resident-row
 kernels does. Dense attention streams keys and values in blocks under an online softmax,
 keeping a small tile resident whatever $N$ is. Each of those kernels
-instead holds the $N$-wide score row --- in registers to rank it, or in place to
-sort it --- so fewer queries can be in flight per streaming multiprocessor as
+instead holds the $N$-wide score row, in registers to rank it or in place to
+sort it, so fewer queries can be in flight per streaming multiprocessor as
 $N$ grows, and the tiling the search chooses for it is narrower at every size.
 Exact score-then-select needs all $N$ scores to be \emph{computed} before the
 retained set is known, but it does not need them all to be \emph{resident}; a
@@ -242,11 +239,11 @@ width; it reverses.
 
 The byte criterion predicts this. Byte-neutrality requires
 $kd \le N$, so widening the head at fixed agent count tightens the bound on the
-retained set proportionally, and at head width $128$ the criterion permits only $k \le 4$ at $512$ agents (exactly $k \le 3$) --- by which point the selection cost of
+retained set proportionally, and at head width $128$ the criterion permits only $k \le 4$ at $512$ agents (exactly $k \le 3$), by which point the selection cost of
 Section~\ref{sec:fused} has already overtaken the saving. Widening the batch
 over a
-thirty-twofold range, by contrast, moves the ratio by up to a third --- from
-$0.54$ to $0.72$ at $512$ agents --- and never across parity, which is the expected behaviour of a quantity that is a
+thirty-twofold range, by contrast, moves the ratio by up to a third (from
+$0.54$ to $0.72$ at $512$ agents) and never across parity, which is the expected behaviour of a quantity that is a
 ratio of per-element costs.
 
 
@@ -321,8 +318,8 @@ cheaper than dense attention.
 retained peer, in reduced precision, and of the pre-score path are narrower off
 the Blackwell card.
 At two retained peers the streaming kernel is faster at every configuration on
-the A100 but at \PortStreamTwoHopperWins{} of \PortStreamTwoConfigs{} on the
-H100 and H200; at four it is slower everywhere (\PortStreamFourLo{} to
+the A100 but at \PortStreamTwoHopperWins{} of \PortStreamTwoConfigs{} on each
+of the H100 and H200; at four it is slower everywhere (\PortStreamFourLo{} to
 \PortStreamFourHi{}), where on the Blackwell card it was within \StreamKFourDev{}\% of parity.
 In bf16 it is slower than dense at one retained peer on all three
 (\PortBfOneLo{} to \PortBfOneHi{}), and TF32 gives a mixed result
@@ -412,7 +409,7 @@ each stage runs to the machine limit that binds it.}
 Low arithmetic intensity in a batched matrix--vector product is the natural
 explanation for the sparse contraction's slowness, and it is not the right one.
 Timed in isolation and charged with its own arithmetic and traffic, both
-aggregations sit near the bandwidth the device attains on a large copy ---
+aggregations sit near the bandwidth the device attains on a large copy:
 $93\%$ for the sparse contraction and $81\%$ for the dense multiply it
 replaces (Table~\ref{tab:stages}). The gap between them is smaller than the
 byte model's own
@@ -423,7 +420,7 @@ query where the
 score row carries $N$. The corrected account is simpler, checkable before the
 code is written, and it is the $kd \le N$ criterion of Section~\ref{sec:roofline}.
 
-Selection is a different case, and it is the one stage where the raw
+Selection is a different case, and the one stage where the raw
 decomposition is misleading in the opposite direction. It is the largest stage
 of the composed sparse path, and it runs at under a tenth of the bandwidth the
 device attains: it must read the score matrix and write values and indices, and
@@ -456,7 +453,7 @@ half the question. Timing forward and backward under the same protocol leaves
 the ordering intact and roughly a third of the margin
 (Table~\ref{tab:backward}). The gathered path's backward costs about half its
 own forward, because the
-expensive stage --- selection --- has almost no adjoint: the retained indices are recorded in the forward pass, and the backward is a scatter of gradients into the retained positions followed by two dense products. Dense attention's backward costs several times its forward. At
+expensive stage, selection, has almost no adjoint: the retained indices are recorded in the forward pass, and the backward is a scatter of gradients into the retained positions followed by two dense products. Dense attention's backward costs several times its forward. At
 $512$ agents the gathered path is $18.4$ times the fused dense path on the
 forward alone and $6.2$ times on forward and backward together, and the same
 narrowing appears at every agent count in the table. The sparse path's
@@ -484,8 +481,8 @@ spread of $0.8$ to $7.3\%$ (Table~\ref{tab:trainstep}). The ordering among the
 five is not stable: the communication-free variant, which performs no
 attention at all, is fourth of five at six agents and at
 twenty-four, and the gathered sparse implementation is the fastest of the
-five at twenty-four. This does not resolve the implementations as equal; it
-fails to resolve them at all. This bounds the practical
+five at twenty-four. The measurement therefore does not show the implementations to be
+equal; it cannot distinguish them. This bounds the practical
 stakes of the whole measurement campaign in the regime the training study
 occupies, and it is why the computational argument is made on the module in
 isolation.
@@ -495,8 +492,8 @@ isolation.
 \label{sec:robustness}
 
 
-The ordering is unchanged under \texttt{torch.compile} and CUDA-graph capture,
-at \texttt{bf16}, and on an x86\_64 CPU whose machine balance differs from the
+The composed path's ordering against dense attention is unchanged under
+\texttt{torch.compile} and CUDA-graph capture, at \texttt{bf16}, and on an x86\_64 CPU whose machine balance differs from the
 GPU's by more than an order of magnitude. The CPU comparison required
 controlling an effect unrelated to attention: with the default allocator the
 multi-MiB temporaries each implementation frees between calls are returned to
@@ -577,15 +574,15 @@ count because the gathered tensor the composition writes and re-reads grows with
 it. We report both columns because the composed one is what we measured before
 writing the kernel, and on its own it supports the opposite conclusion.
 
-End to end the selector decides the outcome, and the two selectors behave
-oppositely. The Z-order selector's cost is nearly flat in the agent count ---
-$0.102$ to $0.142$\,ms across the range --- so its share of the path falls as
+End to end the two selectors behave oppositely. The Z-order selector's cost is
+nearly flat in the agent count ($0.102$ to $0.142$\,ms across the range), so its share of the path falls as
 attention grows more expensive: at four retained peers the whole path costs
 $13.9$, $8.7$, $3.8$, $1.28$ and $0.85$ times dense attention from $48$ to $512$
 agents. The nearest-neighbour selector moves the other way. It materialises an
 $N \times N$ distance matrix and ranks it, which is
 Corollary~\ref{cor:taxonomy}(b), so beyond $96$ agents its cost grows
-quadratically and its path rises to $32.3$ times dense.
+quadratically and its path rises to $32.3$ times dense at four retained peers in
+this sweep ($37$ in the second sweep, Section~\ref{sec:prescore}).
 
 The end-to-end crossing at $512$ agents needs a qualification the attention
 stage does not. It is a best-case result and it does not survive a change of
@@ -594,16 +591,19 @@ estimate of what the configuration costs when the shared device is not being
 disturbed. Under that estimator the Z-order path costs $0.83$ times dense at two
 retained peers and $0.94$ at eight, and the two runs of the sweep agree to
 within $2.3\%$. Under the ratio of medians of the same samples it costs $2.06$
-times dense instead. The reason is visible in the dispersion: the pre-score path
+times dense at two retained peers ($2.10$ at four, as quoted in
+Section~\ref{sec:prescore}). The reason is visible in the dispersion: the pre-score path
 is several library kernels behind one selector, and on a contended device the
 tail of a multi-launch path is much heavier than the tail of a single dense
 kernel, so the median charges it for contention that the minimum removes from
 both sides. We therefore report the crossing as an uncontended-envelope result
 and make no claim about end-to-end cost under load. The attention stage carries
-no such caveat: it is $16.8$ times faster than dense on minima and $15.7$ on
-medians.
+no comparable caveat in this sweep: it is $16.8$ times faster than dense on
+minima and $15.7$ on medians. In the second, more contended sweep its ratio of
+medians is $0.18$ (Section~\ref{sec:prescore}), so the size of the gain, though
+not its sign, depends on contention.
 
-Three things follow, and together they are the paper's constructive result.
+Three conclusions follow.
 
 Escaping the operation-count ceiling is necessary and not sufficient. Both
 selectors escape it, by between $7$ and $107$ times in operations at
@@ -614,8 +614,8 @@ a structure of the size it was introduced to avoid.
 Corollary~\ref{cor:taxonomy} says as much before any measurement: the
 nearest-neighbour selector is capped at a constant by its own all-pairs
 structure. What the measurement adds is that the cap binds far below its
-analytic value, because the selector's cost is traffic rather than arithmetic
-and the count charges only the arithmetic.
+analytic value, consistent with a selector whose cost is traffic rather than
+arithmetic, which the count does not charge.
 
 A cheap selector is not sufficient either. With the attention stage composed
 from library operators the Z-order path is slower than dense at every agent
