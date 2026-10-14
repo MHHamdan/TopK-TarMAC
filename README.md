@@ -11,6 +11,19 @@ a measurement protocol for the microsecond-scale kernels that test it.
 > (`https://github.com/XXX/TopK-TarMAC`) during double-blind review; the
 > repository will be made public after review, for reproducibility.
 
+<p align="center">
+  <img src="docs/fig0_methodology.png" alt="Figure 1: SCALE at a glance" width="900">
+</p>
+
+*Figure 1. SCALE at a glance. **(1)** The communication module; every latency
+reported is of the timed attention core (peer selection and aggregation).
+**(2)** Where the retained set is fixed: score-then-select (A) forms all $N^2$
+scores before ranking them and admits masked, gathered and fused kernels, while
+selecting before scoring (B) pays a selector cost $C_\text{sel}$ and then
+attends over $Nk$ pairs; the dashed path is the fixed-set comparison.
+**(3)** The measurement protocol, on four NVIDIA GPUs. Regenerate with
+`python scripts/make_fig0_methodology.py --png`.*
+
 ## What the paper studies
 
 Sparse attention between agents is often justified by the operations it

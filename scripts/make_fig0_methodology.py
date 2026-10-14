@@ -10,8 +10,8 @@ paper's role colours (src/utils/figstyle.py: scores, select, aggregate, an
 intermediate written and read back) at the width it is included at, refuses to
 emit text below the legibility floor, and refuses text that overflows its box.
 
-Writes paper_submission_revision/figures/fig0_methodology.pdf (and a PNG preview
-next to it with --png).
+Writes paper_submission_revision/figures/fig0_methodology.pdf, and with --png
+the README's raster copy, docs/fig0_methodology.png.
 """
 
 from __future__ import annotations
@@ -30,6 +30,8 @@ sys.path.insert(0, str(ROOT))
 from src.utils import figstyle as fs  # noqa: E402
 
 OUT = ROOT / "paper_submission_revision" / "figures" / "fig0_methodology.pdf"
+#: Raster copy for the README, which GitHub cannot render from a PDF.
+PNG = ROOT / "docs" / "fig0_methodology.png"
 W = fs.TEXT_WIDTH_IN
 
 ROLE = fs.ROLE_COLOR
@@ -427,8 +429,9 @@ def main(png: bool = False) -> int:
         raise ValueError(f"text overflows its box: {over}")
     fig.savefig(OUT)
     if png:
-        fig.savefig(OUT.with_suffix(".png"), dpi=220)
-    print(f"wrote {OUT} ({W:.2f} x {H:.2f} in)")
+        PNG.parent.mkdir(exist_ok=True)
+        fig.savefig(PNG, dpi=300, facecolor="white")
+    print(f"wrote {OUT} ({W:.2f} x {H:.2f} in)" + (f" and {PNG}" if png else ""))
     return 0
 
 
