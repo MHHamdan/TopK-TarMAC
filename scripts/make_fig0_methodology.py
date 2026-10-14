@@ -1,12 +1,17 @@
 """Figure 1, the study at a glance: the communication module, where the retained
 set is fixed, and the measurement protocol, on the four GPUs measured.
 
+The three panels are stacked vertically in reading order (1 -> 2 -> 3), each a
+full-width band whose stages run left to right, so that no stage is squeezed
+into a narrow column.
+
 A schematic, not a plot of results, so it reads no artifact; it is drawn in the
 paper's role colours (src/utils/figstyle.py: scores, select, aggregate, an
-intermediate written and read back) at the width it is included at, and
-refuses to emit text below the legibility floor.
+intermediate written and read back) at the width it is included at, refuses to
+emit text below the legibility floor, and refuses text that overflows its box.
 
-Writes paper_submission_revision/figures/fig0_methodology.pdf.
+Writes paper_submission_revision/figures/fig0_methodology.pdf (and a PNG preview
+next to it with --png).
 """
 
 from __future__ import annotations
@@ -25,9 +30,8 @@ sys.path.insert(0, str(ROOT))
 from src.utils import figstyle as fs  # noqa: E402
 
 OUT = ROOT / "paper_submission_revision" / "figures" / "fig0_methodology.pdf"
-W, H = fs.TEXT_WIDTH_IN, 3.80
+W = fs.TEXT_WIDTH_IN
 
-# Panel and box colours: role colours from figstyle, plus a light tint of each.
 ROLE = fs.ROLE_COLOR
 TINT = {"score": "#E3E9F2", "select": "#FBEBD3", "aggregate": "#E2F0E9",
         "memory": "#F6E1DE", "neutral": "#E8F1F8", "grey": "#F0F0F0",
@@ -35,11 +39,14 @@ TINT = {"score": "#E3E9F2", "select": "#FBEBD3", "aggregate": "#E2F0E9",
 EDGE = {"comm": "#2E6DA4", "set": "#4A4A4A", "measure": "#7B3294",
         "A": "#C0651E", "B": "#2E8B6A", "grey": "#4A4A4A"}
 INK, MUTED = "#1A1A1A", "#555555"
-T_TITLE, T_SUB, T_HEAD = 7.0, 6.2, 7.0
-#: A dense schematic: box titles at 7 pt as everywhere, secondary lines at 6.2 pt,
-#: as in the figure it replaces. The floor checked here is therefore 6 pt, not
-#: figstyle's 7 pt for plots.
+T_TITLE, T_SUB, T_HEAD = 7.0, 6.4, 7.0
+#: Box titles at 7 pt, secondary lines at 6.4 pt; the floor checked is 6 pt.
 MIN_PT = 6.0
+LINE = 0.10          # line pitch of secondary text, inches
+GAP = 0.15           # horizontal gap between stages, inches
+
+#: (box patch, [text artists]) pairs whose text must stay inside the box.
+_CONTAINED: list = []
 
 
 def _register_inter() -> None:
@@ -51,7 +58,7 @@ def _register_inter() -> None:
             font_manager.fontManager.addfont(str(f))
 
 
-def setup() -> tuple[plt.Figure, plt.Axes]:
+def setup(h: float) -> tuple[plt.Figure, plt.Axes]:
     _register_inter()
     mpl.rcParams.update({
         "font.family": "sans-serif",
@@ -61,39 +68,55 @@ def setup() -> tuple[plt.Figure, plt.Axes]:
         "mathtext.bf": "Inter:bold",
         "pdf.fonttype": 42,
     })
-    fig = plt.figure(figsize=(W, H))
+    fig = plt.figure(figsize=(W, h))
     ax = fig.add_axes((0, 0, 1, 1))
     ax.set_xlim(0, W)
-    ax.set_ylim(H, 0)          # y grows downwards, in inches
+    ax.set_ylim(h, 0)          # y grows downwards, in inches
     ax.axis("off")
     return fig, ax
 
 
 def rbox(ax, x, y, w, h, face, edge, lw=1.0, r=0.04, ls="-", z=1):
-    ax.add_patch(FancyBboxPatch((x, y), w, h,
-                                boxstyle=f"round,pad=0,rounding_size={r}",
-                                fc=face, ec=edge, lw=lw, ls=ls, zorder=z))
+    p = FancyBboxPatch((x, y), w, h, boxstyle=f"round,pad=0,rounding_size={r}",
+                       fc=face, ec=edge, lw=lw, ls=ls, zorder=z)
+    ax.add_patch(p)
+    return p
 
 
-def node(ax, cx, y, w, title, sub=(), face=TINT["neutral"], edge=EDGE["comm"],
-         ha="center", lw=1.0, title_size=T_TITLE):
-    """A box with a title and muted sub-lines; returns its bottom edge."""
-    h = 0.05 + 0.105 + 0.095 * len(sub) + 0.04
-    x = cx - w / 2
-    rbox(ax, x, y, w, h, face, edge, lw=lw, z=3)
-    tx = cx if ha == "center" else x + 0.07
-    ax.text(tx, y + 0.05 + 0.05, title, ha=ha, va="center", fontsize=title_size,
-            color=INK, fontweight="medium", zorder=4)
-    for i, s in enumerate(sub):
-        ax.text(tx, y + 0.05 + 0.105 + 0.095 * i + 0.042, s, ha=ha, va="center",
-                fontsize=T_SUB, color=MUTED, zorder=4)
-    return y + h
+def node(ax, x, y, w, h, title, sub=(), face=TINT["neutral"], edge=EDGE["comm"],
+         lw=1.0, z=3):
+    """A box of fixed size with a title and muted sub-lines, centred as a block.
+    Returns (left, top, right, bottom)."""
+    p = rbox(ax, x, y, w, h, face, edge, lw=lw, z=z)
+    titles = title if isinstance(title, tuple) else (title,)
+    block = 0.115 * len(titles) + LINE * len(sub)
+    ty = y + (h - block) / 2 + 0.06
+    texts = []
+    for t in titles:
+        texts.append(ax.text(x + w / 2, ty, t, ha="center", va="center",
+                             fontsize=T_TITLE, color=INK, fontweight="medium",
+                             zorder=z + 1))
+        ty += 0.115
+    for s in sub:
+        texts.append(ax.text(x + w / 2, ty, s, ha="center", va="center",
+                             fontsize=T_SUB, color=MUTED, zorder=z + 1))
+        ty += LINE
+    _CONTAINED.append((p, texts))
+    return x, y, x + w, y + h
 
 
 def arrow(ax, x0, y0, x1, y1, color=INK, ls="-", lw=0.9, z=5):
     ax.add_patch(FancyArrowPatch((x0, y0), (x1, y1), arrowstyle="-|>",
                                  mutation_scale=7, color=color, lw=lw,
                                  linestyle=ls, shrinkA=0, shrinkB=0, zorder=z))
+
+
+def path(ax, pts, color=INK, ls="-", lw=0.9, z=6):
+    """Orthogonal poly-line with an arrow head on the last segment."""
+    xs, ys = zip(*pts)
+    ax.plot(xs[:-1], ys[:-1], color=color, lw=lw, ls=ls, zorder=z,
+            solid_capstyle="butt")
+    arrow(ax, xs[-2], ys[-2], xs[-1], ys[-1], color=color, ls=ls, lw=lw, z=z)
 
 
 def tag(ax, x, y, text, face):
@@ -103,246 +126,311 @@ def tag(ax, x, y, text, face):
                       ec="none"))
 
 
-def panel_communication(ax) -> float:
-    x0, w = 0.03, 1.60
-    rbox(ax, x0, 0.03, w, H - 0.06, "#F4F8FC", EDGE["comm"], lw=1.1, r=0.06)
-    tag(ax, x0 + 0.06, 0.15, "1  Communication", EDGE["comm"])
-    cx = x0 + w / 2
-    for i, (xx, lab) in enumerate(((0.30, "$o_1$"), (0.53, "$o_2$"),
-                                   (0.76, "$o_3$"), (1.30, "$o_N$"))):
-        ax.add_patch(Circle((xx, 0.42), 0.095, fc=TINT["neutral"],
-                            ec=EDGE["comm"], lw=0.9, zorder=3))
-        ax.text(xx, 0.42, lab, ha="center", va="center", fontsize=T_SUB + 0.5,
-                color=INK, zorder=4)
-    ax.text(1.03, 0.42, "$\\cdots$", ha="center", va="center", fontsize=T_TITLE,
-            color=INK)
-    ax.text(cx, 0.62, "$N$ agents (MPE), observations", ha="center",
-            va="center", fontsize=T_SUB, color=MUTED)
-    bw, y, gap = 1.32, 0.76, 0.15
-    arrow(ax, cx, 0.68, cx, y)
-    stack = [("observation embedding", ("Linear, GELU",), TINT["neutral"],
-              EDGE["comm"]),
-             ("Q/K/V projection", ("$q_i$, $k_j$, $v_j$, head width $d$",),
-              TINT["neutral"], EDGE["comm"]),
-             ("peer selection", ("keep $k$ of $N{-}1$ peers",), TINT["select"],
-              ROLE["select"]),
-             ("attention aggregation", ("softmax over kept scores",
-                                        "$m_i = \\alpha_i V$"),
-              TINT["aggregate"], ROLE["aggregate"]),
-             ("message", ("GELU, Linear $\\rightarrow m_i$",), TINT["neutral"],
-              EDGE["comm"]),
-             ("MAPPO", ("shared actor on $[o_i, m_i]$", "centralised critic"),
-              TINT["neutral"], EDGE["comm"])]
-    tops, bots = [], []
-    for i, (t, s, f, e) in enumerate(stack):
-        tops.append(y)
-        b = node(ax, cx, y, bw, t, s, face=f, edge=e, lw=1.4 if i == 2 else 1.0)
-        bots.append(b)
-        if i < len(stack) - 1:
-            arrow(ax, cx, b, cx, b + gap)
-        y = b + gap
-    sel_mid = (tops[2] + bots[2]) / 2
-    # the circled "2" that points into panel 2
-    ax.add_patch(Circle((cx + bw / 2 - 0.13, sel_mid - 0.055), 0.065,
-                        fc="white", ec=ROLE["select"], lw=1.0, zorder=5))
-    ax.text(cx + bw / 2 - 0.13, sel_mid - 0.055, "2", ha="center", va="center",
-            fontsize=T_SUB, color=ROLE["select"], fontweight="bold", zorder=6)
-    # bracket for the timed core: peer selection and aggregation
-    bx, ya, yb = x0 + 0.085, tops[2] - 0.05, bots[3] + 0.05
-    ax.plot([bx + 0.04, bx, bx, bx + 0.04], [ya, ya, yb, yb], color=MUTED,
-            lw=0.7)
-    ax.text(bx - 0.035, (ya + yb) / 2, "timed attention core", rotation=90,
-            ha="center", va="center", fontsize=T_SUB, color=MUTED)
-    ax.text(cx, bots[-1] + 0.15, "actions $\\rightarrow$ environment step",
-            ha="center", va="center", fontsize=T_SUB, color=MUTED)
-    return sel_mid
+def marker(ax, x, y, text, color):
+    ax.add_patch(Circle((x, y), 0.062, fc="white", ec=color, lw=1.0, zorder=7))
+    ax.text(x, y, text, ha="center", va="center", fontsize=T_SUB, color=color,
+            fontweight="bold", zorder=8)
 
 
-def panel_set(ax, sel_mid: float) -> float:
-    x0, w = 1.72, 2.96
-    rbox(ax, x0, 0.03, w, H - 0.06, "#FAFAFA", EDGE["set"], lw=1.1, r=0.06)
-    tag(ax, x0 + 0.06, 0.15, "2  Where the retained set is fixed", EDGE["set"])
-    arrow(ax, 1.63, sel_mid, x0 - 0.005, sel_mid, color=ROLE["select"],
-          ls=(0, (3, 2)))
-    # dense reference
-    rbox(ax, x0 + 0.10, 0.32, w - 0.20, 0.28, "white", "#9A9A9A", lw=0.9, z=3)
-    ax.text(x0 + 0.17, 0.41, "dense reference", ha="left", va="center",
-            fontsize=T_TITLE, color=INK, fontweight="medium", zorder=4)
-    ax.text(x0 + 0.17, 0.53, "all $N^2$ scores, aggregate over $N$", ha="left",
-            va="center", fontsize=T_SUB, color=MUTED, zorder=4)
-    ax.text(x0 + w - 0.17, 0.465, "$C_{\\mathrm{dense}} = 2N^2d$", ha="right",
-            va="center", fontsize=T_TITLE + 0.5, color=INK, zorder=4)
-    top, bot = 0.70, H - 0.33
-    ax_, aw = x0 + 0.10, 1.40
-    bx_, bw_ = x0 + 1.56, 1.30
-    rbox(ax, ax_, top, aw, bot - top, "#FDF6EE", EDGE["A"], lw=1.0, r=0.05, z=2)
-    rbox(ax, bx_, top, bw_, bot - top, "#EFF7F3", EDGE["B"], lw=1.0, r=0.05, z=2)
-    tag(ax, ax_ + 0.05, top + 0.11, "A  score, then select", EDGE["A"])
-    tag(ax, bx_ + 0.05, top + 0.11, "B  select, then score", EDGE["B"])
+def row(x0, x1, widths):
+    """Left edges for boxes of the given relative widths filling [x0, x1]
+    with GAP between them."""
+    avail = x1 - x0 - GAP * (len(widths) - 1)
+    scale = avail / sum(widths)
+    xs, ws, x = [], [], x0
+    for w in widths:
+        xs.append(x)
+        ws.append(w * scale)
+        x += w * scale + GAP
+    return xs, ws
+
+
+# --------------------------------------------------------------------------
+# panel 1: the communication module, left to right
+# --------------------------------------------------------------------------
+def panel_communication(ax, top: float) -> tuple[float, float]:
+    h = 1.24
+    x0, x1 = 0.03, W - 0.03
+    rbox(ax, x0, top, x1 - x0, h, "#F4F8FC", EDGE["comm"], lw=1.1, r=0.06)
+    tag(ax, x0 + 0.07, top + 0.13, "1  Communication module", EDGE["comm"])
+    ry, rh = top + 0.36, 0.56
+    xs, ws = row(x0 + 0.12, x1 - 0.12, (0.95, 0.80, 0.85, 1.0, 1.05, 0.80, 1.10))
+    # agents and their observations
+    ax_, aw = xs[0], ws[0]
+    p = rbox(ax, ax_, ry, aw, rh, TINT["neutral"], EDGE["comm"], z=3)
+    cy = ry + 0.17
+    for xx, lab in ((0.17, "$o_1$"), (0.38, "$o_2$"), (aw - 0.17, "$o_N$")):
+        ax.add_patch(Circle((ax_ + xx, cy), 0.085, fc="white", ec=EDGE["comm"],
+                            lw=0.9, zorder=4))
+        ax.text(ax_ + xx, cy, lab, ha="center", va="center",
+                fontsize=T_SUB + 0.4, color=INK, zorder=5)
+    ax.text(ax_ + (0.38 + aw - 0.17) / 2, cy, "$\\cdots$", ha="center",
+            va="center", fontsize=T_TITLE, color=INK, zorder=5)
+    t1 = ax.text(ax_ + aw / 2, ry + 0.37, "$N$ agents (MPE)", ha="center",
+                 va="center", fontsize=T_TITLE, color=INK, fontweight="medium",
+                 zorder=5)
+    t2 = ax.text(ax_ + aw / 2, ry + 0.47, "observations", ha="center",
+                 va="center", fontsize=T_SUB, color=MUTED, zorder=5)
+    _CONTAINED.append((p, [t1, t2]))
+    stages = [
+        ("embedding", ("Linear, GELU",), TINT["neutral"], EDGE["comm"], 1.0),
+        ("Q/K/V", ("$q_i$, $k_j$, $v_j$", "head width $d$"), TINT["neutral"],
+         EDGE["comm"], 1.0),
+        ("peer selection", ("keep $k$ of $N{-}1$", "peers"), TINT["select"],
+         ROLE["select"], 1.4),
+        ("aggregation", ("softmax over kept", "scores; $m_i = \\alpha_i V$"),
+         TINT["aggregate"], ROLE["aggregate"], 1.0),
+        ("message", ("GELU, Linear", "$\\rightarrow m_i$"), TINT["neutral"],
+         EDGE["comm"], 1.0),
+        ("MAPPO", ("shared actor", "on $[o_i, m_i]$;", "centralised critic"),
+         TINT["neutral"], EDGE["comm"], 1.0),
+    ]
+    boxes = [(ax_, ry, ax_ + aw, ry + rh)]
+    for (t, s, f, e, lw), x, w in zip(stages, xs[1:], ws[1:]):
+        boxes.append(node(ax, x, ry, w, rh, t, s, face=f, edge=e, lw=lw))
+    mid = ry + rh / 2
+    for (l0, _, r0, _), (l1, _, _, _) in zip(boxes, boxes[1:]):
+        arrow(ax, r0, mid, l1, mid)
+    sel, agg = boxes[3], boxes[4]
+    marker(ax, sel[2] - 0.06, sel[1] + 0.06, "2", ROLE["select"])
+    # the timed attention core: peer selection and aggregation, bracketed above
+    by = ry - 0.07
+    ax.plot([sel[0], sel[0], agg[2], agg[2]], [by + 0.035, by, by, by + 0.035],
+            color=MUTED, lw=0.7)
+    ax.text((sel[0] + agg[2]) / 2, by - 0.075, "timed attention core",
+            ha="center", va="center", fontsize=T_SUB, color=MUTED)
+    # the environment loop, closing under the row
+    ly = ry + rh + 0.15
+    mappo, agents = boxes[-1], boxes[0]
+    xm, xa = (mappo[0] + mappo[2]) / 2, (agents[0] + agents[2]) / 2
+    path(ax, [(xm, ry + rh), (xm, ly), (xa, ly), (xa, ry + rh)], color=MUTED,
+         ls=(0, (3, 2)), lw=0.8)
+    ax.text((xm + xa) / 2, ly - 0.065, "actions $\\rightarrow$ environment step",
+            ha="center", va="center", fontsize=T_SUB, color=MUTED,
+            bbox=dict(fc="#F4F8FC", ec="none", pad=0.6), zorder=7)
+    return top + h, (sel[0] + sel[2]) / 2
+
+
+# --------------------------------------------------------------------------
+# panel 2: where the retained set is fixed, A beside B
+# --------------------------------------------------------------------------
+def stack(ax, x, y, w, header, items, face, edge, inner_face, inner_edge):
+    """A container with a header line and stacked two-line mini boxes."""
+    ih, ig = 0.27, 0.05
+    h = 0.20 + len(items) * (ih + ig) + 0.03
+    p = rbox(ax, x, y, w, h, face, edge, lw=0.9, z=3)
+    texts = [ax.text(x + w / 2, y + 0.11, header, ha="center", va="center",
+                     fontsize=T_SUB + 0.3, color=INK, zorder=4)]
+    for i, (t, s, f, e) in enumerate(items):
+        yy = y + 0.20 + i * (ih + ig)
+        q = rbox(ax, x + 0.06, yy, w - 0.12, ih, f or inner_face,
+                 e or inner_edge, lw=0.8, z=4)
+        tt = [ax.text(x + 0.12, yy + 0.085, t, ha="left", va="center",
+                      fontsize=T_SUB + 0.3, color=INK, fontweight="medium",
+                      zorder=5),
+              ax.text(x + 0.12, yy + 0.19, s, ha="left", va="center",
+                      fontsize=T_SUB, color=MUTED, zorder=5)]
+        _CONTAINED.append((q, tt))
+    _CONTAINED.append((p, texts))
+    return x, y, x + w, y + h
+
+
+def panel_set(ax, top: float, sel_x: float) -> float:
+    h = 2.70
+    x0, x1 = 0.03, W - 0.03
+    rbox(ax, x0, top, x1 - x0, h, "#FAFAFA", EDGE["set"], lw=1.1, r=0.06)
+    tag(ax, x0 + 0.07, top + 0.13, "2  Where the retained set is fixed",
+        EDGE["set"])
+    # the dense reference, on the header line
+    rx0 = x0 + 2.55
+    p = rbox(ax, rx0, top + 0.05, x1 - 0.10 - rx0, 0.18, "white", "#9A9A9A",
+             lw=0.9, z=3)
+    tt = [ax.text(rx0 + 0.08, top + 0.14, "dense reference:", ha="left",
+                  va="center", fontsize=T_TITLE, color=INK, fontweight="medium",
+                  zorder=4),
+          ax.text(rx0 + 1.05, top + 0.14, "all $N^2$ scores, aggregate over $N$",
+                  ha="left", va="center", fontsize=T_SUB, color=MUTED, zorder=4),
+          ax.text(x1 - 0.18, top + 0.14, "$C_{\\mathrm{dense}} = 2N^2d$",
+                  ha="right", va="center", fontsize=T_TITLE, color=INK,
+                  zorder=4)]
+    _CONTAINED.append((p, tt))
+
+    sub_top, sub_bot = top + 0.32, top + h - 0.30
+    mid = (x0 + x1) / 2
+    ax_, aw = x0 + 0.10, mid - 0.06 - (x0 + 0.10)
+    bx_, bw_ = mid + 0.06, x1 - 0.10 - (mid + 0.06)
+    rbox(ax, ax_, sub_top, aw, sub_bot - sub_top, "#FDF6EE", EDGE["A"], lw=1.0,
+         r=0.05, z=2)
+    rbox(ax, bx_, sub_top, bw_, sub_bot - sub_top, "#EFF7F3", EDGE["B"], lw=1.0,
+         r=0.05, z=2)
+    tag(ax, ax_ + 0.06, sub_top + 0.13, "A  score, then select", EDGE["A"])
+    tag(ax, bx_ + 0.06, sub_top + 0.13, "B  select, then score", EDGE["B"])
+    ry = sub_top + 0.40
 
     # --- A: score, then select
-    cA = ax_ + aw / 2
-    y = top + 0.25
-    b = node(ax, cA, y, 1.18, "all $N^2$ scores",
-             ("$s_i = q_i K^{\\top}$ for every pair",), face=TINT["score"],
-             edge=ROLE["score"])
-    arrow(ax, cA, b, cA, b + 0.10)
-    yk = b + 0.10
-    bk = node(ax, cA, yk, 1.18, "top-$k$ of $s_i$", ("ranked after scoring",),
-              face=TINT["select"], edge=ROLE["select"])
-    topk_mid = (yk + bk) / 2
-    arrow(ax, cA, bk, cA, bk + 0.10)
-    yc = bk + 0.10
-    kernels = [("masked", "discarded weights as zeros", TINT["aggregate"],
-                ROLE["aggregate"]),
-               ("gathered", "writes, re-reads $(B, N, k, d)$", TINT["memory"],
-                ROLE["memory"]),
-               ("fused", "score row held on chip", TINT["aggregate"],
-                ROLE["aggregate"])]
-    ch = 0.17 + 3 * 0.27 + 0.03
-    rbox(ax, cA - 0.62, yc, 1.24, ch, "white", "#B5B5B5", lw=0.8, z=3)
-    ax.text(cA, yc + 0.09, "one function, three kernels", ha="center",
-            va="center", fontsize=T_SUB, color=MUTED, zorder=4)
-    for i, (t, s, f, e) in enumerate(kernels):
-        yy = yc + 0.17 + 0.27 * i
-        rbox(ax, cA - 0.57, yy, 1.14, 0.24, f, e, lw=0.9, z=4)
-        ax.text(cA - 0.52, yy + 0.07, t, ha="left", va="center",
-                fontsize=T_SUB + 0.3, color=INK, fontweight="medium", zorder=5)
-        ax.text(cA - 0.52, yy + 0.172, s, ha="left", va="center",
-                fontsize=T_SUB, color=MUTED, zorder=5)
-    yf = yc + ch + 0.13
-    for i, s in enumerate(("$C_{\\mathrm{top}\\text{-}k} = N^2d + Nkd$",
-                           "$C_{\\mathrm{dense}} / C_{\\mathrm{top}\\text{-}k}"
-                           " = 2N/(N{+}k) < 2$")):
-        ax.text(cA, yf + 0.14 * i, s, ha="center", va="center",
-                fontsize=T_SUB + 0.3, color=INK)
-    ax.text(cA, yf + 0.28, "gather byte screen: $kd \\leq N$", ha="center",
-            va="center", fontsize=T_SUB, color=MUTED)
+    xs, ws = row(ax_ + 0.10, ax_ + aw - 0.10, (0.70, 0.64, 1.50))
+    sc = node(ax, xs[0], ry, ws[0], 0.56, ("all $N^2$", "scores"),
+              ("$s_i = q_i K^{\\top}$", "for every pair"), face=TINT["score"],
+              edge=ROLE["score"])
+    tk = node(ax, xs[1], ry, ws[1], 0.56, "top-$k$ of $s_i$",
+              ("ranked after", "scoring"), face=TINT["select"],
+              edge=ROLE["select"])
+    ks = stack(ax, xs[2], ry - 0.10, ws[2], "one function, three kernels",
+               [("masked", "discarded weights as zeros", TINT["aggregate"],
+                 ROLE["aggregate"]),
+                ("gathered", "writes, re-reads $(B, N, k, d)$", TINT["memory"],
+                 ROLE["memory"]),
+                ("fused", "score row held on chip", TINT["aggregate"],
+                 ROLE["aggregate"])],
+               "white", "#B5B5B5", None, None)
+    m = ry + 0.28
+    arrow(ax, sc[2], m, tk[0], m)
+    arrow(ax, tk[2], m, ks[0], m)
+    yb = max(ks[3], sc[3], tk[3]) + 0.07
+    fy = yb + 0.25
+    ax.text(ax_ + aw / 2, fy,
+            "$C_{\\mathrm{top}\\text{-}k} = N^2d + Nkd$,   "
+            "$C_{\\mathrm{dense}} / C_{\\mathrm{top}\\text{-}k} = 2N/(N{+}k) < 2$",
+            ha="center", va="center", fontsize=T_SUB + 0.3, color=INK)
+    ax.text(ax_ + aw / 2, fy + 0.14, "gather byte screen: $kd \\leq N$",
+            ha="center", va="center", fontsize=T_SUB, color=MUTED)
 
     # --- B: select, then score
-    cB = bx_ + bw_ / 2
-    y = top + 0.25
-    b = node(ax, cB, y, 1.12, "agent positions",
-             ("$(B, N, 2)$; no score formed",), face=TINT["grey"],
-             edge=EDGE["grey"])
-    arrow(ax, cB, b, cB, b + 0.10)
-    ys = b + 0.10
-    sh = 0.17 + 3 * 0.25 + 0.03
-    rbox(ax, cB - 0.58, ys, 1.16, sh, TINT["select"], ROLE["select"], lw=1.0,
-         z=3)
-    ax.text(cB, ys + 0.09, "selector, cost $C_{\\mathrm{sel}}$", ha="center",
-            va="center", fontsize=T_SUB + 0.3, color=INK, zorder=4)
-    for i, (t, s) in enumerate((("all-pairs kNN", "$\\Theta(N^2)$, capped"),
-                                ("grid kNN", "$\\Theta(Nk)$ + one sort"),
-                                ("Z-order window",
-                                 "$O(N \\log N)$ sort"))):
-        yy = ys + 0.17 + 0.25 * i
-        rbox(ax, cB - 0.53, yy, 1.06, 0.22, "white", ROLE["select"], lw=0.8,
-             z=4)
-        ax.text(cB - 0.48, yy + 0.065, t, ha="left", va="center",
-                fontsize=T_SUB + 0.3, color=INK, fontweight="medium", zorder=5)
-        ax.text(cB - 0.48, yy + 0.16, s, ha="left", va="center",
-                fontsize=T_SUB, color=MUTED, zorder=5)
-    be = ys + sh
-    arrow(ax, cB, be, cB, be + 0.17)
-    ax.text(cB + 0.05, be + 0.085, "indices $(B, N, k)$", ha="left", va="center",
-            fontsize=T_SUB, color=MUTED)
-    yfs = be + 0.17
-    bfs = node(ax, cB, yfs, 1.20, "fixed-set fused attention",
-               ("$Nk$ scores + $Nk$ aggregate",), face=TINT["aggregate"],
-               edge=ROLE["aggregate"])
-    fs_mid = (yfs + bfs) / 2
-    ax.text(cB, bfs + 0.10, "top-$k$ set of A, given free", ha="center",
-            va="center", fontsize=T_SUB, color=EDGE["A"], style="italic")
-    ax.text(cB, bfs + 0.25, "$S = 2N^2d\\,/\\,(2Nkd + C_{\\mathrm{sel}})$",
+    xs, ws = row(bx_ + 0.10, bx_ + bw_ - 0.10, (0.86, 1.10, 0.86))
+    po = node(ax, xs[0], ry, ws[0], 0.56, ("agent", "positions"),
+              ("$(B, N, 2)$;", "no score formed"), face=TINT["grey"],
+              edge=EDGE["grey"])
+    se = stack(ax, xs[1], ry - 0.10, ws[1], "selector, cost $C_{\\mathrm{sel}}$",
+               [("all-pairs kNN", "$\\Theta(N^2)$, capped", None, None),
+                ("grid kNN", "$\\Theta(Nk)$ + one sort", None, None),
+                ("Z-order window", "$O(N \\log N)$ sort", None, None)],
+               TINT["select"], ROLE["select"], "white", ROLE["select"])
+    fx = node(ax, xs[2], ry, ws[2], 0.56, ("fixed-set fused", "attention"),
+              ("$Nk$ scores +", "$Nk$ aggregate"), face=TINT["aggregate"],
+              edge=ROLE["aggregate"])
+    arrow(ax, po[2], m, se[0], m)
+    arrow(ax, se[2], m, fx[0], m)
+    ax.text(bx_ + bw_ / 2, fy,
+            "$S = 2N^2d\\,/\\,(2Nkd + C_{\\mathrm{sel}})$   "
+            "$\\rightarrow N/k$ only if $C_{\\mathrm{sel}} = o(Nkd)$",
             ha="center", va="center", fontsize=T_SUB + 0.3, color=INK)
-    ax.text(cB, bfs + 0.39, "$\\rightarrow N/k$ only if "
-            "$C_{\\mathrm{sel}} = o(Nkd)$", ha="center", va="center",
-            fontsize=T_SUB, color=MUTED)
-    # the fixed-set comparison: A's exact set handed to B's fused kernel
-    xa, xb = cA + 0.59, cB - 0.60
-    xm = ax_ + aw + 0.075
-    ax.plot([xa, xm, xm], [topk_mid, topk_mid, fs_mid], color=ROLE["select"],
-            lw=0.9, ls=(0, (3, 2)), zorder=6)
-    arrow(ax, xm, fs_mid, xb, fs_mid, color=ROLE["select"], ls=(0, (3, 2)))
+    ax.text(bx_ + bw_ / 2, fy + 0.14, "selector indices $(B, N, k)$ feed the "
+            "fused kernel", ha="center", va="center", fontsize=T_SUB,
+            color=MUTED)
 
-    # role legend
-    ly = H - 0.17
-    lx = x0 + 0.14
+    # the fixed-set comparison: A's exact top-k set handed to B's fused kernel,
+    # routed below both rows
+    xt, xf = (tk[0] + tk[2]) / 2, (fx[0] + fx[2]) / 2
+    path(ax, [(xt, tk[3]), (xt, yb), (xf, yb), (xf, fx[3])],
+         color=ROLE["select"], ls=(0, (3, 2)))
+    ax.text((bx_ + xf) / 2 + 0.25, yb + 0.085, "fixed-set comparison: A's exact "
+            "top-$k$ set, given free", ha="center", va="center",
+            fontsize=T_SUB, color=EDGE["A"], style="italic", zorder=7)
+
+    # role legend along the bottom of the panel
+    ly = top + h - 0.15
+    lx = x0 + 0.17
     for lab, face, edge in (("scores", TINT["score"], ROLE["score"]),
                             ("select", TINT["select"], ROLE["select"]),
                             ("aggregate", TINT["aggregate"], ROLE["aggregate"]),
                             ("intermediate written, re-read", TINT["memory"],
                              ROLE["memory"])):
-        rbox(ax, lx, ly - 0.06, 0.15, 0.12, face, edge, lw=0.8, r=0.02, z=3)
-        t = ax.text(lx + 0.21, ly, lab, ha="left", va="center", fontsize=T_SUB,
-                    color=MUTED)
-        lx += 0.30 + 0.052 * len(lab)
-    return x0 + w
+        rbox(ax, lx, ly - 0.055, 0.15, 0.11, face, edge, lw=0.8, r=0.02, z=3)
+        ax.text(lx + 0.21, ly, lab, ha="left", va="center", fontsize=T_SUB,
+                color=MUTED)
+        lx += 0.36 + 0.052 * len(lab)
+    # the entry from panel 1's peer-selection step
+    arrow(ax, sel_x, top - 0.11, sel_x, top + 0.005, color=ROLE["select"],
+          ls=(0, (3, 2)))
+    return top + h
 
 
-def panel_measurement(ax, left: float) -> None:
-    x0 = left + 0.08
-    w = W - x0 - 0.03
-    rbox(ax, x0, 0.03, w, H - 0.06, "#F9F5FB", EDGE["measure"], lw=1.1, r=0.06)
-    tag(ax, x0 + 0.06, 0.15, "3  Measurement", EDGE["measure"])
-    arrow(ax, left + 0.005, 0.15, x0 - 0.005, 0.15, color=EDGE["measure"],
-          lw=1.0)
-    cx = x0 + w / 2
-    ax.text(cx, 0.34, "every implementation of 2", ha="center", va="center",
-            fontsize=T_SUB + 0.3, color=MUTED)
-    ax.text(cx, 0.45, "+ dense, at each $(N, d, k)$", ha="center", va="center",
-            fontsize=T_SUB + 0.3, color=MUTED)
-    # the four GPUs
-    gy = 0.55
-    rbox(ax, x0 + 0.08, gy, w - 0.16, 0.55, "white", EDGE["measure"], lw=1.0,
-         z=3)
-    ax.text(cx, gy + 0.09, "on four NVIDIA GPUs", ha="center", va="center",
-            fontsize=T_TITLE, color=INK, fontweight="medium", zorder=4)
-    chips = (("RTX PRO 6000", "Blackwell, sm_120"), ("A100", "sm_80"),
-             ("H100", "sm_90"), ("H200", "sm_90"))
-    cw, chh = (w - 0.34) / 2, 0.16
-    for i, (name, arch) in enumerate(chips):
-        r, c = divmod(i, 2)
-        xx = x0 + 0.13 + c * (cw + 0.08)
-        yy = gy + 0.17 + r * (chh + 0.04)
-        rbox(ax, xx, yy, cw, chh, TINT["measure"], EDGE["measure"], lw=0.8,
-             r=0.03, z=4)
-        ax.text(xx + cw / 2, yy + chh / 2, name, ha="center", va="center",
-                fontsize=T_SUB, color=INK, zorder=5)
-    y = gy + 0.55 + 0.11
-    arrow(ax, cx, gy + 0.55, cx, y)
-    bw = w - 0.16
-    steps = [("equivalence check", ("against the reference, at every",
-                                    "reported configuration")),
-             ("best dense baseline", ("SDPA and Triton dense, tuned on",
-                                      "each GPU (+ FlexAttention in Q4)")),
-             ("interleaved timing", ("CUDA events or CUDA-graph replay;",
-                                     "min over samples, repeated blocks")),
-             ("artifacts", ("raw samples, ratio to best dense;",
-                            "Nsight counters (H100, H200)")),
-             ("tables, figures, numbers", ("generated from the artifacts,",
-                                           "checked against a manifest"))]
-    for i, (t, s) in enumerate(steps):
-        b = node(ax, cx, y, bw, t, s, face=TINT["measure"],
-                 edge=EDGE["measure"])
-        if i < len(steps) - 1:
-            arrow(ax, cx, b, cx, b + 0.10)
-        y = b + 0.10
+# --------------------------------------------------------------------------
+# panel 3: the measurement protocol, left to right
+# --------------------------------------------------------------------------
+def panel_measurement(ax, top: float) -> float:
+    h = 1.28
+    x0, x1 = 0.03, W - 0.03
+    rbox(ax, x0, top, x1 - x0, h, "#F9F5FB", EDGE["measure"], lw=1.1, r=0.06)
+    tag(ax, x0 + 0.07, top + 0.13, "3  Measurement", EDGE["measure"])
+    ax.text(x0 + 1.25, top + 0.13, "every implementation of 2, plus dense, at "
+            "each $(N, d, k)$", ha="left", va="center", fontsize=T_SUB + 0.3,
+            color=MUTED)
+    arrow(ax, W / 2, top - 0.11, W / 2, top + 0.005, color=EDGE["measure"])
+    ry, rh = top + 0.34, 0.80
+    xs, ws = row(x0 + 0.12, x1 - 0.12, (0.95, 0.92, 1.0, 1.0, 0.92, 1.0))
+    # the four GPUs, one per line
+    gx, gw = xs[0], ws[0]
+    p = rbox(ax, gx, ry, gw, rh, "white", EDGE["measure"], lw=1.0, z=3)
+    t = ax.text(gx + gw / 2, ry + 0.11, "four NVIDIA GPUs", ha="center",
+                va="center", fontsize=T_TITLE, color=INK, fontweight="medium",
+                zorder=4)
+    _CONTAINED.append((p, [t]))
+    chh = 0.125
+    for i, name in enumerate(("RTX PRO 6000", "A100", "H100", "H200")):
+        yy = ry + 0.205 + i * (chh + 0.022)
+        q = rbox(ax, gx + 0.06, yy, gw - 0.12, chh, TINT["measure"],
+                 EDGE["measure"], lw=0.8, r=0.03, z=4)
+        _CONTAINED.append((q, [ax.text(gx + gw / 2, yy + chh / 2, name,
+                                       ha="center", va="center",
+                                       fontsize=T_SUB, color=INK, zorder=5)]))
+    steps = [("equivalence", ("vs. the reference", "at every reported",
+                              "configuration")),
+             ("best dense", ("SDPA and Triton", "dense, tuned on",
+                             "each GPU; + Flex-", "Attention in reduced",
+                             "precision")),
+             (("interleaved", "timing"), ("CUDA events or", "CUDA-graph replay;",
+                                          "min over samples,",
+                                          "repeated blocks")),
+             ("artifacts", ("raw samples, ratio", "to best dense;",
+                            "Nsight counters", "(H100, H200)")),
+             (("tables, figures,", "numbers"), ("generated from the",
+                                                "artifacts, checked",
+                                                "against a manifest"))]
+    boxes = [(gx, ry, gx + gw, ry + rh)]
+    for (tt, s), x, w in zip(steps, xs[1:], ws[1:]):
+        boxes.append(node(ax, x, ry, w, rh, tt, s, face=TINT["measure"],
+                          edge=EDGE["measure"]))
+    mid = ry + rh / 2
+    for (_, _, r0, _), (l1, _, _, _) in zip(boxes, boxes[1:]):
+        arrow(ax, r0, mid, l1, mid)
+    return top + h
 
 
-def main() -> int:
-    fig, ax = setup()
-    sel_mid = panel_communication(ax)
-    right = panel_set(ax, sel_mid)
-    panel_measurement(ax, right)
+def check_contained(fig) -> list[str]:
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    bad = []
+    for patch, texts in _CONTAINED:
+        pb = patch.get_window_extent(r)
+        for t in texts:
+            tb = t.get_window_extent(r)
+            if tb.x0 < pb.x0 - 0.5 or tb.x1 > pb.x1 + 0.5 or \
+               tb.y0 < pb.y0 - 0.5 or tb.y1 > pb.y1 + 0.5:
+                bad.append(t.get_text())
+    return bad
+
+
+def main(png: bool = False) -> int:
+    gap = 0.22
+    h1, h2, h3 = 1.24, 2.70, 1.28
+    H = 0.03 + h1 + gap + h2 + gap + h3 + 0.03
+    fig, ax = setup(H)
+    b1, sel_x = panel_communication(ax, 0.03)
+    b2 = panel_set(ax, b1 + gap, sel_x)
+    panel_measurement(ax, b2 + gap)
     bad = fs.check_min_font(fig, MIN_PT)
     if bad:
         raise ValueError(f"text below {MIN_PT} pt: {bad}")
+    over = check_contained(fig)
+    if over:
+        raise ValueError(f"text overflows its box: {over}")
     fig.savefig(OUT)
-    print(f"wrote {OUT}")
+    if png:
+        fig.savefig(OUT.with_suffix(".png"), dpi=220)
+    print(f"wrote {OUT} ({W:.2f} x {H:.2f} in)")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(png="--png" in sys.argv))
