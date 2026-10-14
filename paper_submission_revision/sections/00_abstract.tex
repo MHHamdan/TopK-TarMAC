@@ -25,6 +25,6 @@ the extent that their selector is cheap. Once the set is known, attention over
 two retained peers is up to 16 times faster than dense attention on the
 Blackwell card and 4 to 7 times on the others; end to end, however, only the
 selector that is cheapest at that size reaches parity, at 512 agents, on best-case timings
-and on the Blackwell card only. Below 100 agents, where multi-agent methods are
-usually evaluated, device time on all four GPUs follows the number of kernels a
+and on the Blackwell card only. Below 100 agents, where most of the multi-agent communication methods we cite
+are evaluated, device time on all four GPUs follows the number of kernels a
 step issues more closely than its operation count.
