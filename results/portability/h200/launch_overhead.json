@@ -1,0 +1,13 @@
+{
+  "device": "cuda:0",
+  "device_name": "NVIDIA H200",
+  "torch": "2.11.0+cu128",
+  "triton": "3.6.0",
+  "reps": 500,
+  "warmup": 200,
+  "timing": "cuda_events_single_call",
+  "empty_kernel_min_ms": 0.009344000369310379,
+  "empty_kernel_median_ms": 0.009920000098645687,
+  "empty_kernel_p90_ms": 0.010143999941647053,
+  "note": "one program writing one float; an estimate of the fixed per-call cost as this harness measures it, not of the driver's launch latency in isolation"
+}

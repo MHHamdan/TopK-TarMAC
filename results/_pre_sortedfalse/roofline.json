@@ -1,0 +1,259 @@
+{
+  "machines": {
+    "cuda:1": {
+      "name": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "achievable_gflops": 76844.63888441904,
+      "achievable_gbytes_per_s": 1448.7942705356343,
+      "machine_balance_flops_per_byte": 53.040407770254895
+    },
+    "cpu": {
+      "name": "x86_64 CPU",
+      "achievable_gflops": 1656.8661445832292,
+      "achievable_gbytes_per_s": 450.78539145023075,
+      "machine_balance_flops_per_byte": 3.675509845722577
+    }
+  },
+  "rows": [
+    {
+      "n_agents": 12,
+      "k": 2,
+      "batch": 256,
+      "d": 16,
+      "dense": {
+        "flops": 2543616,
+        "bytes": 1376256,
+        "ai": 1.8482142857142858,
+        "stages": [
+          {
+            "stage": "scores  q@k^T",
+            "flops": 1179648,
+            "bytes": 540672
+          },
+          {
+            "stage": "softmax over N",
+            "flops": 184320,
+            "bytes": 294912
+          },
+          {
+            "stage": "aggregate (B,N,N)x(B,N,d)",
+            "flops": 1179648,
+            "bytes": 540672
+          }
+        ]
+      },
+      "gather": {
+        "flops": 1406976,
+        "bytes": 2211840,
+        "ai": 0.6361111111111111,
+        "stages": [
+          {
+            "stage": "scores  q@k^T",
+            "flops": 1179648,
+            "bytes": 540672
+          },
+          {
+            "stage": "top-k select",
+            "flops": 0,
+            "bytes": 196608
+          },
+          {
+            "stage": "softmax over k",
+            "flops": 30720,
+            "bytes": 49152
+          },
+          {
+            "stage": "gather v -> (B,N,k,d)",
+            "flops": 0,
+            "bytes": 811008
+          },
+          {
+            "stage": "aggregate (B*N,1,k)x(B*N,k,d)",
+            "flops": 196608,
+            "bytes": 614400
+          }
+        ]
+      }
+    },
+    {
+      "n_agents": 48,
+      "k": 11,
+      "batch": 256,
+      "d": 16,
+      "dense": {
+        "flops": 40697856,
+        "bytes": 12582912,
+        "ai": 3.234375,
+        "stages": [
+          {
+            "stage": "scores  q@k^T",
+            "flops": 18874368,
+            "bytes": 3932160
+          },
+          {
+            "stage": "softmax over N",
+            "flops": 2949120,
+            "bytes": 4718592
+          },
+          {
+            "stage": "aggregate (B,N,N)x(B,N,d)",
+            "flops": 18874368,
+            "bytes": 3932160
+          }
+        ]
+      },
+      "gather": {
+        "flops": 23875584,
+        "bytes": 36274176,
+        "ai": 0.6581978319783198,
+        "stages": [
+          {
+            "stage": "scores  q@k^T",
+            "flops": 18874368,
+            "bytes": 3932160
+          },
+          {
+            "stage": "top-k select",
+            "flops": 0,
+            "bytes": 3440640
+          },
+          {
+            "stage": "softmax over k",
+            "flops": 675840,
+            "bytes": 1081344
+          },
+          {
+            "stage": "gather v -> (B,N,k,d)",
+            "flops": 0,
+            "bytes": 17842176
+          },
+          {
+            "stage": "aggregate (B*N,1,k)x(B*N,k,d)",
+            "flops": 4325376,
+            "bytes": 9977856
+          }
+        ]
+      }
+    },
+    {
+      "n_agents": 192,
+      "k": 47,
+      "batch": 256,
+      "d": 16,
+      "dense": {
+        "flops": 651165696,
+        "bytes": 163577856,
+        "ai": 3.980769230769231,
+        "stages": [
+          {
+            "stage": "scores  q@k^T",
+            "flops": 301989888,
+            "bytes": 44040192
+          },
+          {
+            "stage": "softmax over N",
+            "flops": 47185920,
+            "bytes": 75497472
+          },
+          {
+            "stage": "aggregate (B,N,N)x(B,N,d)",
+            "flops": 301989888,
+            "bytes": 44040192
+          }
+        ]
+      },
+      "gather": {
+        "flops": 387465216,
+        "bytes": 583925760,
+        "ai": 0.6635521885521886,
+        "stages": [
+          {
+            "stage": "scores  q@k^T",
+            "flops": 301989888,
+            "bytes": 44040192
+          },
+          {
+            "stage": "top-k select",
+            "flops": 0,
+            "bytes": 56229888
+          },
+          {
+            "stage": "softmax over k",
+            "flops": 11550720,
+            "bytes": 18481152
+          },
+          {
+            "stage": "gather v -> (B,N,k,d)",
+            "flops": 0,
+            "bytes": 304939008
+          },
+          {
+            "stage": "aggregate (B*N,1,k)x(B*N,k,d)",
+            "flops": 73924608,
+            "bytes": 160235520
+          }
+        ]
+      }
+    },
+    {
+      "n_agents": 512,
+      "k": 127,
+      "batch": 256,
+      "d": 16,
+      "dense": {
+        "flops": 4630511616,
+        "bytes": 1107296256,
+        "ai": 4.181818181818182,
+        "stages": [
+          {
+            "stage": "scores  q@k^T",
+            "flops": 2147483648,
+            "bytes": 285212672
+          },
+          {
+            "stage": "softmax over N",
+            "flops": 335544320,
+            "bytes": 536870912
+          },
+          {
+            "stage": "aggregate (B,N,N)x(B,N,d)",
+            "flops": 2147483648,
+            "bytes": 285212672
+          }
+        ]
+      },
+      "gather": {
+        "flops": 2763390976,
+        "bytes": 4157603840,
+        "ai": 0.6646595208070618,
+        "stages": [
+          {
+            "stage": "scores  q@k^T",
+            "flops": 2147483648,
+            "bytes": 285212672
+          },
+          {
+            "stage": "top-k select",
+            "flops": 0,
+            "bytes": 401604608
+          },
+          {
+            "stage": "softmax over k",
+            "flops": 83230720,
+            "bytes": 133169152
+          },
+          {
+            "stage": "gather v -> (B,N,k,d)",
+            "flops": 0,
+            "bytes": 2197291008
+          },
+          {
+            "stage": "aggregate (B*N,1,k)x(B*N,k,d)",
+            "flops": 532676608,
+            "bytes": 1140326400
+          }
+        ]
+      }
+    }
+  ],
+  "note": "AI below the ridge point means memory-bound: time is set by bytes moved, so removing FLOPs cannot help."
+}

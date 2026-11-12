@@ -1,0 +1,850 @@
+"""Every table in the revised manuscript, generated from the released artifacts.
+
+A number that appears in the manuscript and also in a JSON file is a number that
+can disagree with itself. Generating the tables removes that possibility for the
+tabular numbers; ``scripts/check_paper_numbers.py`` covers the ones that appear
+in prose.
+
+Writes .tex fragments into paper_submission_revision/tables/, which main.tex
+inputs directly.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from src.analysis.selector_costs import partial_counts
+
+RES = ROOT / "results"
+OUT = ROOT / "paper_submission_revision" / "tables"
+
+DENSE = ("dense_unfused", "dense_fused", "dense_triton")
+
+
+def load(name: str) -> dict:
+    p = RES / name
+    if not p.exists():
+        raise SystemExit(f"missing {p}; run scripts/run_revision_campaign.sh")
+    return json.loads(p.read_text())
+
+
+def live(payload: dict) -> list[dict]:
+    return [r for r in payload["rows"] if not r.get("failed")]
+
+
+def at(rows, impl, N, k=None):
+    c = [r for r in rows if r["impl"] == impl and r["n_agents"] == N
+         and (k is None or r["k"] == k)]
+    return c[0] if c else None
+
+
+def ms(r, field="forward"):
+    return r[field]["min_ms"] if r and r.get(field) else None
+
+
+#: Every dense implementation a ratio may be quoted against: the library path,
+#: our own kernel at its default tiling, and our own kernel at the tiling the
+#: search found. Taking the minimum is what makes the ratios in this manuscript
+#: statements about sparsity rather than about how hard we tried on each side.
+DENSE_BASELINES = ("dense_fused", "dense_triton", "dense_tuned")
+
+
+def best_dense(rows, N, k=None):
+    c = [ms(at(rows, i, N, k)) for i in DENSE_BASELINES]
+    c = [x for x in c if x is not None]
+    return min(c) if c else None
+
+
+def fmt(x, p=3):
+    return "---" if x is None else f"{x:.{p}f}"
+
+
+# ---------------------------------------------------------------------------
+
+def table_headline() -> str:
+    """Forward latency of every implementation at a fixed sparsity."""
+    pay = load("attention_core_d16.json")
+    rows = live(pay)
+    ns = sorted({r["n_agents"] for r in rows})
+    body = []
+    for N in ns:
+        k = max(1, N // 4)
+        ks = sorted({r["k"] for r in rows if r["impl"] == "topk_gather"
+                     and r["n_agents"] == N})
+        k = min(ks, key=lambda x: abs(x - k)) if ks else 1
+        du, df, dt = (ms(at(rows, i, N)) for i in DENSE)
+        dtu = ms(at(rows, "dense_tuned", N))
+        gg = ms(at(rows, "topk_gather", N, k))
+        fg = ms(at(rows, "topk_fused_gather", N, k))
+        fm = ms(at(rows, "topk_fused_masked", N, k))
+        bd = best_dense(rows, N)
+        bs = min(x for x in (gg, fg, fm) if x is not None)
+        body.append(
+            f"{N} & {k} & {fmt(du)} & {fmt(df)} & {fmt(dt)} & {fmt(dtu)} & "
+            f"{fmt(gg)} & {fmt(fg)} & {fmt(fm)} & {bs / bd:.2f} \\\\")
+    return r"""\begin{tabular}{rrrrrrrrrr}
+\toprule
+& & \multicolumn{4}{c}{\textbf{dense}} & \multicolumn{3}{c}{\textbf{top-$k$}} & \\
+\cmidrule(lr){3-6}\cmidrule(lr){7-9}
+$N$ & $k$ & unfused & fused & ours & ours & gathered & fused & fused & best sparse \\
+& & & (library) & & (tuned) & (composed) & gather & mask & $\div$ best dense \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
+def crossover_replay(d: int, N: int, k: int) -> tuple[float, float]:
+    """Fused score-then-select over the best dense kernel under CUDA-graph
+    replay, pooled over three sessions: (ratio of minima, ratio of medians)."""
+    g = [g for g in load("crossover_graph.json")["groups"]
+         if g["mode"] == "graph" and g["head_dim"] == d
+         and g["n_agents"] == N and g["k"] == k][0]["pooled"]
+    return g["ratio_of_minima"], g["ratio_of_medians"]
+
+
+SMALL_N_COLS = (("fused_stsel@1", "fused, $k{=}1$"),
+                ("fused_stsel@2", "fused, $k{=}2$"),
+                ("fixed_set@1", "fixed set, $k{=}1$"),
+                ("topk_gather@1", "gathered, $k{=}1$"),
+                ("dense_unfused", "dense, unfused"),
+                ("prescore_morton@1", "Z-order, $k{=}1$"))
+
+
+def small_n_macros() -> dict[str, str]:
+    """Prose figures for the small-N subsection, from the same artifact."""
+    pay = load("small_n.json")
+    pred = pay["analysis"]["predictors"]
+    host = pred["host_issue_med"]["launches"]
+    composed, zorder = [], []
+    for g in pay["groups"]:
+        if g["batch"] != 256 or g["n_agents"] > 96:
+            continue
+        im = g["impls"]
+        bd = min(im[i]["graph"]["median_ms"] for i in ("dense_fused", "dense_tuned"))
+        for v in im.values():
+            r = v["graph"]["median_ms"] / bd
+            if v["impl"] in ("dense_unfused", "topk_gather", "topk_masked"):
+                composed.append(r)
+            elif v["impl"] == "prescore_morton":
+                zorder.append(r)
+    return {
+        "SmallNRhoLaunch": f"{pred['graph_med']['launches']['within_group_spearman_median']:.2f}",
+        "SmallNRhoFlops": f"{pred['graph_med']['flops']['within_group_spearman_median']:.2f}",
+        "SmallNPerLaunch": f"{1000 * host['slope_ms_per_unit']:.0f}",
+        "SmallNHostFixed": f"{1000 * host['intercept_ms']:.0f}",
+        "SmallNComposedLo": f"{min(composed):.1f}",
+        "SmallNComposedHi": f"{max(composed):.1f}",
+        "SmallNZorderLo": f"{min(zorder):.0f}",
+        "SmallNZorderHi": f"{max(zorder):.0f}",
+    }
+
+
+def table_small_n() -> str:
+    """Device time at realistic agent counts, under CUDA-graph replay."""
+    groups = [g for g in load("small_n.json")["groups"] if g["batch"] == 256]
+    first = groups[0]["impls"]
+    head = " & ".join(f"\\shortstack{{{lab}\\\\({first[i]['launches']})}}"
+                      for i, lab in SMALL_N_COLS)
+    body = []
+    for g in sorted(groups, key=lambda g: g["n_agents"]):
+        im = g["impls"]
+        bd = min(im[i]["graph"]["median_ms"] for i in ("dense_fused", "dense_tuned"))
+        cells = [f"{im[i]['graph']['vs_best_dense']['paired_median']:.2f}"
+                 for i, _ in SMALL_N_COLS]
+        body.append(f"{g['n_agents']} & {1000 * bd:.1f} & " + " & ".join(cells)
+                    + r" \\")
+    return (r"""\begin{tabular}{rr""" + "c" * len(SMALL_N_COLS) + r"""}
+\toprule
+$N$ & \shortstack{best dense\\(\textmu s)} & """ + head + r""" \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}""")
+
+
+def streaming_rows(max_n: int = 1024) -> list[dict]:
+    """Graph-replay groups of the streaming sweep. Above 1024 agents a call
+    outlasts the device's time slice against co-tenants and the samples are
+    bimodal, so those rows are not tabulated."""
+    return [g for g in load("streaming_topk.json")["groups"]
+            if g["mode"] == "graph" and g["n_agents"] <= max_n]
+
+
+def streaming_find_share(min_n: int = 384) -> tuple[float, float]:
+    """Share of the streaming kernel's time not explained by attending over the
+    set, 1 - fixed_set / streaming, on minima."""
+    v = [1 - g["ratios"]["fixed_set"]["ratio_of_minima"]
+         / g["ratios"]["streaming"]["ratio_of_minima"]
+         for g in streaming_rows() if g["n_agents"] >= min_n
+         and "fixed_set" in g["ratios"]]
+    return min(v), max(v)
+
+
+def streaming_macros() -> dict[str, str]:
+    """Prose figures for the streaming kernel, from the same artifact."""
+    rows = streaming_rows(512)
+    r = lambda k: [g["ratios"]["streaming"]["ratio_of_minima"]
+                   for g in rows if g["k"] == k]
+    k4 = r(4)
+    lo, hi = streaming_find_share()
+    eq = load("streaming_topk.json")["groups"]
+    n_rows = sum(g["equivalence"]["timed_inputs"]["rows"]
+                 + sum(e["rows"] for e in g["equivalence"]["extra_seeds"])
+                 for g in eq if g["mode"] == "graph")
+    return {
+        "StreamKOneLo": f"{min(r(1)):.2f}",
+        "StreamKTwoHi": f"{max(r(2)):.2f}",
+        "StreamKFourLo": f"{min(k4):.2f}",
+        "StreamKFourHi": f"{max(k4):.2f}",
+        "StreamKFourDev": f"{100 * max(abs(x - 1) for x in k4):.0f}",
+        "StreamFindLo": f"{100 * lo:.0f}",
+        "StreamFindHi": f"{100 * hi:.0f}",
+        "StreamRowsM": f"{n_rows / 1e6:.0f}",
+    }
+
+
+def table_streaming() -> str:
+    """Streaming exact top-k against the resident-row kernel and dense."""
+    rows = streaming_rows()
+    ks = sorted({g["k"] for g in rows})
+    body, last_d = [], None
+    for d, N in sorted({(g["head_dim"], g["n_agents"]) for g in rows}):
+        at_ = {g["k"]: g for g in rows if g["head_dim"] == d and g["n_agents"] == N}
+        if last_d is not None and d != last_d:
+            body.append(r"\midrule")
+        cells = [f"{at_[k]['ratios']['streaming']['ratio_of_minima']:.2f}" for k in ks]
+        res = at_[4]["ratios"].get("fused_stsel")
+        cells.append(f"{res['ratio_of_minima']:.2f}" if res else "---")
+        fs = [1 - g["ratios"]["fixed_set"]["ratio_of_minima"]
+              / g["ratios"]["streaming"]["ratio_of_minima"]
+              for g in at_.values() if "fixed_set" in g["ratios"]]
+        cells.append(f"{100 * min(fs):.0f}--{100 * max(fs):.0f}\\%" if fs else "---")
+        body.append(f"{d if d != last_d else ''} & {N} & " + " & ".join(cells) + r" \\")
+        last_d = d
+    return (r"""\begin{tabular}{rr""" + "c" * len(ks) + r"""cr}
+\toprule
+& & \multicolumn{""" + str(len(ks)) + r"""}{c}{\textbf{streaming}, $\div$ best dense} & \textbf{resident} & \textbf{fixed-set} \\
+\cmidrule(lr){3-""" + str(2 + len(ks)) + r"""}
+$d$ & $N$ & """ + " & ".join(f"$k{{=}}{k}$" for k in ks) + r""" & $k{=}4$ & \textbf{residual} \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}""")
+
+
+def streaming_precision_rows() -> list[dict]:
+    return [g for g in load("streaming_precision.json")["groups"]
+            if g["mode"] == "graph"]
+
+
+def streaming_precision_macros() -> dict[str, str]:
+    rows = streaming_precision_rows()
+    def rng(fmt, k):
+        v = [g["ratios"]["streaming"]["ratio_of_minima"] for g in rows
+             if g["format"] == fmt and g["k"] == k and not g["excluded"]]
+        return f"{min(v):.2f}", f"{max(v):.2f}"
+    out = {}
+    for fmt, F in (("tf32", "Tf"), ("bf16", "Bf")):
+        for k, K in ((1, "One"), (2, "Two"), (4, "Four")):
+            try:
+                out[f"SP{F}{K}Lo"], out[f"SP{F}{K}Hi"] = rng(fmt, k)
+            except ValueError:
+                pass
+    return out
+
+
+def table_streaming_precision() -> str:
+    """The streaming kernel in TF32 and bf16, against the best dense of each."""
+    rows = streaming_precision_rows()
+    ks = sorted({g["k"] for g in rows})
+    name = {"tf32": "TF32", "bf16": "bf16"}
+    body, last = [], None
+    for fmt in ("tf32", "bf16"):
+        for d, N in sorted({(g["head_dim"], g["n_agents"]) for g in rows
+                            if g["format"] == fmt}):
+            at_ = {g["k"]: g for g in rows if g["format"] == fmt
+                   and g["head_dim"] == d and g["n_agents"] == N}
+            if last is not None and fmt != last:
+                body.append(r"\midrule")
+            cells = ["---" if at_[k]["excluded"] else
+                     f"{at_[k]['ratios']['streaming']['ratio_of_minima']:.2f}"
+                     for k in ks]
+            res = at_[1]["ratios"]["fused_resident"]["ratio_of_minima"]
+            body.append(f"{name[fmt] if fmt != last else ''} & {d} & {N} & "
+                        + " & ".join(cells) + f" & {res:.2f} \\\\")
+            last = fmt
+    return (r"""\begin{tabular}{lrr""" + "c" * len(ks) + r"""c}
+\toprule
+& & & \multicolumn{""" + str(len(ks)) + r"""}{c}{\textbf{streaming}, $\div$ best dense} & \textbf{resident} \\
+\cmidrule(lr){4-""" + str(3 + len(ks)) + r"""}
+format & $d$ & $N$ & """ + " & ".join(f"$k{{=}}{k}$" for k in ks) + r""" & $k{=}1$ \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}""")
+
+
+def table_crossover() -> str:
+    """The k at which the best sparse implementation stops being faster."""
+    pay = load("attention_core_d16.json")
+    rows = live(pay)
+    # Below 192 agents a fixed per-call cost of about 1.8 us is an eighth of
+    # the measurement (results/launch_overhead.json) and the implementations
+    # issue different numbers of calls, so a crossover read off them would be
+    # partly a fact about launch counts.
+    ns = [n for n in sorted({r["n_agents"] for r in rows}) if n >= 192]
+    body = []
+    for N in ns:
+        bd = best_dense(rows, N)
+        ks = sorted({r["k"] for r in rows if r["impl"] == "topk_gather"
+                     and r["n_agents"] == N})
+        ratios = []
+        for k in ks:
+            cand = [ms(at(rows, i, N, k)) for i in
+                    ("topk_gather", "topk_fused_gather", "topk_fused_masked")]
+            cand = [c for c in cand if c is not None]
+            if cand:
+                ratios.append((k, min(cand) / bd))
+        below = [k for k, r in ratios if r < 1.0]
+        best_k, best_r = min(ratios, key=lambda t: t[1])
+        kstar = (f"$\\le {max(below)}$" if below else "none")
+        frac = (f"{100 * max(below) / N:.1f}\\%" if below else "---")
+        worst = max(ratios, key=lambda t: t[0])
+        rep = crossover_replay(16, N, 1)
+        body.append(
+            f"{N} & {kstar} & {frac} & {best_r:.2f} & {best_k} & "
+            f"{rep[0]:.2f} / {rep[1]:.2f} & "
+            f"{worst[1]:.1f} & {worst[0]} \\\\")
+    return r"""\begin{tabular}{rccrrcrr}
+\toprule
+& \multicolumn{2}{c}{\textbf{sparsity that pays}} &
+  \multicolumn{2}{c}{\textbf{best ratio}} &
+  \textbf{replayed, $k{=}1$} &
+  \multicolumn{2}{c}{\textbf{at the widest $k$}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-6}\cmidrule(lr){7-8}
+$N$ & $k$ & of peers & ratio & at $k$ & min / median & ratio & at $k$ \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
+def table_autotune() -> str:
+    """Both kernels searched over the same tiling space, with what each attains."""
+    pay = load("autotune.json")
+    rows = pay["rows"]
+    peak = pay["peak_flops"]
+    ds = sorted({r["head_dim"] for r in rows})
+    body = []
+    for d in ds:
+        ns = sorted({r["n_agents"] for r in rows if r["head_dim"] == d})
+        for N in ns:
+            dn = [r for r in rows if r["kind"] == "dense"
+                  and r["head_dim"] == d and r["n_agents"] == N]
+            if not dn:
+                continue
+            dn = dn[0]
+            B = dn["batch"]
+            d_ms = dn["best"]["ms"]
+            d_eff = 100 * (4 * B * N * N * d) / (d_ms * 1e-3) / peak
+            sp = sorted([r for r in rows if r["kind"] == "sparse"
+                         and r["head_dim"] == d and r["n_agents"] == N],
+                        key=lambda r: r["k"])
+            if not sp:
+                continue
+            best = min(sp, key=lambda r: r["best"]["ms"] / d_ms)
+            k = best["k"]
+            s_ms = best["best"]["ms"]
+            s_eff = 100 * (2 * B * N * N * d + 2 * B * N * k * d) / (s_ms * 1e-3) / peak
+            wins = [r["k"] for r in sp if r["best"]["ms"] < d_ms]
+            pays = ("$\\le " + str(max(wins)) + "$") if wins else "none"
+            src = dn["best"]["name"].split("_")[0]
+            body.append(
+                f"{d} & {N} & {src} & {dn['n_ran']} & "
+                f"{d_ms:.4f} & {d_eff:.0f} & {k} & {best['n_ran']} & "
+                f"{s_ms:.4f} & {s_eff:.0f} & "
+                f"{s_ms / d_ms:.2f} & {pays} " + r"\\")
+    return r"""\begin{tabular}{rr lrrr rrrr r c}
+\toprule
+& & \multicolumn{4}{c}{\textbf{best dense}} &
+    \multicolumn{4}{c}{\textbf{best sparse}} & & \\
+\cmidrule(lr){3-6}\cmidrule(lr){7-10}
+$d$ & $N$ & from & cfgs & ms & \% peak & $k$ & cfgs & ms & \% peak & ratio
+& $k$ that pays \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
+def table_backward() -> str:
+    """Forward, backward and the two together, for the differentiable paths."""
+    pay = load("attention_core_d16.json")
+    rows = live(pay)
+    # Same restriction as the crossover table: below 192 agents the forward and
+    # the forward-plus-backward passes are timed in separate interleaved blocks
+    # and the contention between them exceeds the backward's own cost, which
+    # produces differences a backward pass cannot have.
+    ns = [n for n in sorted({r["n_agents"] for r in rows}) if n >= 192]
+    body = []
+    for N in ns:
+        k = min(sorted({r["k"] for r in rows if r["impl"] == "topk_gather"
+                        and r["n_agents"] == N}),
+                key=lambda x: abs(x - max(1, N // 4)))
+        line = [str(N), str(k)]
+        ref = None
+        for impl in ("dense_unfused", "dense_fused", "topk_masked",
+                     "topk_gather"):
+            r = at(rows, impl, N, k if impl.startswith("topk") else None)
+            f, t = ms(r), ms(r, "backward_total")
+            if f is None or t is None:
+                line += ["---", "---", "---"]
+                continue
+            if impl == "dense_fused":
+                ref = t
+            line += [f"{f:.3f}", f"{t - f:.3f}", f"{t:.3f}"]
+        line.append(f"{ms(at(rows, 'topk_gather', N, k), 'backward_total') / ref:.1f}"
+                    if ref else "---")
+        body.append(" & ".join(line) + r" \\")
+    return r"""\begin{tabular}{rr rrr rrr rrr rrr r}
+\toprule
+& & \multicolumn{3}{c}{dense, unfused} & \multicolumn{3}{c}{dense, fused}
+& \multicolumn{3}{c}{top-$k$ masked} & \multicolumn{3}{c}{top-$k$ gathered} & \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(lr){9-11}\cmidrule(lr){12-14}
+$N$ & $k$ & f & b & f+b & f & b & f+b & f & b & f+b & f & b & f+b
+& \begin{tabular}[b]{@{}c@{}}gathered f+b\\$\div$ fused f+b\end{tabular} \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
+def table_stages() -> str:
+    """Per-stage arithmetic, traffic, intensity and attainment."""
+    pay = load("stage_accounting.json")
+    rows = pay["rows"]
+    ns = sorted({r["n_agents"] for r in rows})
+    N = ns[-1]
+    order = ["scores", "softmax_N", "aggregate_dense", "topk_select",
+             "softmax_k", "gather_v", "aggregate_sparse"]
+    label = {"scores": "score product", "softmax_N": "softmax over $N$",
+             "aggregate_dense": "dense aggregation",
+             "topk_select": "top-$k$ selection", "softmax_k": "softmax over $k$",
+             "gather_v": "gather of $V$",
+             "aggregate_sparse": "sparse aggregation"}
+    body = []
+    for s in order:
+        r = [x for x in rows if x["stage"] == s and x["n_agents"] == N][0]
+        ai = "---" if r["flops"] == 0 else f"{r['ai']:.2f}"
+        gf = "---" if r["flops"] == 0 else f"{r['gflops'] / 1e3:.2f}"
+        body.append(
+            f"{label[s]} & {r['flops'] / 1e9:.2f} & {r['bytes'] / 1e9:.2f} & "
+            f"{ai} & {r['time_ms']:.3f} & {gf} & "
+            f"{r['gbytes_per_s']:.0f} & {100 * r['frac_of_binding_roof']:.0f} \\\\")
+    peaks = pay["peaks"]
+    cap = (f"Peak measured on the same device: "
+           f"{peaks['peak_flops'] / 1e12:.1f}~TFLOP/s and "
+           f"{peaks['peak_bytes_per_s'] / 1e9:.0f}~GB/s, a ridge point of "
+           f"{peaks['ridge_flop_per_byte']:.0f}~FLOP/byte.")
+    return (r"""\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{stage} & GFLOP & GB & FLOP/byte & ms & TFLOP/s & GB/s & \% of limit \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}""", cap, N)
+
+
+def table_selection() -> str:
+    """The three fused selection strategies, at the two agent counts that carry
+    the crossover claim. Each column is the same aggregation reached a different
+    way: k argmax rounds over the score row, a bit-pattern bisection that yields
+    a threshold, and one bitonic sort of score-index pairs."""
+    rows = live(load("attention_core_sort.json"))
+    ns = [192, 512]
+    ks = [1, 2, 4, 8, 16, 32]
+    body = []
+    for N in ns:
+        bd = best_dense(rows, N)
+        for k in ks:
+            cells = []
+            for impl in ("topk_fused_gather", "topk_fused_masked",
+                         "topk_fused_sort"):
+                t = ms(at(rows, impl, N, k))
+                cells.append("--- & ---" if t is None
+                             else f"{t:.3f} & {t / bd:.1f}")
+            body.append(f"{N if k == ks[0] else ''} & {k} & "
+                        + " & ".join(cells) + r" \\")
+        if N != ns[-1]:
+            body.append(r"\midrule")
+    return r"""\begin{tabular}{rr rr rr rr}
+\toprule
+& & \multicolumn{2}{c}{\textbf{$k$ argmax rounds}}
+& \multicolumn{2}{c}{\textbf{bisection}}
+& \multicolumn{2}{c}{\textbf{one sort}} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+$N$ & $k$ & ms & $\div$dense & ms & $\div$dense & ms & $\div$dense \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
+def table_prescore() -> str:
+    """What selecting before scoring saves, and what it delivers."""
+    pay = load("prescore.json")
+    rows = pay["rows"]
+    ns = sorted({r["n_agents"] for r in rows})
+    # The sparsest setting measured, which is where the escape is strongest and
+    # where the number the abstract quotes comes from. The manuscript gives the
+    # next setting up in prose, so both the best and a more conservative case
+    # are on the page.
+    ks = sorted({r["k"] for r in rows})
+    k = ks[0]
+    body = []
+    for N in ns:
+        for sel, nm in (("radius_knn", "nearest neighbours"),
+                        ("morton_window", "Z-order window")):
+            r = [x for x in rows if x["selector"] == sel and x["n_agents"] == N
+                 and x["k"] == k]
+            if not r:
+                continue
+            r = r[0]
+            d = r.get("t_dense_best_ms", r["t_dense_fused_ms"])
+            af = r.get("t_attention_fused_ms")
+            tf = r.get("t_total_fused_ms")
+            body.append(
+                f"{N} & {nm} & $\\le {math.ceil(partial_counts(sel, r['batch'], N, r['head_dim'], k)['partial_count_ratio_upper'] * 10) / 10:.1f}$ & "
+                f"{r['t_selector_ms']:.3f} & {r['t_attention_ms']:.3f} & "
+                f"{af:.3f} & {d:.3f} & "
+                f"{r['t_attention_ms'] / d:.2f} & {af / d:.2f} & "
+                f"{tf / d:.2f} \\\\")
+    return r"""\begin{tabular}{rlr rrr r rrr}
+\toprule
+& & \textbf{count} & \multicolumn{3}{c}{\textbf{measured (ms)}} & \textbf{best}
+& \multicolumn{3}{c}{\textbf{$\div$ best dense}} \\
+\cmidrule(lr){4-6}\cmidrule(lr){8-10}
+& & & & \multicolumn{2}{c}{attend} & & \multicolumn{2}{c}{attend} & total \\
+\cmidrule(lr){5-6}\cmidrule(lr){8-9}
+$N$ & selector & ceiling & select & composed & fused & dense & composed & fused
+& fused \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}""", k
+
+
+def table_grid() -> str:
+    """Best sparse over best dense across head width and batch, per agent count."""
+    blocks = []
+    for fname, axis, label in (("attention_core_dsweep.json", "head_dim",
+                                "head width $d$"),
+                               ("attention_core_batch.json", "batch",
+                                "batch $B$")):
+        try:
+            pay = load(fname)
+        except SystemExit:
+            continue
+        rows = live(pay)
+        ns = sorted({r["n_agents"] for r in rows})
+        vals = sorted({r[axis] for r in rows})
+        body = []
+        for v in vals:
+            cells = []
+            for N in ns:
+                sub = [r for r in rows if r[axis] == v and r["n_agents"] == N]
+                dense = [ms(r) for r in sub if r["impl"] in DENSE_BASELINES]
+                sparse = [ms(r) for r in sub if r["impl"].startswith("topk")]
+                dense = [x for x in dense if x is not None]
+                sparse = [x for x in sparse if x is not None]
+                cells.append(f"{min(sparse) / min(dense):.2f}"
+                             if dense and sparse else "n/m")
+            body.append(f"{v} & " + " & ".join(cells) + r" \\")
+        cols = "r" * (len(ns) + 1)
+        head = " & ".join(f"$N{{=}}{n}$" for n in ns)
+        blocks.append(f"\\begin{{tabular}}{{{cols}}}\n\\toprule\n"
+                      f"{label} & {head} \\\\\n\\midrule\n"
+                      + "\n".join(body)
+                      + "\n\\bottomrule\n\\end{tabular}")
+    if not blocks:
+        return r"\emph{[grid pending]}"
+    return "\n\n\\vspace{1em}\n\n".join(blocks)
+
+
+def table_drift() -> str:
+    """How far the headline sweep moves when it is repeated on the same device."""
+    a = live(load("attention_core_d16.json"))
+    b = live(load("attention_core_d16_repeat.json"))
+
+    def index(rows):
+        return {(r["impl"], r["n_agents"], r["k"]): ms(r) for r in rows}
+
+    ia, ib = index(a), index(b)
+    common = [k for k in ia if k in ib and ia[k] and ib[k]]
+    ns = sorted({k[1] for k in common})
+    body = []
+    for N in ns:
+        lat, rat = [], []
+        keys = [k for k in common if k[1] == N]
+        for key in keys:
+            lat.append(abs(ib[key] - ia[key]) / ia[key])
+        # Ratios are against the best dense implementation in each run, which is
+        # the quantity every claim in the paper is stated in.
+        def best_dense(idx):
+            return min(idx[k] for k in idx if k[1] == N
+                       and k[0] in DENSE_BASELINES)
+        da, db = best_dense(ia), best_dense(ib)
+        for key in keys:
+            if key[0].startswith("topk"):
+                ra, rb = ia[key] / da, ib[key] / db
+                rat.append(abs(rb - ra) / ra)
+        body.append(f"{N} & {len(keys)} & {100 * sorted(lat)[len(lat)//2]:.1f} "
+                    f"& {100 * max(lat):.1f} & "
+                    f"{100 * sorted(rat)[len(rat)//2]:.1f} & "
+                    f"{100 * max(rat):.1f} \\\\")
+    return r"""\begin{tabular}{rrrrrr}
+\toprule
+& & \multicolumn{2}{c}{\textbf{latency} $|\Delta|$ (\%)}
+& \multicolumn{2}{c}{\textbf{ratio} $|\Delta|$ (\%)} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+$N$ & configurations & median & max & median & max \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
+def table_training_step() -> str:
+    """Where a training iteration spends its time."""
+    pay = load("training_step_timing.json")
+    rows = pay["rows"]
+    ns = sorted({r["n_agents"] for r in rows})
+    # The advantage computation is below 0.5% of every iteration and is folded
+    # into the optimiser column rather than given one of its own.
+    order = ["environment", "policy_forward", "update_forward",
+             "update_backward", "optimiser"]
+    label = {"environment": "environment", "policy_forward": "acting",
+             "update_forward": "update fwd",
+             "update_backward": "update bwd", "optimiser": "optimiser"}
+    body = []
+    for N in ns:
+        base = [r for r in rows if r["n_agents"] == N
+                and r["arm"] == "dense_sdpa"]
+        base = base[0] if base else None
+        for r in [x for x in rows if x["n_agents"] == N]:
+            shares = " & ".join(
+                f"{100 * r['phase_share'].get(s, 0):.0f}" for s in order)
+            rel = (f"{r['iteration_ms'] / base['iteration_ms']:.3f}"
+                   if base else "---")
+            name = {"no_comm": "none", "dense": "dense, unfused",
+                    "dense_sdpa": "dense, library fused",
+                    "topk_masked": "top-$k$, masked",
+                    "topk_gather": "top-$k$, gathered"}.get(r["arm"], r["arm"])
+            body.append(f"{N} & {name}"
+                        f" & {shares} & {r['iteration_ms'] / 1e3:.2f} & {rel} & "
+                        f"{r['iteration_ms_spread_pct']:.1f} \\\\")
+    head = " & ".join(label[s] for s in order)
+    return r"""\begin{tabular}{ll rrrrr rrr}
+\toprule
+& & \multicolumn{5}{c}{\textbf{share of the iteration (\%)}} & & & \\
+\cmidrule(lr){3-7}
+$N$ & communication & """ + head + r""" & s/iter & $\div$ fused & spread \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
+def table_precision() -> str:
+    """The fused crossover in three numerical formats, each kernel searched in
+    each format, against the best of the library, FlexAttention and our own
+    dense kernel. No fraction-of-peak column: the sweep ran while other
+    tenants loaded the device, which depresses a same-process peak and so
+    inflates any fraction of it, whereas the interleaved ratios stay paired.
+    Ratios are of minima; the median-based ratio at one retained
+    peer is shown beside it because the positive result rests on that column."""
+    pay = load("precision.json")
+    label = {"sdpa": "library", "flex_dense": "flex",
+             "dense_tuned": "ours"}
+    lines = [r"\begin{tabular}{rrl lr rrrr r}", r"\toprule",
+             r"& & & \multicolumn{2}{c}{\textbf{best dense}} & "
+             r"\multicolumn{4}{c}{\textbf{fused top-$k$ $\div$ best dense}} & "
+             r"\textbf{Flex} \\",
+             r"\cmidrule(lr){4-5}\cmidrule(lr){6-9}",
+             r"$d$ & $N$ & format & from & ms & $k{=}1$ & "
+             r"$k{=}1$ (med.) & $k{=}2$ & $k{=}4$ & $k{=}1$ \\",
+             r"\midrule"]
+    order = {"fp32": 0, "tf32": 1, "bf16": 2}
+    rows = sorted(pay["rows"], key=lambda r: (r["head_dim"], r["n_agents"],
+                                               order[r["mode"]]))
+    prev = None
+    for r in rows:
+        t = r["timed"]
+        bd = r["best_dense_ms"]
+        bdm = r["best_dense_median_ms"]
+
+        def rat(name, field="min_ms", den=bd):
+            return (f"{t[name][field] / den:.2f}" if name in t else "---")
+
+        key = (r["head_dim"], r["n_agents"])
+        if prev is not None and key[0] != prev[0]:
+            lines.append(r"\midrule")
+        lines.append(
+            f"{r['head_dim'] if key != prev else ''} & "
+            f"{r['n_agents'] if key != prev else ''} & {r['mode']} & "
+            f"{label[r['best_dense']]} & {bd:.4f} & {rat('fused_topk:1')} & "
+            f"{rat('fused_topk:1', 'median_ms', bdm)} & "
+            f"{rat('fused_topk:2')} & {rat('fused_topk:4')} & "
+            f"{rat('flex_topk:1')} \\\\")
+        prev = key
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(lines)
+
+
+def table_selectors() -> tuple[str, int]:
+    """All three pre-score selectors and FlexAttention over the Z-order window,
+    from one interleaved sweep, at four retained peers. Ratios are end-to-end
+    (selector included, attention fused) against the best dense implementation
+    of the same sweep, on minima and on paired medians."""
+    pay = load("prescore_selectors.json")
+    k = 4
+    rows = [r for r in pay["rows"] if r["k"] == k]
+
+    def pick(sel, N):
+        c = [r for r in rows if r["selector"] == sel and r["n_agents"] == N]
+        return c[0] if c else None
+
+    def tot(r, field="min_ms"):
+        den = min(v[field] for v in r["dense_dispersion"].values())
+        return r["dispersion"]["total_fused"][field] / den
+
+    def flex(r, field="min_ms"):
+        den = min(v[field] for v in r["dense_dispersion"].values())
+        return r["flex_total_dispersion"][field] / den
+
+    lines = [r"\begin{tabular}{r rr rrr rr r}", r"\toprule",
+             r"& \multicolumn{2}{c}{\textbf{all-pairs kNN}} & "
+             r"\multicolumn{3}{c}{\textbf{grid kNN}} & "
+             r"\multicolumn{2}{c}{\textbf{Z-order, fused}} & "
+             r"\textbf{Z-order} \\",
+             r"\cmidrule(lr){2-3}\cmidrule(lr){4-6}\cmidrule(lr){7-8}",
+             r"$N$ & select & total & select & total & recall & min & "
+             r"median & \textbf{Flex} \\",
+             r"\midrule"]
+    for N in sorted({r["n_agents"] for r in rows}):
+        a, g, z = (pick(s, N) for s in ("radius_knn", "grid_knn",
+                                          "morton_window"))
+        if not (a and g and z):
+            continue
+        lines.append(
+            f"{N} & {a['t_selector_ms']:.3f} & {tot(a):.2f} & "
+            f"{g['t_selector_ms']:.3f} & {tot(g):.2f} & "
+            f"{g['recall_vs_exact_knn']:.4f} & {tot(z):.2f} & "
+            f"{tot(z, 'median_ms'):.2f} & {flex(z):.2f} \\\\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(lines), k
+
+
+def table_fixed_set() -> str:
+    """The same retained set reached two ways: found by scoring inside the
+    fused score-then-select kernel, or handed to the fixed-set kernel for free.
+
+    CUDA-graph replay, so that both are device times; the eager figures are in
+    the artifact and agree for the score-then-select kernel."""
+    G = [g for g in load("fixed_set.json")["groups"]
+         if g["mode"] == "graph" and g["n_agents"] >= 192]
+    ks = (1, 2, 4, 16, 32)
+    body = []
+    for d in sorted({g["head_dim"] for g in G}):
+        for N in sorted({g["n_agents"] for g in G}):
+            cells, share = [], []
+            for k in ks:
+                g = [x for x in G if x["head_dim"] == d and x["n_agents"] == N
+                     and x["k"] == k]
+                if not g:
+                    cells.append("---")
+                    continue
+                r = g[0]["ratios"]
+                a = r["fused_stsel"]["ratio_of_minima"]
+                b = r["fixed_set"]["ratio_of_minima"]
+                cells.append(f"{a:.2f} / {b:.2f}")
+                share.append(1 - b / a)
+            body.append(f"{d if N == 192 else ''} & {N} & " + " & ".join(cells)
+                        + f" & {100 * min(share):.0f}--{100 * max(share):.0f}\\% \\\\")
+        body.append(r"\midrule")
+    body.pop()
+    return r"""\begin{tabular}{rr ccccc r}
+\toprule
+& & \multicolumn{5}{c}{\textbf{found by scoring / given for free}, $\div$ best dense} & \textbf{fixed-set} \\
+\cmidrule(lr){3-7}
+$d$ & $N$ & $k{=}1$ & $k{=}2$ & $k{=}4$ & $k{=}16$ & $k{=}32$ & \textbf{residual} \\
+\midrule
+""" + "\n".join(body) + r"""
+\bottomrule
+\end{tabular}"""
+
+
+def main() -> int:
+    OUT.mkdir(parents=True, exist_ok=True)
+    written = []
+
+    def put(name: str, body: str) -> None:
+        # Trailing "%" suppresses the space \input would otherwise insert, which
+        # matters for the fragments that appear inline inside a caption.
+        (OUT / f"{name}.tex").write_text(body + "%\n")
+        written.append(name)
+
+    # Values that appear inside captions are emitted as macros rather than as
+    # \input, because hyperref expands a caption when it builds the bookmark and
+    # an \input inside one breaks that expansion.
+    macros: dict[str, str] = {}
+
+    put("headline", table_headline())
+    put("crossover", table_crossover())
+    put("selection", table_selection())
+    put("backward", table_backward())
+    stages, cap, N = table_stages()
+    put("stages", stages)
+    macros["StagesCaption"] = cap
+    macros["StagesN"] = str(N)
+    pre, k = table_prescore()
+    put("prescore", pre)
+    macros["PrescoreK"] = str(k)
+    for name, fn in (("training_step", table_training_step),
+                     ("grid", table_grid),
+                     ("drift", table_drift),
+                     ("autotune", table_autotune),
+                     ("precision", table_precision),
+                     ("fixed_set", table_fixed_set),
+                     ("small_n", table_small_n),
+                     ("streaming", table_streaming),
+                     ("streaming_precision", table_streaming_precision)):
+        try:
+            put(name, fn())
+        except SystemExit as exc:
+            print(f"  (skipped {name}: {exc})")
+    macros.update(small_n_macros())
+    macros.update(streaming_macros())
+    macros.update(streaming_precision_macros())
+    try:
+        sel, sk = table_selectors()
+        put("selectors", sel)
+        macros["SelectorsK"] = str(sk)
+    except SystemExit as exc:
+        print(f"  (skipped selectors: {exc})")
+    (OUT / "macros.tex").write_text(
+        "\n".join(f"\\newcommand{{\\{n}}}{{{v}}}"
+                  for n, v in sorted(macros.items())) + "\n")
+    written.append("macros")
+    print("wrote:", ", ".join(written))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

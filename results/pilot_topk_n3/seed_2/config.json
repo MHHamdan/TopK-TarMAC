@@ -1,0 +1,38 @@
+{
+  "model": {
+    "obs_dim": 18,
+    "n_actions": 5,
+    "n_agents": 3,
+    "hidden": 64,
+    "use_orthogonal_init": true,
+    "use_comm": true,
+    "msg_dim": 16,
+    "n_heads": 1,
+    "attn_mode": "adaptive_topk",
+    "topk": 0
+  },
+  "trainer": {
+    "total_steps": 160000,
+    "n_envs": 32,
+    "rollout_len": 25,
+    "ppo_epochs": 10,
+    "n_minibatches": 1,
+    "lr": 0.0007,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_ratio": 0.2,
+    "value_clip": 100.0,
+    "entropy_coef": 0.01,
+    "value_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "advantage_norm": true,
+    "per_agent_reward": true,
+    "log_interval_steps": 4000,
+    "eval_interval_steps": 40000,
+    "eval_episodes": 32,
+    "device": "cuda",
+    "run_name": "pilot_topk_n3",
+    "out_dir": "results"
+  },
+  "seed": 2
+}

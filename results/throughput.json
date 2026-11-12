@@ -1,0 +1,19 @@
+{
+  "device": "cuda:1",
+  "n_envs": 32,
+  "rollout_len": 25,
+  "env_steps_per_sec": {
+    "N3_mappo": 2806.0,
+    "N3_dense": 4456.0,
+    "N3_topk": 4308.8,
+    "N6_mappo": 1743.7,
+    "N6_dense": 1709.1,
+    "N6_topk": 1691.1,
+    "N12_mappo": 530.0,
+    "N12_dense": 527.7,
+    "N12_topk": 512.5,
+    "N24_mappo": 141.3,
+    "N24_dense": 141.2,
+    "N24_topk": 140.9
+  }
+}

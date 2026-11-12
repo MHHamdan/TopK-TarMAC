@@ -1,0 +1,57 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# --- Run-time / logging artefacts ---
+wandb/
+tb_logs/
+runs/
+*.log
+
+# --- Trained checkpoints (large binaries; full reproducibility comes from
+#     metrics.csv + config.json + final_eval.json, all of which ARE tracked) ---
+results/**/*.pt
+results/**/*.ckpt
+results/**/checkpoints/
+
+# --- Large data directories (untracked by default; populate locally) ---
+data/raw/
+data/processed/
+data/*.zip
+data/*.tar*
+
+# --- Manuscript (under double-blind review; added after the decision) ---
+paper/
+paper_submission_revision/
+dist/
+texput.log
+
+# --- Internal notes and audits (local only) ---
+/*.md
+!/README.md
+!/HARDWARE.md
+audits/
+revision/
+literature/
+presentation_candidates/
+proposals/
+notebooks/
+results/logs/
+scripts/build_literature.py
+scripts/make_scale_concept_candidate.py
+scripts/make_supplement.sh

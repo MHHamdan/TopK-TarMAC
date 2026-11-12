@@ -1,0 +1,11 @@
+{
+  "canonical_url": "https://proceedings.mlr.press/v306/liu26h.html",
+  "pdf_sha256": "385b43c8c6dacc84a172bc2db7286a1a38f9503dcf92ba4497c42db37274ce70",
+  "evidence": {
+    "cost_decomposition": "p.2 Section 2.2 Eq.1",
+    "selector_terms": "p.5 Section 4.4 Eq.7",
+    "complexity_table": "p.5 Table 1",
+    "latency": "pp.7-8 Figures 3-4 Section 5.3",
+    "H20_TTFT": "pp.13,16 Appendix E Table 11"
+  }
+}

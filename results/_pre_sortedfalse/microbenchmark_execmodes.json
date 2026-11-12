@@ -1,0 +1,2497 @@
+{
+  "device": "cuda:0",
+  "device_name": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "capability": [
+    12,
+    0
+  ],
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "batch": 256,
+  "dtype": "fp32",
+  "msg_dim": 16,
+  "in_dim": 64,
+  "k_frac": [
+    0.25
+  ],
+  "reps": 100,
+  "warmup": 20,
+  "runs": 5,
+  "exec_modes": [
+    "eager",
+    "compile",
+    "cudagraph"
+  ],
+  "timing": "cuda_events",
+  "collect_info_disabled": true,
+  "clocks_locked": {
+    "locked": false,
+    "reason": "The current user does not have permission to change clocks for GPU 00000000:0B:00.0."
+  },
+  "clocks_at_start": {
+    "sm_mhz": 2392.0,
+    "sm_max_mhz": 2430.0,
+    "temp_c": 59.0,
+    "util_pct": 98.0,
+    "power_w": 398.98
+  },
+  "device_free_mib_at_start": 84913.6875,
+  "device_total_mib": 97290.5625,
+  "sdpa_backends": {
+    "available": [
+      "mem_efficient",
+      "math"
+    ]
+  },
+  "elapsed_s": 240.5,
+  "rows": [
+    {
+      "arm": "dense",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.141,
+      "flops_per_forward": 22806528,
+      "peak_vram_mib_forward": 11.298828125,
+      "peak_vram_mib_fwdbwd": 19.66015625,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.027871999889612198,
+        "p25_ms": 0.02755199931561947,
+        "p75_ms": 0.029152000322937965,
+        "min_ms": 0.02502400055527687,
+        "mean_ms": 0.03026956796273589,
+        "std_ms": 0.019815336044563526,
+        "runs": 5,
+        "run_medians_ms": [
+          0.027936000376939774,
+          0.027888000011444092,
+          0.027904000133275986,
+          0.027744000777602196,
+          0.027936000376939774
+        ],
+        "inter_run_spread_pct": 0.6920400589542212
+      },
+      "forward_backward": {
+        "median_ms": 0.4994080066680908,
+        "p25_ms": 0.12323199957609177,
+        "p75_ms": 2.437280058860779,
+        "min_ms": 0.12134400010108948,
+        "mean_ms": 1.0507545614987612,
+        "std_ms": 1.0666869313447929,
+        "runs": 5,
+        "run_medians_ms": [
+          0.12353600189089775,
+          0.7394559979438782,
+          0.12347200140357018,
+          1.8724159598350525,
+          0.621423989534378
+        ],
+        "inter_run_spread_pct": 1416.470081111775
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 100.0,
+        "power_w": 400.45
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.141,
+      "flops_per_forward": 22806528,
+      "peak_vram_mib_forward": 20.4248046875,
+      "peak_vram_mib_fwdbwd": 21.048828125,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.021727999672293663,
+        "p25_ms": 0.021407999098300934,
+        "p75_ms": 0.022016000002622604,
+        "min_ms": 0.019680000841617584,
+        "mean_ms": 0.031116223890334367,
+        "std_ms": 0.04555624926038406,
+        "runs": 5,
+        "run_medians_ms": [
+          0.02171199955046177,
+          0.02184000052511692,
+          0.02163200080394745,
+          0.02167999930679798,
+          0.021743999794125557
+        ],
+        "inter_run_spread_pct": 0.9615371368307066
+      },
+      "forward_backward": {
+        "median_ms": 2.110975980758667,
+        "p25_ms": 0.10022400319576263,
+        "p75_ms": 2.433911919593811,
+        "min_ms": 0.09724800288677216,
+        "mean_ms": 1.5039157768040896,
+        "std_ms": 1.1276827960746905,
+        "runs": 5,
+        "run_medians_ms": [
+          2.418368101119995,
+          2.4072000980377197,
+          0.10019200295209885,
+          2.418704032897949,
+          2.416815996170044
+        ],
+        "inter_run_spread_pct": 2314.068949249688
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 98.0,
+        "power_w": 400.45
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.141,
+      "flops_per_forward": 22806528,
+      "peak_vram_mib_forward": 21.05224609375,
+      "peak_vram_mib_fwdbwd": 14.19287109375,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.035392001271247864,
+        "p25_ms": 0.03510399907827377,
+        "p75_ms": 0.03564799949526787,
+        "min_ms": 0.03465599939227104,
+        "mean_ms": 0.03657926409691572,
+        "std_ms": 0.012477263476259857,
+        "runs": 5,
+        "run_medians_ms": [
+          0.035392001271247864,
+          0.03532800078392029,
+          0.03534400090575218,
+          0.035392001271247864,
+          0.03542400151491165
+        ],
+        "inter_run_spread_pct": 0.2717411935607144
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 98.0,
+        "power_w": 402.45
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.188,
+      "flops_per_forward": 25165824,
+      "peak_vram_mib_forward": 15.5693359375,
+      "peak_vram_mib_fwdbwd": 28.30712890625,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.030432000756263733,
+        "p25_ms": 0.03012000024318695,
+        "p75_ms": 0.030711999628692865,
+        "min_ms": 0.028063999488949776,
+        "mean_ms": 0.037659071993082764,
+        "std_ms": 0.04033402609094777,
+        "runs": 5,
+        "run_medians_ms": [
+          0.030400000512599945,
+          0.030400000512599945,
+          0.030447999946773052,
+          0.030432000756263733,
+          0.03049599938094616
+        ],
+        "inter_run_spread_pct": 0.315785745814134
+      },
+      "forward_backward": {
+        "median_ms": 0.13660800457000732,
+        "p25_ms": 0.1351040005683899,
+        "p75_ms": 1.1533600389957428,
+        "min_ms": 0.13414399325847626,
+        "mean_ms": 0.7311192934811115,
+        "std_ms": 0.9412140010491717,
+        "runs": 5,
+        "run_medians_ms": [
+          0.13625599443912506,
+          0.13649599999189377,
+          0.1358719989657402,
+          1.682640016078949,
+          0.13678400218486786
+        ],
+        "inter_run_spread_pct": 1138.4008691174276
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 402.45
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.188,
+      "flops_per_forward": 25165824,
+      "peak_vram_mib_forward": 24.83740234375,
+      "peak_vram_mib_fwdbwd": 29.82421875,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.023520000278949738,
+        "p25_ms": 0.02316799946129322,
+        "p75_ms": 0.02473600022494793,
+        "min_ms": 0.02147199958562851,
+        "mean_ms": 0.03673158398270607,
+        "std_ms": 0.04883815208262289,
+        "runs": 5,
+        "run_medians_ms": [
+          0.023584000766277313,
+          0.023599999956786633,
+          0.023552000522613525,
+          0.023439999669790268,
+          0.023455999791622162
+        ],
+        "inter_run_spread_pct": 0.6825950906585325
+      },
+      "forward_backward": {
+        "median_ms": 2.3378080129623413,
+        "p25_ms": 0.118215998634696,
+        "p75_ms": 2.455351948738098,
+        "min_ms": 0.11619199812412262,
+        "mean_ms": 1.5252466551959514,
+        "std_ms": 1.1255346458456619,
+        "runs": 5,
+        "run_medians_ms": [
+          2.435296058654785,
+          2.434015989303589,
+          0.11817599833011627,
+          2.44268798828125,
+          2.43667209148407
+        ],
+        "inter_run_spread_pct": 1966.9916250318227
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 402.45
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.188,
+      "flops_per_forward": 25165824,
+      "peak_vram_mib_forward": 25.603515625,
+      "peak_vram_mib_fwdbwd": 21.46630859375,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.0395519994199276,
+        "p25_ms": 0.039240000769495964,
+        "p75_ms": 0.04089599847793579,
+        "min_ms": 0.03686400130391121,
+        "mean_ms": 0.04625727976113558,
+        "std_ms": 0.03208666172468442,
+        "runs": 5,
+        "run_medians_ms": [
+          0.039503999054431915,
+          0.03956799954175949,
+          0.03964800015091896,
+          0.0395359992980957,
+          0.0395519994199276
+        ],
+        "inter_run_spread_pct": 0.36452283296338817
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 98.0,
+        "power_w": 398.96
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.141,
+      "flops_per_forward": 22806528,
+      "peak_vram_mib_forward": 20.00390625,
+      "peak_vram_mib_fwdbwd": 28.45947265625,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.05075199902057648,
+        "p25_ms": 0.0504320003092289,
+        "p75_ms": 0.05183999985456467,
+        "min_ms": 0.04864000156521797,
+        "mean_ms": 0.07747545607388019,
+        "std_ms": 0.07474995554269803,
+        "runs": 5,
+        "run_medians_ms": [
+          0.05075199902057648,
+          0.05075199902057648,
+          0.050783999264240265,
+          0.05071999877691269,
+          0.05079999938607216
+        ],
+        "inter_run_spread_pct": 0.15772991145237408
+      },
+      "forward_backward": {
+        "median_ms": 2.4846080541610718,
+        "p25_ms": 0.8892160058021545,
+        "p75_ms": 2.5030879974365234,
+        "min_ms": 0.1589760035276413,
+        "mean_ms": 1.8862229761779308,
+        "std_ms": 1.1492191786374437,
+        "runs": 5,
+        "run_medians_ms": [
+          2.4871360063552856,
+          2.484079957008362,
+          0.1613920032978058,
+          2.4886879920959473,
+          2.4859520196914673
+        ],
+        "inter_run_spread_pct": 1442.014437669343
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 98.0,
+        "power_w": 398.96
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.141,
+      "flops_per_forward": 22806528,
+      "peak_vram_mib_forward": 29.64599609375,
+      "peak_vram_mib_fwdbwd": 29.9765625,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.05206400156021118,
+        "p25_ms": 0.05087999999523163,
+        "p75_ms": 0.052504001185297966,
+        "min_ms": 0.046720001846551895,
+        "mean_ms": 0.0739464959204197,
+        "std_ms": 0.06472097475191017,
+        "runs": 5,
+        "run_medians_ms": [
+          0.05215999856591225,
+          0.05214399844408035,
+          0.0516160000115633,
+          0.0520160011947155,
+          0.05215999856591225
+        ],
+        "inter_run_spread_pct": 1.0539339627771933
+      },
+      "forward_backward": {
+        "median_ms": 2.4834399223327637,
+        "p25_ms": 0.8321119993925095,
+        "p75_ms": 2.5026479959487915,
+        "min_ms": 0.1594880074262619,
+        "mean_ms": 1.8468725106418133,
+        "std_ms": 1.173679562571647,
+        "runs": 5,
+        "run_medians_ms": [
+          2.4861279726028442,
+          2.4855200052261353,
+          0.16148799657821655,
+          2.4873600006103516,
+          2.4877439737319946
+        ],
+        "inter_run_spread_pct": 1440.5132433648455
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 98.0,
+        "power_w": 401.81
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.141,
+      "flops_per_forward": 22806528,
+      "peak_vram_mib_forward": 31.1630859375,
+      "peak_vram_mib_fwdbwd": 31.49365234375,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.05056000128388405,
+        "p25_ms": 0.05020799860358238,
+        "p75_ms": 0.051872000098228455,
+        "min_ms": 0.04620800167322159,
+        "mean_ms": 0.08427443174272775,
+        "std_ms": 0.19099180005137295,
+        "runs": 5,
+        "run_medians_ms": [
+          0.05051200091838837,
+          0.05052800104022026,
+          0.0506879985332489,
+          0.05084799975156784,
+          0.05049600079655647
+        ],
+        "inter_run_spread_pct": 0.6970828371726658
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 100.0,
+        "power_w": 401.81
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.516,
+      "flops_per_forward": 21823488,
+      "peak_vram_mib_forward": 32.28173828125,
+      "peak_vram_mib_fwdbwd": 32.86962890625,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.044704001396894455,
+        "p25_ms": 0.044415999203920364,
+        "p75_ms": 0.04499199986457825,
+        "min_ms": 0.04057599976658821,
+        "mean_ms": 0.06615072021633386,
+        "std_ms": 0.17252477364601956,
+        "runs": 5,
+        "run_medians_ms": [
+          0.04464000090956688,
+          0.04464000090956688,
+          0.04472000151872635,
+          0.04475199989974499,
+          0.04473600164055824
+        ],
+        "inter_run_spread_pct": 0.2508937900897433
+      },
+      "forward_backward": {
+        "median_ms": 2.4304319620132446,
+        "p25_ms": 0.151528000831604,
+        "p75_ms": 2.488976001739502,
+        "min_ms": 0.14927999675273895,
+        "mean_ms": 1.6400444801151752,
+        "std_ms": 1.1293778967725734,
+        "runs": 5,
+        "run_medians_ms": [
+          2.470703959465027,
+          2.4662879705429077,
+          0.15137600153684616,
+          2.4707199335098267,
+          2.472208023071289
+        ],
+        "inter_run_spread_pct": 1533.157170206754
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 100.0,
+        "power_w": 401.81
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.516,
+      "flops_per_forward": 21823488,
+      "peak_vram_mib_forward": 33.798828125,
+      "peak_vram_mib_fwdbwd": 34.38671875,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.04473600164055824,
+        "p25_ms": 0.04438399896025658,
+        "p75_ms": 0.045024000108242035,
+        "min_ms": 0.04054399952292442,
+        "mean_ms": 0.06840768004953861,
+        "std_ms": 0.12451666668511877,
+        "runs": 5,
+        "run_medians_ms": [
+          0.04472000151872635,
+          0.044704001396894455,
+          0.04479999840259552,
+          0.04468800127506256,
+          0.04467200115323067
+        ],
+        "inter_run_spread_pct": 0.2865267864893852
+      },
+      "forward_backward": {
+        "median_ms": 2.4627039432525635,
+        "p25_ms": 0.15171999856829643,
+        "p75_ms": 2.4928560853004456,
+        "min_ms": 0.1499519944190979,
+        "mean_ms": 1.6873687086999416,
+        "std_ms": 1.1503865001043503,
+        "runs": 5,
+        "run_medians_ms": [
+          2.4756959676742554,
+          2.4721760749816895,
+          0.1515519991517067,
+          2.476080060005188,
+          2.466591954231262
+        ],
+        "inter_run_spread_pct": 1533.8155048199533
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 407.45
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 12,
+      "k": 2,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.516,
+      "flops_per_forward": 21823488,
+      "peak_vram_mib_forward": 35.31591796875,
+      "peak_vram_mib_fwdbwd": 35.90380859375,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.044544000178575516,
+        "p25_ms": 0.044224001467227936,
+        "p75_ms": 0.044863998889923096,
+        "min_ms": 0.04073600098490715,
+        "mean_ms": 0.06203033562749624,
+        "std_ms": 0.11495117236197697,
+        "runs": 5,
+        "run_medians_ms": [
+          0.04456000030040741,
+          0.04451199993491173,
+          0.04460800066590309,
+          0.04451199993491173,
+          0.044624000787734985
+        ],
+        "inter_run_spread_pct": 0.25161945764520177
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 407.45
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 2.25,
+      "flops_per_forward": 119537664,
+      "peak_vram_mib_forward": 30.029296875,
+      "peak_vram_mib_fwdbwd": 33.78173828125,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.047520000487565994,
+        "p25_ms": 0.047040000557899475,
+        "p75_ms": 0.04787199944257736,
+        "min_ms": 0.04163200035691261,
+        "mean_ms": 0.0486071039289236,
+        "std_ms": 0.014339126499221254,
+        "runs": 5,
+        "run_medians_ms": [
+          0.047488000243902206,
+          0.047488000243902206,
+          0.04755200073122978,
+          0.047488000243902206,
+          0.047568000853061676
+        ],
+        "inter_run_spread_pct": 0.16846489375964457
+      },
+      "forward_backward": {
+        "median_ms": 0.24672000110149384,
+        "p25_ms": 0.24614399671554565,
+        "p75_ms": 1.3717120289802551,
+        "min_ms": 0.24463999271392822,
+        "mean_ms": 0.8535025927424431,
+        "std_ms": 0.9983174544658131,
+        "runs": 5,
+        "run_medians_ms": [
+          0.24670399725437164,
+          0.6447519958019257,
+          0.24633599817752838,
+          0.2465440034866333,
+          0.24780800193548203
+        ],
+        "inter_run_spread_pct": 161.73681498928488
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 99.0,
+        "power_w": 390.17
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 2.25,
+      "flops_per_forward": 119537664,
+      "peak_vram_mib_forward": 36.05517578125,
+      "peak_vram_mib_fwdbwd": 39.8076171875,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.047968000173568726,
+        "p25_ms": 0.04755200073122978,
+        "p75_ms": 0.04848000034689903,
+        "min_ms": 0.04464000090956688,
+        "mean_ms": 0.055063552007079124,
+        "std_ms": 0.10583780437558969,
+        "runs": 5,
+        "run_medians_ms": [
+          0.04793599992990494,
+          0.048048000782728195,
+          0.047968000173568726,
+          0.04800000041723251,
+          0.04798400029540062
+        ],
+        "inter_run_spread_pct": 0.23364663924197304
+      },
+      "forward_backward": {
+        "median_ms": 0.24772799760103226,
+        "p25_ms": 0.24672000110149384,
+        "p75_ms": 2.571008086204529,
+        "min_ms": 0.24512000381946564,
+        "mean_ms": 1.156188225388527,
+        "std_ms": 1.1176235839438997,
+        "runs": 5,
+        "run_medians_ms": [
+          0.24756800383329391,
+          0.7596479952335358,
+          0.24699199944734573,
+          0.24745600670576096,
+          2.5697120428085327
+        ],
+        "inter_run_spread_pct": 940.4029476899511
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 99.0,
+        "power_w": 390.17
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 2.25,
+      "flops_per_forward": 119537664,
+      "peak_vram_mib_forward": 42.0810546875,
+      "peak_vram_mib_fwdbwd": 45.83349609375,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.04790399968624115,
+        "p25_ms": 0.04739999957382679,
+        "p75_ms": 0.04841599985957146,
+        "min_ms": 0.04291199892759323,
+        "mean_ms": 0.052102079942822455,
+        "std_ms": 0.026990419291417253,
+        "runs": 5,
+        "run_medians_ms": [
+          0.04793599992990494,
+          0.04790399968624115,
+          0.0480320006608963,
+          0.04790399968624115,
+          0.047887999564409256
+        ],
+        "inter_run_spread_pct": 0.3007039295791926
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 100.0,
+        "power_w": 392.53
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.75,
+      "flops_per_forward": 157286400,
+      "peak_vram_mib_forward": 43.6044921875,
+      "peak_vram_mib_fwdbwd": 49.97900390625,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.04163200035691261,
+        "p25_ms": 0.04092799872159958,
+        "p75_ms": 0.04249599948525429,
+        "min_ms": 0.03814399987459183,
+        "mean_ms": 0.044218432001769545,
+        "std_ms": 0.020666548012059447,
+        "runs": 5,
+        "run_medians_ms": [
+          0.04142399877309799,
+          0.04156799986958504,
+          0.04196799919009209,
+          0.04164800047874451,
+          0.04171200096607208
+        ],
+        "inter_run_spread_pct": 1.313249403984111
+      },
+      "forward_backward": {
+        "median_ms": 0.24182400107383728,
+        "p25_ms": 0.24083200097084045,
+        "p75_ms": 0.2433920055627823,
+        "min_ms": 0.23862400650978088,
+        "mean_ms": 0.4187892479002476,
+        "std_ms": 0.5557490646978988,
+        "runs": 5,
+        "run_medians_ms": [
+          0.2417920008301735,
+          0.2425920069217682,
+          0.24183999747037888,
+          0.2412640005350113,
+          0.24223999679088593
+        ],
+        "inter_run_spread_pct": 0.5504370249237337
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 100.0,
+        "power_w": 392.53
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.75,
+      "flops_per_forward": 157286400,
+      "peak_vram_mib_forward": 49.63037109375,
+      "peak_vram_mib_fwdbwd": 56.0048828125,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.04102399945259094,
+        "p25_ms": 0.040487999096512794,
+        "p75_ms": 0.0416640006005764,
+        "min_ms": 0.03606399893760681,
+        "mean_ms": 0.04206745593249798,
+        "std_ms": 0.013658969847309948,
+        "runs": 5,
+        "run_medians_ms": [
+          0.04089599847793579,
+          0.04100799933075905,
+          0.041039999574422836,
+          0.041152000427246094,
+          0.04097599908709526
+        ],
+        "inter_run_spread_pct": 0.6259828805706282
+      },
+      "forward_backward": {
+        "median_ms": 0.24262399971485138,
+        "p25_ms": 0.24166400730609894,
+        "p75_ms": 0.24345600605010986,
+        "min_ms": 0.23836800456047058,
+        "mean_ms": 0.42709772861003875,
+        "std_ms": 0.5500612476623262,
+        "runs": 5,
+        "run_medians_ms": [
+          0.24244800209999084,
+          0.2436000034213066,
+          0.24238400161266327,
+          0.24264000356197357,
+          0.24238400161266327
+        ],
+        "inter_run_spread_pct": 0.5016840222757555
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 100.0,
+        "power_w": 399.65
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 0.75,
+      "flops_per_forward": 157286400,
+      "peak_vram_mib_forward": 55.65625,
+      "peak_vram_mib_fwdbwd": 63.02685546875,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.04070400074124336,
+        "p25_ms": 0.04032000154256821,
+        "p75_ms": 0.041280001401901245,
+        "min_ms": 0.03791999816894531,
+        "mean_ms": 0.04175449599325657,
+        "std_ms": 0.012353512301804691,
+        "runs": 5,
+        "run_medians_ms": [
+          0.040720000863075256,
+          0.040752001106739044,
+          0.040800001472234726,
+          0.040672000497579575,
+          0.04064000025391579
+        ],
+        "inter_run_spread_pct": 0.39370378277377743
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 99.0,
+        "power_w": 399.65
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 2.25,
+      "flops_per_forward": 119537664,
+      "peak_vram_mib_forward": 73.7470703125,
+      "peak_vram_mib_fwdbwd": 79.53076171875,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.0944959968328476,
+        "p25_ms": 0.09385599941015244,
+        "p75_ms": 0.09523200243711472,
+        "min_ms": 0.08828800171613693,
+        "mean_ms": 0.11092735977470874,
+        "std_ms": 0.050340511984501034,
+        "runs": 5,
+        "run_medians_ms": [
+          0.0944959968328476,
+          0.09455999732017517,
+          0.09455999732017517,
+          0.09454399719834328,
+          0.09432000294327736
+        ],
+        "inter_run_spread_pct": 0.25444695654021654
+      },
+      "forward_backward": {
+        "median_ms": 2.642911911010742,
+        "p25_ms": 0.3171519935131073,
+        "p75_ms": 2.660599946975708,
+        "min_ms": 0.3133760094642639,
+        "mean_ms": 1.8784425591230391,
+        "std_ms": 1.1166612816865507,
+        "runs": 5,
+        "run_medians_ms": [
+          2.6471359729766846,
+          1.811839997768402,
+          0.31731200218200684,
+          2.642575979232788,
+          2.651584029197693
+        ],
+        "inter_run_spread_pct": 735.6393741692671
+      },
+      "clocks": {
+        "sm_mhz": 2385.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 99.0,
+        "power_w": 405.11
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 2.25,
+      "flops_per_forward": 119537664,
+      "peak_vram_mib_forward": 79.77294921875,
+      "peak_vram_mib_fwdbwd": 85.556640625,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.09430400282144547,
+        "p25_ms": 0.09370399825274944,
+        "p75_ms": 0.09478399902582169,
+        "min_ms": 0.08867199718952179,
+        "mean_ms": 0.11673395173251629,
+        "std_ms": 0.06884211775913848,
+        "runs": 5,
+        "run_medians_ms": [
+          0.09432000294327736,
+          0.0942080020904541,
+          0.09427200257778168,
+          0.09446399658918381,
+          0.09433600306510925
+        ],
+        "inter_run_spread_pct": 0.27173328491130927
+      },
+      "forward_backward": {
+        "median_ms": 2.644976019859314,
+        "p25_ms": 0.317127987742424,
+        "p75_ms": 2.66048002243042,
+        "min_ms": 0.31376001238822937,
+        "mean_ms": 1.9420640597343444,
+        "std_ms": 1.1215940495653176,
+        "runs": 5,
+        "run_medians_ms": [
+          2.65118408203125,
+          1.8665120005607605,
+          0.31755200028419495,
+          2.647823929786682,
+          2.65337598323822
+        ],
+        "inter_run_spread_pct": 735.5721207435527
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 99.0,
+        "power_w": 405.11
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 2.25,
+      "flops_per_forward": 119537664,
+      "peak_vram_mib_forward": 86.298828125,
+      "peak_vram_mib_fwdbwd": 92.08251953125,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.09424000233411789,
+        "p25_ms": 0.09324800223112106,
+        "p75_ms": 0.09471199847757816,
+        "min_ms": 0.08611200004816055,
+        "mean_ms": 0.11068326410651207,
+        "std_ms": 0.11279707171125761,
+        "runs": 5,
+        "run_medians_ms": [
+          0.094224002212286,
+          0.09427200257778168,
+          0.09411200135946274,
+          0.09412800148129463,
+          0.09433600306510925
+        ],
+        "inter_run_spread_pct": 0.2380160897768349
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 99.0,
+        "power_w": 405.11
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 10.5,
+      "flops_per_forward": 104988672,
+      "peak_vram_mib_forward": 92.29345703125,
+      "peak_vram_mib_fwdbwd": 99.0458984375,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.09046400338411331,
+        "p25_ms": 0.08931200206279755,
+        "p75_ms": 0.09107200056314468,
+        "min_ms": 0.08620800077915192,
+        "mean_ms": 0.09909689615666867,
+        "std_ms": 0.0902704694528884,
+        "runs": 5,
+        "run_medians_ms": [
+          0.09046400338411331,
+          0.09070399776101112,
+          0.09032000228762627,
+          0.09035200253129005,
+          0.09033600240945816
+        ],
+        "inter_run_spread_pct": 0.4251499819076777
+      },
+      "forward_backward": {
+        "median_ms": 2.615823984146118,
+        "p25_ms": 0.31248000264167786,
+        "p75_ms": 2.6499040126800537,
+        "min_ms": 0.3073279857635498,
+        "mean_ms": 1.6803803526163101,
+        "std_ms": 1.129527086296353,
+        "runs": 5,
+        "run_medians_ms": [
+          2.6382240056991577,
+          1.4215199947357178,
+          0.31270401179790497,
+          2.6273919343948364,
+          2.6466879844665527
+        ],
+        "inter_run_spread_pct": 746.3876012492798
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 99.0,
+        "power_w": 412.22
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 10.5,
+      "flops_per_forward": 104988672,
+      "peak_vram_mib_forward": 98.3193359375,
+      "peak_vram_mib_fwdbwd": 104.57177734375,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.0907519981265068,
+        "p25_ms": 0.08991999924182892,
+        "p75_ms": 0.09163999743759632,
+        "min_ms": 0.08460800349712372,
+        "mean_ms": 0.13593548779189588,
+        "std_ms": 0.29168829233737864,
+        "runs": 5,
+        "run_medians_ms": [
+          0.0907839983701706,
+          0.09086399897933006,
+          0.09060799703001976,
+          0.09054399654269218,
+          0.09087999910116196
+        ],
+        "inter_run_spread_pct": 0.37109313847367514
+      },
+      "forward_backward": {
+        "median_ms": 2.6345280408859253,
+        "p25_ms": 0.3126400113105774,
+        "p75_ms": 2.6547600626945496,
+        "min_ms": 0.30777600407600403,
+        "mean_ms": 1.7472512649297713,
+        "std_ms": 1.1266083850769184,
+        "runs": 5,
+        "run_medians_ms": [
+          2.6432160139083862,
+          1.68259197473526,
+          0.31273598968982697,
+          2.6372159719467163,
+          2.6488159894943237
+        ],
+        "inter_run_spread_pct": 746.9815041503321
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 99.0,
+        "power_w": 412.22
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 48,
+      "k": 11,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 10.5,
+      "flops_per_forward": 104988672,
+      "peak_vram_mib_forward": 104.34521484375,
+      "peak_vram_mib_fwdbwd": 110.59765625,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.0907679982483387,
+        "p25_ms": 0.09017600119113922,
+        "p75_ms": 0.09161599725484848,
+        "min_ms": 0.08694399893283844,
+        "mean_ms": 0.10910758377611637,
+        "std_ms": 0.15146656701129088,
+        "runs": 5,
+        "run_medians_ms": [
+          0.09089599922299385,
+          0.09081599861383438,
+          0.09073599800467491,
+          0.09055999666452408,
+          0.09063999727368355
+        ],
+        "inter_run_spread_pct": 0.3710275738132815
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 60.0,
+        "util_pct": 96.0,
+        "power_w": 418.17
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 36.0,
+      "flops_per_forward": 931135488,
+      "peak_vram_mib_forward": 120.09765625,
+      "peak_vram_mib_fwdbwd": 189.10009765625,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.18111999332904816,
+        "p25_ms": 0.18060800433158875,
+        "p75_ms": 0.18201600015163422,
+        "min_ms": 0.17856000363826752,
+        "mean_ms": 0.18498240014910697,
+        "std_ms": 0.014188633065225803,
+        "runs": 5,
+        "run_medians_ms": [
+          0.18091200292110443,
+          0.18105599284172058,
+          0.18091200292110443,
+          0.1810240000486374,
+          0.20126400142908096
+        ],
+        "inter_run_spread_pct": 11.249667340675025
+      },
+      "forward_backward": {
+        "median_ms": 0.9376160204410553,
+        "p25_ms": 0.93641597032547,
+        "p75_ms": 0.9389439821243286,
+        "min_ms": 0.9332799911499023,
+        "mean_ms": 0.9525617899894714,
+        "std_ms": 0.1445921488062833,
+        "runs": 5,
+        "run_medians_ms": [
+          0.9380640089511871,
+          0.9374559819698334,
+          0.937360018491745,
+          0.9374240040779114,
+          0.937824010848999
+        ],
+        "inter_run_spread_pct": 0.07510352965287462
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 58.0,
+        "util_pct": 100.0,
+        "power_w": 370.66
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 36.0,
+      "flops_per_forward": 931135488,
+      "peak_vram_mib_forward": 144.1591796875,
+      "peak_vram_mib_fwdbwd": 213.16162109375,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.18054400384426117,
+        "p25_ms": 0.18003199994564056,
+        "p75_ms": 0.18192000687122345,
+        "min_ms": 0.17587199807167053,
+        "mean_ms": 0.19122912004590034,
+        "std_ms": 0.10673445995778359,
+        "runs": 5,
+        "run_medians_ms": [
+          0.18038399517536163,
+          0.18035200238227844,
+          0.1804479956626892,
+          0.18057599663734436,
+          0.21988800168037415
+        ],
+        "inter_run_spread_pct": 21.92157490677273
+      },
+      "forward_backward": {
+        "median_ms": 0.9368640184402466,
+        "p25_ms": 0.9359359741210938,
+        "p75_ms": 0.9382079839706421,
+        "min_ms": 0.9318720102310181,
+        "mean_ms": 0.9885549424886704,
+        "std_ms": 0.31713345926109837,
+        "runs": 5,
+        "run_medians_ms": [
+          0.9364479780197144,
+          0.9369759857654572,
+          0.9368800222873688,
+          0.9370079934597015,
+          0.9372159838676453
+        ],
+        "inter_run_spread_pct": 0.0820126548358824
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 370.66
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 36.0,
+      "flops_per_forward": 931135488,
+      "peak_vram_mib_forward": 168.220703125,
+      "peak_vram_mib_fwdbwd": 236.47314453125,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.18134400248527527,
+        "p25_ms": 0.18083199858665466,
+        "p75_ms": 0.18246400356292725,
+        "min_ms": 0.1764480024576187,
+        "mean_ms": 0.1874893440902233,
+        "std_ms": 0.020224049712482657,
+        "runs": 5,
+        "run_medians_ms": [
+          0.18131199479103088,
+          0.1812319979071617,
+          0.18116799741983414,
+          0.1812319979071617,
+          0.2192160040140152
+        ],
+        "inter_run_spread_pct": 21.001505307810834
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 370.66
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 3.0,
+      "flops_per_forward": 1535115264,
+      "peak_vram_mib_forward": 120.2470703125,
+      "peak_vram_mib_fwdbwd": 141.77685546875,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.11430399864912033,
+        "p25_ms": 0.11372800171375275,
+        "p75_ms": 0.11507199704647064,
+        "min_ms": 0.11187200248241425,
+        "mean_ms": 0.12244435182213784,
+        "std_ms": 0.02731303082577278,
+        "runs": 5,
+        "run_medians_ms": [
+          0.11404799669981003,
+          0.11435199901461601,
+          0.11415999755263329,
+          0.1141119971871376,
+          0.15081599354743958
+        ],
+        "inter_run_spread_pct": 32.23905540788056
+      },
+      "forward_backward": {
+        "median_ms": 0.8503360152244568,
+        "p25_ms": 0.8496000170707703,
+        "p75_ms": 0.8511679768562317,
+        "min_ms": 0.8456640243530273,
+        "mean_ms": 0.8902952316999435,
+        "std_ms": 0.29147936934542545,
+        "runs": 5,
+        "run_medians_ms": [
+          0.8505440056324005,
+          0.8501919806003571,
+          0.8503040075302124,
+          0.8500159978866577,
+          0.8506879806518555
+        ],
+        "inter_run_spread_pct": 0.0790553080022568
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 375.69
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 3.0,
+      "flops_per_forward": 1535115264,
+      "peak_vram_mib_forward": 144.30859375,
+      "peak_vram_mib_fwdbwd": 165.83837890625,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.11478400230407715,
+        "p25_ms": 0.11402399651706219,
+        "p75_ms": 0.11568000167608261,
+        "min_ms": 0.11097600311040878,
+        "mean_ms": 0.13276467218995094,
+        "std_ms": 0.04925807430046777,
+        "runs": 5,
+        "run_medians_ms": [
+          0.11449600011110306,
+          0.114656001329422,
+          0.11488000303506851,
+          0.11475200206041336,
+          0.1608319953083992
+        ],
+        "inter_run_spread_pct": 40.469531819743274
+      },
+      "forward_backward": {
+        "median_ms": 0.850816011428833,
+        "p25_ms": 0.8499199748039246,
+        "p75_ms": 0.8516479730606079,
+        "min_ms": 0.8482239842414856,
+        "mean_ms": 0.8930910701751709,
+        "std_ms": 0.2375249853460283,
+        "runs": 5,
+        "run_medians_ms": [
+          0.8505440056324005,
+          0.8509279787540436,
+          0.8509759902954102,
+          0.8509439826011658,
+          0.8503680229187012
+        ],
+        "inter_run_spread_pct": 0.07149461883835544
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 375.69
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 3.0,
+      "flops_per_forward": 1535115264,
+      "peak_vram_mib_forward": 168.3701171875,
+      "peak_vram_mib_fwdbwd": 189.89990234375,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.11430399864912033,
+        "p25_ms": 0.11353600025177002,
+        "p75_ms": 0.11525599844753742,
+        "min_ms": 0.1096000000834465,
+        "mean_ms": 0.1405422716587782,
+        "std_ms": 0.11547431246006024,
+        "runs": 5,
+        "run_medians_ms": [
+          0.11415999755263329,
+          0.11407999694347382,
+          0.11425599828362465,
+          0.1141279973089695,
+          0.15856000036001205
+        ],
+        "inter_run_spread_pct": 38.99018636770994
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 373.89
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 36.0,
+      "flops_per_forward": 931135488,
+      "peak_vram_mib_forward": 389.716796875,
+      "peak_vram_mib_fwdbwd": 477.09423828125,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.6718400120735168,
+        "p25_ms": 0.6711360216140747,
+        "p75_ms": 0.6730800122022629,
+        "min_ms": 0.6683200001716614,
+        "mean_ms": 0.6816009593009948,
+        "std_ms": 0.0361761310110703,
+        "runs": 5,
+        "run_medians_ms": [
+          0.6717759966850281,
+          0.6716799736022949,
+          0.6718080043792725,
+          0.6715840101242065,
+          0.690416008234024
+        ],
+        "inter_run_spread_pct": 2.8041165105069443
+      },
+      "forward_backward": {
+        "median_ms": 1.7429440021514893,
+        "p25_ms": 1.7414799928665161,
+        "p75_ms": 1.7444159984588623,
+        "min_ms": 1.7367360591888428,
+        "mean_ms": 1.8235305616855622,
+        "std_ms": 0.4082741428603672,
+        "runs": 5,
+        "run_medians_ms": [
+          1.7430399656295776,
+          1.7429919838905334,
+          1.7424639463424683,
+          1.743120014667511,
+          1.7428159713745117
+        ],
+        "inter_run_spread_pct": 0.03765175896005479
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 373.89
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 36.0,
+      "flops_per_forward": 931135488,
+      "peak_vram_mib_forward": 413.7783203125,
+      "peak_vram_mib_fwdbwd": 501.15576171875,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.6711680293083191,
+        "p25_ms": 0.6701440215110779,
+        "p75_ms": 0.672088012099266,
+        "min_ms": 0.6673600077629089,
+        "mean_ms": 0.6912514569759369,
+        "std_ms": 0.15410472429602762,
+        "runs": 5,
+        "run_medians_ms": [
+          0.6709119975566864,
+          0.6709120273590088,
+          0.670879989862442,
+          0.6711840033531189,
+          0.7173119783401489
+        ],
+        "inter_run_spread_pct": 6.921057294796849
+      },
+      "forward_backward": {
+        "median_ms": 1.7427200078964233,
+        "p25_ms": 1.7414400577545166,
+        "p75_ms": 1.744096040725708,
+        "min_ms": 1.7370879650115967,
+        "mean_ms": 1.84739839720726,
+        "std_ms": 0.42878662764469155,
+        "runs": 5,
+        "run_medians_ms": [
+          1.7427520155906677,
+          1.7422879934310913,
+          1.7430239915847778,
+          1.742415964603424,
+          1.7428320050239563
+        ],
+        "inter_run_spread_pct": 0.04224319724761007
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 373.89
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 36.0,
+      "flops_per_forward": 931135488,
+      "peak_vram_mib_forward": 437.83984375,
+      "peak_vram_mib_fwdbwd": 525.21728515625,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.6711200177669525,
+        "p25_ms": 0.670215979218483,
+        "p75_ms": 0.6720239967107773,
+        "min_ms": 0.6668480038642883,
+        "mean_ms": 0.7167280647754669,
+        "std_ms": 0.26996137017729543,
+        "runs": 5,
+        "run_medians_ms": [
+          0.6711360216140747,
+          0.6709759831428528,
+          0.6711200177669525,
+          0.6709120273590088,
+          0.7166720032691956
+        ],
+        "inter_run_spread_pct": 6.820562762947809
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 99.0,
+        "power_w": 382.59
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 177.0,
+      "flops_per_forward": 703070208,
+      "peak_vram_mib_forward": 471.9013671875,
+      "peak_vram_mib_fwdbwd": 581.65380859375,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.7527839839458466,
+        "p25_ms": 0.7512320280075073,
+        "p75_ms": 0.7543039917945862,
+        "min_ms": 0.7479360103607178,
+        "mean_ms": 0.7653321591615677,
+        "std_ms": 0.14994724169587703,
+        "runs": 5,
+        "run_medians_ms": [
+          0.7521440088748932,
+          0.7524319887161255,
+          0.752591997385025,
+          0.7524000108242035,
+          0.770687997341156
+        ],
+        "inter_run_spread_pct": 2.4654837700565007
+      },
+      "forward_backward": {
+        "median_ms": 1.866655945777893,
+        "p25_ms": 1.8648960590362549,
+        "p75_ms": 1.8683440387248993,
+        "min_ms": 1.8593599796295166,
+        "mean_ms": 1.955267519235611,
+        "std_ms": 0.4222602042957645,
+        "runs": 5,
+        "run_medians_ms": [
+          1.8665599822998047,
+          1.866752028465271,
+          1.8666560053825378,
+          1.866703987121582,
+          1.8666399717330933
+        ],
+        "inter_run_spread_pct": 0.010288775463282291
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 99.0,
+        "power_w": 382.59
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 177.0,
+      "flops_per_forward": 703070208,
+      "peak_vram_mib_forward": 495.212890625,
+      "peak_vram_mib_fwdbwd": 605.71533203125,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.7530399858951569,
+        "p25_ms": 0.7514560222625732,
+        "p75_ms": 0.7545519918203354,
+        "min_ms": 0.7474240064620972,
+        "mean_ms": 0.7649219182729721,
+        "std_ms": 0.10731217243770451,
+        "runs": 5,
+        "run_medians_ms": [
+          0.7528960108757019,
+          0.7527679800987244,
+          0.7527999877929688,
+          0.7529600262641907,
+          0.7981759905815125
+        ],
+        "inter_run_spread_pct": 6.0321389436400965
+      },
+      "forward_backward": {
+        "median_ms": 1.8665599822998047,
+        "p25_ms": 1.86518394947052,
+        "p75_ms": 1.8682160079479218,
+        "min_ms": 1.8571840524673462,
+        "mean_ms": 1.958710208415985,
+        "std_ms": 0.49122135137513906,
+        "runs": 5,
+        "run_medians_ms": [
+          1.8661119937896729,
+          1.866655945777893,
+          1.866208016872406,
+          1.866864025592804,
+          1.8670560121536255
+        ],
+        "inter_run_spread_pct": 0.05058744422061926
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 99.0,
+        "power_w": 388.06
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 192,
+      "k": 47,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 177.0,
+      "flops_per_forward": 703070208,
+      "peak_vram_mib_forward": 519.2744140625,
+      "peak_vram_mib_fwdbwd": 629.02685546875,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.7525759935379028,
+        "p25_ms": 0.7510799914598465,
+        "p75_ms": 0.7536640167236328,
+        "min_ms": 0.74617600440979,
+        "mean_ms": 0.7592467836141586,
+        "std_ms": 0.022513739172048845,
+        "runs": 5,
+        "run_medians_ms": [
+          0.7521440088748932,
+          0.7524320185184479,
+          0.7519679963588715,
+          0.752672016620636,
+          0.7968640029430389
+        ],
+        "inter_run_spread_pct": 5.970467732876916
+      },
+      "clocks": {
+        "sm_mhz": 2377.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 58.0,
+        "util_pct": 99.0,
+        "power_w": 388.06
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 256.0,
+      "flops_per_forward": 5167382528,
+      "peak_vram_mib_forward": 609.6416015625,
+      "peak_vram_mib_fwdbwd": 1113.64404296875,
+      "oom": false,
+      "forward": {
+        "median_ms": 1.9882240295410156,
+        "p25_ms": 1.986016035079956,
+        "p75_ms": 1.9898240566253662,
+        "min_ms": 1.9741120338439941,
+        "mean_ms": 1.9878250243663789,
+        "std_ms": 0.004105993133765996,
+        "runs": 5,
+        "run_medians_ms": [
+          1.9884799718856812,
+          1.9883840084075928,
+          1.9880160093307495,
+          1.9883679747581482,
+          1.9877279996871948
+        ],
+        "inter_run_spread_pct": 0.0378307393468656
+      },
+      "forward_backward": {
+        "median_ms": 14.687423706054688,
+        "p25_ms": 14.63366413116455,
+        "p75_ms": 14.702575922012329,
+        "min_ms": 6.422976016998291,
+        "mean_ms": 13.638787537574768,
+        "std_ms": 2.3514491113150178,
+        "runs": 5,
+        "run_medians_ms": [
+          14.678991794586182,
+          14.683519840240479,
+          14.689663887023926,
+          14.687664031982422,
+          14.69209623336792
+        ],
+        "inter_run_spread_pct": 0.0892734253490855
+      },
+      "clocks": {
+        "sm_mhz": 2400.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 56.0,
+        "util_pct": 100.0,
+        "power_w": 377.98
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 256.0,
+      "flops_per_forward": 5167382528,
+      "peak_vram_mib_forward": 673.7822265625,
+      "peak_vram_mib_fwdbwd": 1177.78466796875,
+      "oom": false,
+      "forward": {
+        "median_ms": 1.9823839664459229,
+        "p25_ms": 1.978816032409668,
+        "p75_ms": 1.985552042722702,
+        "min_ms": 1.9727040529251099,
+        "mean_ms": 1.984071296453476,
+        "std_ms": 0.01127648438714596,
+        "runs": 5,
+        "run_medians_ms": [
+          1.9823200106620789,
+          1.9827199578285217,
+          1.9820160269737244,
+          1.9815360307693481,
+          1.983855962753296
+        ],
+        "inter_run_spread_pct": 0.11707745647436048
+      },
+      "forward_backward": {
+        "median_ms": 14.692527770996094,
+        "p25_ms": 14.652144193649292,
+        "p75_ms": 14.70469617843628,
+        "min_ms": 6.447711944580078,
+        "mean_ms": 13.686840347290039,
+        "std_ms": 2.3645558171114174,
+        "runs": 5,
+        "run_medians_ms": [
+          14.680176258087158,
+          14.691535949707031,
+          14.697264194488525,
+          14.697904109954834,
+          14.692368030548096
+        ],
+        "inter_run_spread_pct": 0.12076048377082454
+      },
+      "clocks": {
+        "sm_mhz": 2400.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 58.0,
+        "util_pct": 100.0,
+        "power_w": 377.98
+      }
+    },
+    {
+      "arm": "dense",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 256.0,
+      "flops_per_forward": 5167382528,
+      "peak_vram_mib_forward": 737.9228515625,
+      "peak_vram_mib_fwdbwd": 1241.92529296875,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 1.9871200323104858,
+        "p25_ms": 1.9840960502624512,
+        "p75_ms": 1.988887995481491,
+        "min_ms": 1.9741439819335938,
+        "mean_ms": 1.9876175997257233,
+        "std_ms": 0.00969443461312257,
+        "runs": 5,
+        "run_medians_ms": [
+          1.9872480034828186,
+          1.9869439601898193,
+          1.9871679544448853,
+          1.9868799448013306,
+          1.987231969833374
+        ],
+        "inter_run_spread_pct": 0.01852445501053359
+      },
+      "clocks": {
+        "sm_mhz": 2400.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 58.0,
+        "util_pct": 100.0,
+        "power_w": 377.98
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 8.0,
+      "flops_per_forward": 9462349824,
+      "peak_vram_mib_forward": 289.8134765625,
+      "peak_vram_mib_fwdbwd": 347.84716796875,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.42073601484298706,
+        "p25_ms": 0.41968800127506256,
+        "p75_ms": 0.42160001397132874,
+        "min_ms": 0.4171200096607208,
+        "mean_ms": 0.4218618242740631,
+        "std_ms": 0.007663383577153348,
+        "runs": 5,
+        "run_medians_ms": [
+          0.420864000916481,
+          0.42075200378894806,
+          0.42080000042915344,
+          0.4204320013523102,
+          0.4208959937095642
+        ],
+        "inter_run_spread_pct": 0.11036085639570899
+      },
+      "forward_backward": {
+        "median_ms": 5.4582719802856445,
+        "p25_ms": 5.447791934013367,
+        "p75_ms": 5.472383975982666,
+        "min_ms": 2.953023910522461,
+        "mean_ms": 5.147442626476288,
+        "std_ms": 0.8456021796756291,
+        "runs": 5,
+        "run_medians_ms": [
+          5.461680173873901,
+          5.456464052200317,
+          5.460992097854614,
+          5.457135915756226,
+          5.458047866821289
+        ],
+        "inter_run_spread_pct": 0.09559527239037861
+      },
+      "clocks": {
+        "sm_mhz": 2400.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 58.0,
+        "util_pct": 97.0,
+        "power_w": 385.22
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 8.0,
+      "flops_per_forward": 9462349824,
+      "peak_vram_mib_forward": 353.9541015625,
+      "peak_vram_mib_fwdbwd": 411.98779296875,
+      "oom": false,
+      "forward": {
+        "median_ms": 0.42131200432777405,
+        "p25_ms": 0.4198239967226982,
+        "p75_ms": 0.4673359990119934,
+        "min_ms": 0.41411200165748596,
+        "mean_ms": 0.45640793627500537,
+        "std_ms": 0.06159416929364963,
+        "runs": 5,
+        "run_medians_ms": [
+          0.42156799137592316,
+          0.42108799517154694,
+          0.4216800034046173,
+          0.42131200432777405,
+          0.420975998044014
+        ],
+        "inter_run_spread_pct": 0.16723171009139748
+      },
+      "forward_backward": {
+        "median_ms": 5.4604480266571045,
+        "p25_ms": 5.451488018035889,
+        "p75_ms": 5.475200057029724,
+        "min_ms": 3.0487680435180664,
+        "mean_ms": 5.3306550354957585,
+        "std_ms": 0.7207239430741088,
+        "runs": 5,
+        "run_medians_ms": [
+          5.455280065536499,
+          5.463200092315674,
+          5.4666078090667725,
+          5.462368011474609,
+          5.462480068206787
+        ],
+        "inter_run_spread_pct": 0.2076473323860305
+      },
+      "clocks": {
+        "sm_mhz": 2400.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 58.0,
+        "util_pct": 97.0,
+        "power_w": 385.22
+      }
+    },
+    {
+      "arm": "dense_sdpa",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 8.0,
+      "flops_per_forward": 9462349824,
+      "peak_vram_mib_forward": 418.0947265625,
+      "peak_vram_mib_fwdbwd": 476.12841796875,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 0.42102399468421936,
+        "p25_ms": 0.41968800127506256,
+        "p75_ms": 0.45906399190425873,
+        "min_ms": 0.41312000155448914,
+        "mean_ms": 0.4667792003750801,
+        "std_ms": 0.08196137499522838,
+        "runs": 5,
+        "run_medians_ms": [
+          0.42107200622558594,
+          0.42103999853134155,
+          0.4224960058927536,
+          0.4206719994544983,
+          0.4206719994544983
+        ],
+        "inter_run_spread_pct": 0.4335934981697308
+      },
+      "clocks": {
+        "sm_mhz": 2400.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 58.0,
+        "util_pct": 97.0,
+        "power_w": 386.85
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 256.0,
+      "flops_per_forward": 5167382528,
+      "peak_vram_mib_forward": 1930.9853515625,
+      "peak_vram_mib_fwdbwd": 2523.48779296875,
+      "oom": false,
+      "forward": {
+        "median_ms": 14.738816261291504,
+        "p25_ms": 10.898800373077393,
+        "p75_ms": 14.898184061050415,
+        "min_ms": 7.565184116363525,
+        "mean_ms": 12.887387460708618,
+        "std_ms": 2.21808713396019,
+        "runs": 5,
+        "run_medians_ms": [
+          12.820847988128662,
+          14.754480361938477,
+          12.836112022399902,
+          12.863248348236084,
+          14.755103588104248
+        ],
+        "inter_run_spread_pct": 15.086799264499438
+      },
+      "forward_backward": {
+        "median_ms": 32.77862358093262,
+        "p25_ms": 32.52272033691406,
+        "p75_ms": 32.939857482910156,
+        "min_ms": 15.115008354187012,
+        "mean_ms": 30.45755281448364,
+        "std_ms": 4.897641579373039,
+        "runs": 5,
+        "run_medians_ms": [
+          32.67598342895508,
+          32.86691093444824,
+          32.81619071960449,
+          32.78254508972168,
+          32.727439880371094
+        ],
+        "inter_run_spread_pct": 0.5843053076222887
+      },
+      "clocks": {
+        "sm_mhz": 2400.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 386.85
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 256.0,
+      "flops_per_forward": 5167382528,
+      "peak_vram_mib_forward": 1995.1259765625,
+      "peak_vram_mib_fwdbwd": 2587.62841796875,
+      "oom": false,
+      "forward": {
+        "median_ms": 15.066864013671875,
+        "p25_ms": 14.935503959655762,
+        "p75_ms": 15.084007978439331,
+        "min_ms": 7.601856231689453,
+        "mean_ms": 14.633276090621948,
+        "std_ms": 1.5780505241117293,
+        "runs": 5,
+        "run_medians_ms": [
+          15.069456100463867,
+          15.024384021759033,
+          15.073567867279053,
+          15.071823596954346,
+          15.049168109893799
+        ],
+        "inter_run_spread_pct": 0.3273601463380404
+      },
+      "forward_backward": {
+        "median_ms": 32.76673698425293,
+        "p25_ms": 32.522128105163574,
+        "p75_ms": 32.95440101623535,
+        "min_ms": 15.148863792419434,
+        "mean_ms": 30.480963302612306,
+        "std_ms": 4.873687084933555,
+        "runs": 5,
+        "run_medians_ms": [
+          32.707183837890625,
+          32.76153564453125,
+          32.76844787597656,
+          32.80571174621582,
+          32.795297622680664
+        ],
+        "inter_run_spread_pct": 0.3012424084370501
+      },
+      "clocks": {
+        "sm_mhz": 2400.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 386.85
+      }
+    },
+    {
+      "arm": "topk_masked",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 256.0,
+      "flops_per_forward": 5167382528,
+      "peak_vram_mib_forward": 2059.2666015625,
+      "peak_vram_mib_fwdbwd": 2651.76904296875,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 14.900896072387695,
+        "p25_ms": 14.830352067947388,
+        "p75_ms": 15.053607940673828,
+        "min_ms": 7.602303981781006,
+        "mean_ms": 14.615245120048524,
+        "std_ms": 1.4158967693381959,
+        "runs": 5,
+        "run_medians_ms": [
+          14.925904273986816,
+          14.89409589767456,
+          14.909296035766602,
+          14.902096271514893,
+          14.896368026733398
+        ],
+        "inter_run_spread_pct": 0.21356365992797288
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 97.0,
+        "power_w": 391.66
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "eager",
+      "dtype": "float32",
+      "analytic_activation_mib": 1272.0,
+      "flops_per_forward": 3552575488,
+      "peak_vram_mib_forward": 2184.9072265625,
+      "peak_vram_mib_fwdbwd": 2953.90966796875,
+      "oom": false,
+      "forward": {
+        "median_ms": 14.560880184173584,
+        "p25_ms": 14.521312236785889,
+        "p75_ms": 14.579576015472412,
+        "min_ms": 7.033472061157227,
+        "mean_ms": 14.28174810409546,
+        "std_ms": 1.3641727672206798,
+        "runs": 5,
+        "run_medians_ms": [
+          14.560703754425049,
+          14.567712306976318,
+          14.559919834136963,
+          14.561136245727539,
+          14.55083179473877
+        ],
+        "inter_run_spread_pct": 0.11601063413881545
+      },
+      "forward_backward": {
+        "median_ms": 28.561583518981934,
+        "p25_ms": 28.48780870437622,
+        "p75_ms": 28.588695526123047,
+        "min_ms": 13.614975929260254,
+        "mean_ms": 26.725953302383424,
+        "std_ms": 3.978618163125209,
+        "runs": 5,
+        "run_medians_ms": [
+          28.54155158996582,
+          28.561840057373047,
+          28.562928199768066,
+          28.566991806030273,
+          28.568880081176758
+        ],
+        "inter_run_spread_pct": 0.09574984430960373
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 97.0,
+        "power_w": 391.66
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "compile",
+      "dtype": "float32",
+      "analytic_activation_mib": 1272.0,
+      "flops_per_forward": 3552575488,
+      "peak_vram_mib_forward": 2249.0478515625,
+      "peak_vram_mib_fwdbwd": 3018.05029296875,
+      "oom": false,
+      "forward": {
+        "median_ms": 14.575039863586426,
+        "p25_ms": 14.553872108459473,
+        "p75_ms": 14.589024066925049,
+        "min_ms": 7.062687873840332,
+        "mean_ms": 14.287485445976257,
+        "std_ms": 1.378552720412506,
+        "runs": 5,
+        "run_medians_ms": [
+          14.579040050506592,
+          14.57371187210083,
+          14.576784133911133,
+          14.577520370483398,
+          14.566672325134277
+        ],
+        "inter_run_spread_pct": 0.08490426019245577
+      },
+      "forward_backward": {
+        "median_ms": 28.55521583557129,
+        "p25_ms": 26.40731143951416,
+        "p75_ms": 28.585487365722656,
+        "min_ms": 13.65392017364502,
+        "mean_ms": 26.72107696533203,
+        "std_ms": 3.9383110856956813,
+        "runs": 5,
+        "run_medians_ms": [
+          28.53335952758789,
+          28.5482234954834,
+          28.546703338623047,
+          28.571056365966797,
+          28.573823928833008
+        ],
+        "inter_run_spread_pct": 0.14181436015620102
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 97.0,
+        "power_w": 398.98
+      }
+    },
+    {
+      "arm": "topk_gather",
+      "n_agents": 512,
+      "k": 127,
+      "k_frac": 0.25,
+      "batch": 256,
+      "msg_dim": 16,
+      "exec_mode": "cudagraph",
+      "dtype": "float32",
+      "analytic_activation_mib": 1272.0,
+      "flops_per_forward": 3552575488,
+      "peak_vram_mib_forward": 2313.1884765625,
+      "peak_vram_mib_fwdbwd": 3082.19091796875,
+      "oom": false,
+      "forward_backward": null,
+      "fwdbwd_unavailable_reason": "CUDA-graph replays share a memory pool across arms; an interleaved backward reads activations a later replay has already overwritten",
+      "forward": {
+        "median_ms": 14.57099199295044,
+        "p25_ms": 14.55725622177124,
+        "p75_ms": 14.583440065383911,
+        "min_ms": 7.019392013549805,
+        "mean_ms": 14.240608061790466,
+        "std_ms": 1.4731409852194424,
+        "runs": 5,
+        "run_medians_ms": [
+          14.574991703033447,
+          14.569695949554443,
+          14.569904327392578,
+          14.57257604598999,
+          14.568399906158447
+        ],
+        "inter_run_spread_pct": 0.04524722630804138
+      },
+      "clocks": {
+        "sm_mhz": 2392.0,
+        "sm_max_mhz": 2430.0,
+        "temp_c": 59.0,
+        "util_pct": 98.0,
+        "power_w": 398.98
+      }
+    }
+  ]
+}

@@ -1,0 +1,790 @@
+[
+ {
+  "paper_number_id": "abs.ceiling_fraction",
+  "file": "00_abstract.tex",
+  "unit": "fraction",
+  "configuration": "equal-width two attention products; Proposition 1",
+  "source_artifact": "analytical: N^2 d of 2N^2 d",
+  "tolerance": 0,
+  "printed": [
+   "half"
+  ],
+  "artifact": [
+   0.5
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "abs.devices",
+  "file": "00_abstract.tex",
+  "unit": "GPUs",
+  "configuration": "headline replication",
+  "source_artifact": "fixed_set.json; portability/*/fixed_set.json",
+  "tolerance": 0,
+  "printed": [
+   "four"
+  ],
+  "artifact": [
+   4
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "abs.residual_start",
+  "file": "00_abstract.tex",
+  "unit": "agents",
+  "configuration": "reported residual range starts at measured N=384",
+  "source_artifact": "fixed_set.json",
+  "tolerance": 0,
+  "printed": [
+   "384"
+  ],
+  "artifact": [
+   384
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "abs.find_range",
+  "file": "00_abstract.tex",
+  "unit": "% residual",
+  "configuration": "resident and streaming kernels, N>=384, four GPUs, minima",
+  "source_artifact": "Table 13",
+  "tolerance": 0,
+  "printed": [
+   "85",
+   "97"
+  ],
+  "artifact": [
+   85.0,
+   97.0
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.replay_384",
+  "file": "04_measurement.tex",
+  "unit": "x best dense",
+  "configuration": "fused k=1, d=16, N=384, CUDA-graph replay, 3 sessions",
+  "source_artifact": "crossover_graph.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.92"
+  ],
+  "artifact": [
+   0.924201580108695
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.masked_credit",
+  "file": "04_measurement.tex",
+  "unit": "%",
+  "configuration": "N=512, k=127",
+  "source_artifact": "analytic",
+  "tolerance": 0.01,
+  "printed": [
+   "75"
+  ],
+  "artifact": [
+   75.14677103718199
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.backward",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "N=512, k=128, d=16",
+  "source_artifact": "attention_core_d16.json",
+  "tolerance": 0.02,
+  "printed": [
+   "18.4",
+   "6.2"
+  ],
+  "artifact": [
+   18.422315020792656,
+   6.17126456850181
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.env_share",
+  "file": "04_measurement.tex",
+  "unit": "%",
+  "configuration": "MAPPO iteration, N=6 and N=24",
+  "source_artifact": "training_step_timing.json",
+  "tolerance": 0.02,
+  "printed": [
+   "78",
+   "96"
+  ],
+  "artifact": [
+   77.76437074840628,
+   96.4826959220665
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.impl_spread",
+  "file": "04_measurement.tex",
+  "unit": "%",
+  "configuration": "MAPPO iteration, N=6..24 (upper bound)",
+  "source_artifact": "training_step_timing.json",
+  "tolerance": 1.0,
+  "printed": [
+   "2"
+  ],
+  "artifact": [
+   1.9031981623745216
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.composed_vs_fused",
+  "file": "04_measurement.tex",
+  "unit": "ms",
+  "configuration": "N=512, k=1, d=16",
+  "source_artifact": "attention_core_d16.json",
+  "tolerance": 0.02,
+  "printed": [
+   "4.62",
+   "0.139"
+  ],
+  "artifact": [
+   4.617055892944336,
+   0.13923199474811554
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.eff_sparse",
+  "file": "04_measurement.tex",
+  "unit": "% of peak",
+  "configuration": "d in {16,32}",
+  "source_artifact": "autotune.json",
+  "tolerance": 0.03,
+  "printed": [
+   "21",
+   "33"
+  ],
+  "artifact": [
+   21.03433604992268,
+   33.23636367070289
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.eff_dense",
+  "file": "04_measurement.tex",
+  "unit": "% of peak",
+  "configuration": "d in {16,32}",
+  "source_artifact": "autotune.json",
+  "tolerance": 0.03,
+  "printed": [
+   "30",
+   "47"
+  ],
+  "artifact": [
+   29.970500384170563,
+   46.559760378297156
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.cfgs_dense",
+  "file": "04_measurement.tex",
+  "unit": "configs",
+  "configuration": "N>192",
+  "source_artifact": "autotune.json",
+  "tolerance": 0,
+  "printed": [
+   "28",
+   "106"
+  ],
+  "artifact": [
+   28.0,
+   106.0
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.k4_range",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "k=4, fp32",
+  "source_artifact": "precision.json",
+  "tolerance": 0.03,
+  "printed": [
+   "1.3",
+   "2.3"
+  ],
+  "artifact": [
+   1.2849798230656115,
+   2.3205317975819177
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.fixed_free",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "graph, d=16, N=512, k in {1,4}",
+  "source_artifact": "fixed_set.json",
+  "tolerance": 0.1,
+  "printed": [
+   "0.06",
+   "0.11"
+  ],
+  "artifact": [
+   0.06264108459662354,
+   0.11399548905954376
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.fixed_stsel",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "graph, d=16, N=512, k in {1,4}",
+  "source_artifact": "fixed_set.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.77",
+   "1.93"
+  ],
+  "artifact": [
+   0.7669300420995998,
+   1.9279533686994148
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.fixed_share",
+  "file": "04_measurement.tex",
+  "unit": "%",
+  "configuration": "as abs.find_share",
+  "source_artifact": "fixed_set.json",
+  "tolerance": 0.05,
+  "printed": [
+   "90"
+  ],
+  "artifact": [
+   90.3864884797603
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.find_set",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "graph, d=16, N>=192",
+  "source_artifact": "fixed_set.json",
+  "tolerance": 0.05,
+  "printed": [
+   "8",
+   "27"
+  ],
+  "artifact": [
+   7.790860804313218,
+   26.69412982086669
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.replicate",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "d=16, N=512, k in {1,2,4}",
+  "source_artifact": "fixed_set.json; attention_core_d16.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.77",
+   "1.27",
+   "1.93",
+   "0.81",
+   "1.27",
+   "1.96"
+  ],
+  "artifact": [
+   0.7669300420995998,
+   1.2673062238925061,
+   1.9279533686994148,
+   0.807385410725107,
+   1.2675821705554295,
+   1.956763922681041
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.gain_tf32",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "best dense fp32/tf32",
+  "source_artifact": "precision.json",
+  "tolerance": 0.03,
+  "printed": [
+   "2.7",
+   "4.0"
+  ],
+  "artifact": [
+   2.728494675603003,
+   3.982336277349421
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.gain_bf16",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "best dense fp32/bf16",
+  "source_artifact": "precision.json",
+  "tolerance": 0.03,
+  "printed": [
+   "3.9",
+   "8.1"
+  ],
+  "artifact": [
+   3.9189191983254172,
+   8.084759460523632
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.k1_fp32",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "k=1 fp32",
+  "source_artifact": "precision.json",
+  "tolerance": 0.03,
+  "printed": [
+   "0.67",
+   "0.91"
+  ],
+  "artifact": [
+   0.6700604862085868,
+   0.909090921876425
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.k1_reduced_large",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "k=1, TF32/bf16, N>=384",
+  "source_artifact": "precision.json",
+  "tolerance": 0.03,
+  "printed": [
+   "1.07",
+   "1.38"
+  ],
+  "artifact": [
+   1.0710259457858966,
+   1.3772378872614397
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.k1_reduced_192",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "k=1, TF32/bf16, N=192",
+  "source_artifact": "precision.json",
+  "tolerance": 0.03,
+  "printed": [
+   "0.83",
+   "1.01"
+  ],
+  "artifact": [
+   0.8288973598620102,
+   1.0107526915370366
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.bf16_median",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "k=1, bf16, d=16, N=512",
+  "source_artifact": "precision.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.99"
+  ],
+  "artifact": [
+   0.9867841683621998
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.flex_wins",
+  "file": "04_measurement.tex",
+  "unit": "configs",
+  "configuration": "TF32/bf16",
+  "source_artifact": "precision.json",
+  "tolerance": 0,
+  "printed": [
+   "nine"
+  ],
+  "artifact": [
+   9.0
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.flex_topk",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "Flex top-k k=1, all formats",
+  "source_artifact": "precision.json",
+  "tolerance": 0.05,
+  "printed": [
+   "8",
+   "218"
+  ],
+  "artifact": [
+   7.705127864183212,
+   218.40080240339125
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.grid_recall",
+  "file": "04_measurement.tex",
+  "unit": "%",
+  "configuration": "grid kNN, all N, k",
+  "source_artifact": "prescore_selectors.json",
+  "tolerance": 0.0001,
+  "printed": [
+   "99.93"
+  ],
+  "artifact": [
+   99.92713928222656
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.attn_stage",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "pre-score fused attention N=512 k=2",
+  "source_artifact": "prescore.json",
+  "tolerance": 0.05,
+  "printed": [
+   "0.06"
+  ],
+  "artifact": [
+   0.05967922432395089
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.attn_stage_medians",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "N=512 k=2",
+  "source_artifact": "prescore.json; prescore_selectors.json",
+  "tolerance": 0.03,
+  "printed": [
+   "0.064",
+   "0.18"
+  ],
+  "artifact": [
+   0.06382189164398908,
+   0.17943067538934246
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.attn_stage_graph",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "graph d=16 N=512 k=2",
+  "source_artifact": "fixed_set.json",
+  "tolerance": 0.05,
+  "printed": [
+   "0.07"
+  ],
+  "artifact": [
+   0.07449209764205976
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.fuse_gain",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "pre-score composed/fused attention",
+  "source_artifact": "prescore.json",
+  "tolerance": 0.05,
+  "printed": [
+   "4",
+   "17"
+  ],
+  "artifact": [
+   4.0,
+   17.2781253058176
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.allpairs_ms",
+  "file": "04_measurement.tex",
+  "unit": "ms",
+  "configuration": "k=4",
+  "source_artifact": "prescore_selectors.json",
+  "tolerance": 0.03,
+  "printed": [
+   "0.32",
+   "5.69"
+  ],
+  "artifact": [
+   0.3173440098762512,
+   5.691967964172363
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.allpairs_total",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "N=512 k=4",
+  "source_artifact": "prescore_selectors.json",
+  "tolerance": 0.02,
+  "printed": [
+   "37"
+  ],
+  "artifact": [
+   37.479819381970415
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.grid_ms",
+  "file": "04_measurement.tex",
+  "unit": "ms",
+  "configuration": "k=4",
+  "source_artifact": "prescore_selectors.json",
+  "tolerance": 0.03,
+  "printed": [
+   "0.51",
+   "1.67"
+  ],
+  "artifact": [
+   0.5056639909744263,
+   1.6694719791412354
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.grid_total",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "N=512 k=4",
+  "source_artifact": "prescore_selectors.json",
+  "tolerance": 0.03,
+  "printed": [
+   "10"
+  ],
+  "artifact": [
+   9.847126617949913
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.zorder_sel",
+  "file": "04_measurement.tex",
+  "unit": "ms",
+  "configuration": "all N and k",
+  "source_artifact": "prescore_selectors.json",
+  "tolerance": 0.03,
+  "printed": [
+   "0.10",
+   "0.14"
+  ],
+  "artifact": [
+   0.09609600156545639,
+   0.13977600634098053
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.zorder_total",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "N=512 k=4",
+  "source_artifact": "prescore_selectors.json; prescore.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.86",
+   "0.85"
+  ],
+  "artifact": [
+   0.8590291694307276,
+   0.8453069571568159
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.flex_band",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "N=512 k=4",
+  "source_artifact": "prescore_selectors.json",
+  "tolerance": 0.04,
+  "printed": [
+   "1.6"
+  ],
+  "artifact": [
+   1.6066579948766002
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.zorder_medians",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "N=512 k=4, ratio of medians",
+  "source_artifact": "prescore*.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.92",
+   "2.10"
+  ],
+  "artifact": [
+   0.9205255572062582,
+   2.1016336266414624
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.zorder_48",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "N=48 k=4",
+  "source_artifact": "prescore_selectors.json",
+  "tolerance": 0.03,
+  "printed": [
+   "16"
+  ],
+  "artifact": [
+   15.733009932318053
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.stream_paired",
+  "file": "04_measurement.tex",
+  "unit": "%",
+  "configuration": "streaming fp32, graph, N=192..1024",
+  "source_artifact": "streaming_topk.json",
+  "tolerance": 0.05,
+  "printed": [
+   "13",
+   "3.7"
+  ],
+  "artifact": [
+   13.25067734204235,
+   3.658740240009458
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.stream_046",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "streaming fp32, d=32, N=1024, k=1",
+  "source_artifact": "streaming_topk.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.46"
+  ],
+  "artifact": [
+   0.4560738417110521
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s4.stream_217",
+  "file": "04_measurement.tex",
+  "unit": "x",
+  "configuration": "streaming fp32, d=32, N=1024, k=1",
+  "source_artifact": "streaming_topk.json",
+  "tolerance": 0.01,
+  "printed": [
+   "2.17"
+  ],
+  "artifact": [
+   2.192627396143353
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "app.streamprec_paired",
+  "file": "12_app_measurement.tex",
+  "unit": "%",
+  "configuration": "streaming TF32/bf16, graph, admitted rows",
+  "source_artifact": "streaming_precision.json",
+  "tolerance": 0.02,
+  "printed": [
+   "9.6",
+   "5.0"
+  ],
+  "artifact": [
+   9.624566308113124,
+   4.969686968330267
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "app.streamprec_bf16_k1",
+  "file": "12_app_measurement.tex",
+  "unit": "x",
+  "configuration": "streaming bf16 k=1 paired median",
+  "source_artifact": "streaming_precision.json",
+  "tolerance": 0.02,
+  "printed": [
+   "0.90",
+   "1.04"
+  ],
+  "artifact": [
+   0.896229367703191,
+   1.0422558687808503
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s5.eager_graph",
+  "file": "08_limitations.tex",
+  "unit": "x",
+  "configuration": "fixed-set kernel, k<=4, N>=192",
+  "source_artifact": "fixed_set.json",
+  "tolerance": 0.03,
+  "printed": [
+   "1.7",
+   "3.4"
+  ],
+  "artifact": [
+   1.7303171015603132,
+   3.4239131253278523
+  ],
+  "status": "ok"
+ },
+ {
+  "paper_number_id": "s5.cfgs",
+  "file": "08_limitations.tex",
+  "unit": "configs",
+  "configuration": "N>192",
+  "source_artifact": "autotune.json",
+  "tolerance": 0,
+  "printed": [
+   "28",
+   "106"
+  ],
+  "artifact": [
+   28.0,
+   106.0
+  ],
+  "status": "ok"
+ }
+]

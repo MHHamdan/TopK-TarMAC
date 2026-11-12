@@ -1,0 +1,185 @@
+{
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "device": "cuda:1",
+  "device_name": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "probes": [
+    {
+      "available": [
+        "mem_efficient",
+        "math"
+      ],
+      "by_mask": {
+        "no_mask": [
+          "mem_efficient",
+          "math"
+        ],
+        "additive_float": [
+          "mem_efficient",
+          "math"
+        ],
+        "boolean": [
+          "mem_efficient",
+          "math"
+        ]
+      },
+      "arm_mask": "additive_float",
+      "n": 12,
+      "d": 16,
+      "dtype": "torch.float32",
+      "dtype_label": "fp32"
+    },
+    {
+      "available": [
+        "mem_efficient",
+        "math"
+      ],
+      "by_mask": {
+        "no_mask": [
+          "mem_efficient",
+          "math"
+        ],
+        "additive_float": [
+          "mem_efficient",
+          "math"
+        ],
+        "boolean": [
+          "mem_efficient",
+          "math"
+        ]
+      },
+      "arm_mask": "additive_float",
+      "n": 192,
+      "d": 16,
+      "dtype": "torch.float32",
+      "dtype_label": "fp32"
+    },
+    {
+      "available": [
+        "mem_efficient",
+        "math"
+      ],
+      "by_mask": {
+        "no_mask": [
+          "mem_efficient",
+          "math"
+        ],
+        "additive_float": [
+          "mem_efficient",
+          "math"
+        ],
+        "boolean": [
+          "mem_efficient",
+          "math"
+        ]
+      },
+      "arm_mask": "additive_float",
+      "n": 512,
+      "d": 16,
+      "dtype": "torch.float32",
+      "dtype_label": "fp32"
+    },
+    {
+      "available": [
+        "mem_efficient",
+        "cudnn",
+        "math"
+      ],
+      "by_mask": {
+        "no_mask": [
+          "flash",
+          "mem_efficient",
+          "cudnn",
+          "math"
+        ],
+        "additive_float": [
+          "mem_efficient",
+          "cudnn",
+          "math"
+        ],
+        "boolean": [
+          "mem_efficient",
+          "cudnn",
+          "math"
+        ]
+      },
+      "arm_mask": "additive_float",
+      "n": 12,
+      "d": 16,
+      "dtype": "torch.bfloat16",
+      "dtype_label": "bf16"
+    },
+    {
+      "available": [
+        "mem_efficient",
+        "cudnn",
+        "math"
+      ],
+      "by_mask": {
+        "no_mask": [
+          "flash",
+          "mem_efficient",
+          "cudnn",
+          "math"
+        ],
+        "additive_float": [
+          "mem_efficient",
+          "cudnn",
+          "math"
+        ],
+        "boolean": [
+          "mem_efficient",
+          "cudnn",
+          "math"
+        ]
+      },
+      "arm_mask": "additive_float",
+      "n": 192,
+      "d": 16,
+      "dtype": "torch.bfloat16",
+      "dtype_label": "bf16"
+    },
+    {
+      "available": [
+        "mem_efficient",
+        "cudnn",
+        "math"
+      ],
+      "by_mask": {
+        "no_mask": [
+          "flash",
+          "mem_efficient",
+          "cudnn",
+          "math"
+        ],
+        "additive_float": [
+          "mem_efficient",
+          "cudnn",
+          "math"
+        ],
+        "boolean": [
+          "mem_efficient",
+          "cudnn",
+          "math"
+        ]
+      },
+      "arm_mask": "additive_float",
+      "n": 512,
+      "d": 16,
+      "dtype": "torch.bfloat16",
+      "dtype_label": "bf16"
+    }
+  ],
+  "dispatched_kernel_with_additive_mask": {
+    "fp32": "fmha_cutlassF_f32_aligned_64x64_rf_sm80(PyTorchMemEffAttention::AttentionKernel<float, cutlass::arch::Sm80, true, 64, 64, 64, true, true>::Params)",
+    "bf16": "fmha_cutlassF_bf16_aligned_64x64_rf_sm80(PyTorchMemEffAttention::AttentionKernel<cutlass::bfloat16_t, cutlass::arch::Sm80, true, 64, 64, 64, true, true>::Params)",
+    "note": "default dispatcher, N=512, B=256, d=16, additive float self-mask; kernel name read from torch.profiler CUDA activity."
+  },
+  "unmasked_bf16_backend_latency": {
+    "note": "flash vs mem_efficient on the same unmasked shape, B=256, d=16, bf16, min over 30 CUDA-event samples after 20 warmups, device pinned. Direction of the bias in our fused baseline.",
+    "N192_flash_min_ms": 0.0149,
+    "N192_mem_efficient_min_ms": 0.0223,
+    "N512_flash_min_ms": 0.0388,
+    "N512_mem_efficient_min_ms": 0.0989
+  }
+}
